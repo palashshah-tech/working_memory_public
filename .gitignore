@@ -1,0 +1,22 @@
+# Dependencies
+node_modules
+.pnp
+.pnp.js
+
+# Production
+dist
+
+# Environment
+.env
+.env.local
+.env.*.local
+*.local
+
+# Vite / Misc
+.DS_Store
+.vercel
+.vscode
+
+# System
+Thumbs.db
+desktop.ini
