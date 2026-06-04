@@ -12,16 +12,23 @@ import { getAuth, signInAnonymously, signInWithEmailAndPassword, signOut, onAuth
  * or from Vercel Project Settings in production.
  */
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyDiil_B6FNiSjQFplAZiVwNkLTIh-WwVkc",
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "public-collector.firebaseapp.com",
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "public-collector",
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "public-collector.firebasestorage.app",
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "943796400498",
-  appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:943796400498:web:aab9516bf5706b6ae3edeb"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID
 };
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
+
+if (!firebaseConfig.apiKey) {
+  console.warn(
+    "[Firebase] Warning: Firebase API key is not configured. " +
+    "Please define VITE_FIREBASE_* environment variables in your deployment or local .env file."
+  );
+}
 
 // Initialize Cloud Firestore and get a reference to the service
 export const db = getFirestore(app);

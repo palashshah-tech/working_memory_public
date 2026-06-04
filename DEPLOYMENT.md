@@ -62,4 +62,11 @@ service cloud.firestore {
    - **Root Directory**: (Leave as root `./` because this repository holds only the public codebase).
    - **Build Command**: `npm run build`
    - **Output Directory**: `dist`
-5. Click **Deploy**.
+5. In the **Environment Variables** section, add the following variables:
+   - `VITE_FIREBASE_API_KEY`: `AIzaSyDiil_B6FNiSjQFplAZiVwNkLTIh-WwVkc`
+   - `VITE_FIREBASE_AUTH_DOMAIN`: `public-collector.firebaseapp.com`
+   - `VITE_FIREBASE_PROJECT_ID`: `public-collector`
+   - `VITE_FIREBASE_STORAGE_BUCKET`: `public-collector.firebasestorage.app`
+   - `VITE_FIREBASE_MESSAGING_SENDER_ID`: `943796400498`
+   - `VITE_FIREBASE_APP_ID`: `1:943796400498:web:aab9516bf5706b6ae3edeb`
+6. Click **Deploy**.
