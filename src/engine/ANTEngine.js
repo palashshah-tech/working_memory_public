@@ -20,13 +20,12 @@ const ANT_CONFIG = {
 
 const ARROWS = { left: '←', right: '→' };
 
-function getArrowHTML(direction, isTarget = false) {
+function getArrowHTML(direction) {
   const flipStyle = direction === 'left' ? 'transform: scaleX(-1);' : '';
-  const arrowColor = isTarget ? 'var(--accent-volt)' : 'rgba(255, 255, 255, 0.4)';
-  const shadowFilter = isTarget ? 'filter: drop-shadow(0 0 1.5vmin rgba(212,255,0,0.5));' : '';
+  const arrowColor = '#707a8a'; // Exact slate-gray monotone color from the reference image
   
   return `
-    <svg viewBox="0 0 100 30" class="ant-arrow ${isTarget ? 'target' : ''}" style="width: 10vmin; height: 3vmin; fill: ${arrowColor}; color: ${arrowColor}; ${flipStyle} ${shadowFilter} display: inline-block;">
+    <svg viewBox="0 0 100 30" class="ant-arrow" style="width: 10vmin; height: 3vmin; fill: ${arrowColor}; color: ${arrowColor}; ${flipStyle} display: inline-block;">
       <!-- Three stacked chevrons for fletching/feathers -->
       <path d="M 24 5 L 16 15 L 24 25 L 20 25 L 12 15 L 20 5 Z" />
       <path d="M 18 5 L 10 15 L 18 25 L 14 25 L 6 15 L 14 5 Z" />
@@ -227,8 +226,8 @@ export class ANTEngine {
     const f_dir = flank === 'congruent' ? dir : (dir === 'left' ? 'right' : 'left');
     const y = pos === 'above' ? `calc(50% - 15vmin)` : `calc(50% + 15vmin)`;
     
-    const flankArrow = getArrowHTML(f_dir, false);
-    const targetArrow = getArrowHTML(t_dir, true);
+    const flankArrow = getArrowHTML(f_dir);
+    const targetArrow = getArrowHTML(t_dir);
     
     this.container.innerHTML = `<div class="task-fixation">+</div>
       <div style="position:absolute;top:${y};left:50%;transform:translate(-50%,-50%);display:flex;align-items:center;gap:2.5vmin;">
