@@ -20,6 +20,27 @@ const ANT_CONFIG = {
 
 const ARROWS = { left: '←', right: '→' };
 
+function getArrowHTML(direction, isTarget = false) {
+  const flipStyle = direction === 'left' ? 'transform: scaleX(-1);' : '';
+  const arrowColor = isTarget ? 'var(--accent-volt)' : 'rgba(255, 255, 255, 0.4)';
+  const shadowFilter = isTarget ? 'filter: drop-shadow(0 0 1.5vmin rgba(212,255,0,0.5));' : '';
+  
+  return `
+    <svg viewBox="0 0 100 30" class="ant-arrow ${isTarget ? 'target' : ''}" style="width: 10vmin; height: 3vmin; fill: ${arrowColor}; color: ${arrowColor}; ${flipStyle} ${shadowFilter} display: inline-block;">
+      <!-- Three stacked chevrons for fletching/feathers -->
+      <path d="M 24 5 L 16 15 L 24 25 L 20 25 L 12 15 L 20 5 Z" />
+      <path d="M 18 5 L 10 15 L 18 25 L 14 25 L 6 15 L 14 5 Z" />
+      <path d="M 12 5 L 4 15 L 12 25 L 8 25 L 0 15 L 8 5 Z" />
+      <!-- Rounded nock at leftmost end -->
+      <circle cx="4" cy="15" r="1.5" />
+      <!-- Arrow shaft -->
+      <line x1="4" y1="15" x2="85" y2="15" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" />
+      <!-- Arrowhead with slight indentation at the back -->
+      <path d="M 82 7 L 98 15 L 82 23 L 86 15 Z" />
+    </svg>
+  `;
+}
+
 export class ANTEngine {
   constructor(isPractice = false) {
     this.isPractice = isPractice;
@@ -202,11 +223,16 @@ export class ANTEngine {
   }
 
   renderTarget(dir, flank, pos) {
-    const t = ARROWS[dir], f = flank === 'congruent' ? t : (dir==='left'?ARROWS.right:ARROWS.left);
+    const t_dir = dir; // 'left' or 'right'
+    const f_dir = flank === 'congruent' ? dir : (dir === 'left' ? 'right' : 'left');
     const y = pos === 'above' ? `calc(50% - 15vmin)` : `calc(50% + 15vmin)`;
+    
+    const flankArrow = getArrowHTML(f_dir, false);
+    const targetArrow = getArrowHTML(t_dir, true);
+    
     this.container.innerHTML = `<div class="task-fixation">+</div>
-      <div style="position:absolute;top:${y};left:50%;transform:translate(-50%,-50%);display:flex;gap:1vmin;font-family:var(--font-mono);font-size:7vmin;color:rgba(255,255,255,0.4)">
-        <span>${f}</span><span>${f}</span><span>${t}</span><span>${f}</span><span>${f}</span>
+      <div style="position:absolute;top:${y};left:50%;transform:translate(-50%,-50%);display:flex;align-items:center;gap:2.5vmin;">
+        ${flankArrow}${flankArrow}${targetArrow}${flankArrow}${flankArrow}
       </div>`;
   }
 }
