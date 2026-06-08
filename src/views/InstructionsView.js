@@ -1231,128 +1231,178 @@ export function InstructionsView(params = {}) {
 
     // ── VWM Distractor ───────────────────────────────────────────────
     if (task === 'vwm-distractor') {
+
+      // Same scatter positions as VWM Pure for spatial consistency
+      const DPOS = [
+        { top: '16%', left: '10%'  },  // target 1 — top-left
+        { top: '12%', left: '60%'  },  // distractor — top-right
+        { top: '54%', left: '20%'  },  // distractor — bottom-left
+        { top: '50%', left: '56%'  },  // target 2 — bottom-right
+      ];\n
+      function dtSq(c, posIdx, cls = '', extra = '') {
+        const p = DPOS[posIdx];
+        return `<div class="vd-ts-sq ${cls}" style="top:${p.top};left:${p.left};background:${c.bg};box-shadow:0 0 20px ${c.glow};${extra}"></div>`;
+      }
+      const whiteSq = (posIdx, opacity = '1', delay = 0) => {
+        const p = DPOS[posIdx];
+        return `<div class="vd-ts-sq" style="top:${p.top};left:${p.left};background:#fff;box-shadow:0 0 14px rgba(255,255,255,0.3);opacity:${opacity};animation:vd-spring-in 0.55s cubic-bezier(0.34,1.56,0.64,1) both;animation-delay:${delay}ms"></div>`;
+      };
+      function dtOutline(posIdx, delay = 0) {
+        const p = DPOS[posIdx];
+        return `<div class="vd-ts-sq vd-ts-sq--outline" style="top:${p.top};left:${p.left};animation-delay:${delay}ms"></div>`;
+      }
+
+      // Step 0: full array — study phase (reused for step 1 with label change)
+      const studyArray = `<div class="vd-task-screen">
+        ${dtSq(SQ_COLORS[0], 0, 'vd-sq--flash', 'animation-delay:0ms')}
+        ${whiteSq(1, '1', 80)}
+        ${whiteSq(2, '1', 160)}
+        ${dtSq(SQ_COLORS[2], 3, 'vd-sq--flash', 'animation-delay:240ms')}
+      </div>`;
+
+      // Step 1: same array but whites are ghosted — focus on colored
+      const focusArray = `<div class="vd-task-screen">
+        ${dtSq(SQ_COLORS[0], 0, '', 'animation:vd-spring-in 0.55s cubic-bezier(0.34,1.56,0.64,1) both')}
+        ${whiteSq(1, '0.1', 0)}
+        ${whiteSq(2, '0.1', 0)}
+        ${dtSq(SQ_COLORS[2], 3, '', 'animation:vd-spring-in 0.55s cubic-bezier(0.34,1.56,0.64,1) both;animation-delay:80ms')}
+        <div class="vd-ts-hold" style="font-size:7.5px;letter-spacing:0.15em;bottom:12px;">IGNORE WHITE · ENCODE COLORED</div>
+      </div>`;
+
       const demos = [
+        // Step 0 — full study array with colored + white
+        `${studyArray}
+        <div class="vd-caption">Colored = <em>targets</em> · White = <em>distractors</em><br>Both appear at the same time</div>`,
 
-        // Step 0 — Colored targets + white distractors appear together
-        `<div class="vd-scene">
-          <div class="vd-grid">
-            ${cSq(SQ_COLORS[0])}
-            <div class="vd-sq" style="background:#ffffff;box-shadow:0 0 12px rgba(255,255,255,0.25);animation:vd-spring-in 0.55s cubic-bezier(0.34,1.56,0.64,1) both;animation-delay:60ms"></div>
-            <div class="vd-sq" style="background:#ffffff;box-shadow:0 0 12px rgba(255,255,255,0.25);animation:vd-spring-in 0.55s cubic-bezier(0.34,1.56,0.64,1) both;animation-delay:120ms"></div>
-            ${cSq(SQ_COLORS[2],'')}
-          </div>
+        // Step 1 — focus on colored, ghost whites
+        `${focusArray}
+        <div class="vd-caption">Filter out the white squares<br>Encode <em>only</em> the colored ones</div>`,
+
+        // Step 2 — blank retention interval
+        `<div class="vd-task-screen">
+          <div class="vd-ts-cross" style="opacity:0.4;animation:vd-breathe 2.2s ease-in-out infinite">+</div>
+          <div class="vd-ts-hold">HOLD IN MEMORY</div>
         </div>
-        <div class="vd-caption">Colored squares = targets<br>White squares = distractors</div>`,
+        <div class="vd-caption">Screen clears — maintain the colored<br>squares in working memory</div>`,
 
-        // Step 1 — Ignore white, focus only on colored
-        `<div class="vd-scene">
-          <div class="vd-grid">
-            ${cSq(SQ_COLORS[0])}
-            <div class="vd-sq vd-sq--dim"></div>
-            <div class="vd-sq vd-sq--dim"></div>
-            ${cSq(SQ_COLORS[2],'')}
-          </div>
+        // Step 3 — probe: one colored square reappears, rest outlines
+        `<div class="vd-task-screen">
+          ${dtSq(SQ_COLORS[0], 0, 'vd-sq--probe', 'animation-delay:0ms')}
+          ${dtOutline(1, 60)}
+          ${dtOutline(2, 120)}
+          ${dtOutline(3, 180)}
+          <div class="vd-ts-cross" style="opacity:0.15">+</div>
         </div>
-        <div class="vd-caption">Tune out the white squares<br>Remember <em>only</em> the colored ones</div>`,
+        <div class="vd-caption">One target reappears colored<br>All other positions show as outlines</div>`,
 
-        // Step 2 — Blank retention
-        `<div class="vd-hold-wrap">
-          <div class="vd-hold-grid">
-            <div class="vd-hold-sq"></div><div class="vd-hold-sq"></div>
-            <div class="vd-hold-sq"></div><div class="vd-hold-sq"></div>
-          </div>
-          <div class="vd-hold-label">HOLD IN MEMORY</div>
-        </div>
-        <div class="vd-caption">Blank screen — hold the colored<br>items in working memory</div>`,
-
-        // Step 3 — Probe reappears colored, rest outlines
-        `<div class="vd-scene">
-          <div class="vd-grid">
-            <div class="vd-sq vd-sq--blank"></div>
-            ${cSq(SQ_COLORS[0],'vd-sq--probe')}
-            <div class="vd-sq vd-sq--blank"></div>
-            <div class="vd-sq vd-sq--blank"></div>
-          </div>
-        </div>
-        <div class="vd-caption">One colored item reappears<br>Other positions show as outlines</div>`,
-
-        // Step 4 — Decide same/different
-        `<div class="vd-scene">
-          <div class="vd-decision">
+        // Step 4 — decide: reuse probe screen + overlay S/D decision
+        `<div class="vd-task-screen">
+          ${dtSq(SQ_COLORS[0], 0, 'vd-sq--probe', 'animation-delay:0ms')}
+          ${dtOutline(1, 60)}${dtOutline(2, 120)}${dtOutline(3, 180)}
+          <div class="vd-ts-cross" style="opacity:0.12">+</div>
+          <div class="vd-decision" style="position:absolute;bottom:14px;left:50%;transform:translateX(-50%);">
             <div class="vd-key vd-key--s">S &nbsp;Same</div>
             <div class="vd-key vd-key--d">D &nbsp;Diff</div>
           </div>
         </div>
-        <div class="vd-caption">Is the probed color the <em>same</em><br>as what you saw before?</div>`,
+        <div class="vd-caption">Is this color the <em>same</em> as before?<br>Press S or D</div>`,
 
-        // Step 5 — Accuracy matters
-        `<div class="vd-scene">
+        // Step 5 — accuracy (reuses a clean panel moment)
+        `<div class="vd-task-screen" style="display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px;">
           <div class="vd-accuracy">✓</div>
         </div>
-        <div class="vd-caption">Accuracy is the priority<br>Take your time on each trial</div>`,
+        <div class="vd-caption">Accuracy is the goal<br>Take your time — speed doesn't matter</div>`,
       ];
       return demos[idx] || '';
     }
 
     // ── ANT ──────────────────────────────────────────────────────────
     if (task === 'ant') {
+
+      // ANT task screen: fixation cross always at center,
+      // flanker row appears above or below it — exactly as in the real task.
+
+      // Congruent flanker: →→→→→ (all pointing same way)
+      const congruentRow = (dir = '→') =>
+        `<div class="vd-ant-flanker-row">
+          <span class="vd-ant-arrow">${dir}</span>
+          <span class="vd-ant-arrow">${dir}</span>
+          <span class="vd-ant-arrow--center">${dir}</span>
+          <span class="vd-ant-arrow">${dir}</span>
+          <span class="vd-ant-arrow">${dir}</span>
+        </div>`;
+
+      // Incongruent flanker: →→←→→ (center opposes flankers)
+      const incongruentRow = () =>
+        `<div class="vd-ant-flanker-row">
+          <span class="vd-ant-arrow vd-ant-arrow--dim">→</span>
+          <span class="vd-ant-arrow vd-ant-arrow--dim">→</span>
+          <span class="vd-ant-arrow--center-volt">←</span>
+          <span class="vd-ant-arrow vd-ant-arrow--dim">→</span>
+          <span class="vd-ant-arrow vd-ant-arrow--dim">→</span>
+        </div>`;
+
+      // Reusable ANT task screen builder
+      // rowHtml: flanker row HTML | rowPos: 'top'|'bottom'|null
+      function antScreen(rowHtml, rowPos, crossOpacity = 0.75, extra = '') {
+        const rowStyle = rowPos === 'top'
+          ? 'position:absolute;top:18%;left:50%;transform:translateX(-50%);'
+          : rowPos === 'bottom'
+          ? 'position:absolute;bottom:18%;left:50%;transform:translateX(-50%);'
+          : '';
+        return `<div class="vd-task-screen">
+          <div class="vd-ts-ring"></div>
+          <div class="vd-ts-ring"></div>
+          <div class="vd-ts-cross" style="opacity:${crossOpacity}">${extra || '+'}</div>
+          ${rowHtml ? `<div style="${rowStyle}animation:vd-arrow-slide-in 0.55s cubic-bezier(0.16,1,0.3,1) both;animation-delay:80ms">${rowHtml}</div>` : ''}
+        </div>`;
+      }
+
+      // Smart consolidation: 6 instruction steps → 4 distinct visuals
+      // Steps 2 & 3 both benefit from seeing the actual flanker display
       const demos = [
+        // Step 0 — Fixation only
+        `${antScreen('', null)}
+        <div class="vd-caption">A fixation cross sits at center<br>Fix your gaze on it</div>`,
 
-        // Step 0 — Fixation cross center
-        `<div class="vd-scene">
-          <div class="vd-fixation">
-            <div class="vd-fix-ring"></div>
-            <div class="vd-fix-ring"></div>
-            <div class="vd-fix-cross">+</div>
+        // Step 1 — Cue circle flashes above cross
+        `<div class="vd-task-screen">
+          <div class="vd-ts-ring"></div><div class="vd-ts-ring"></div>
+          <div style="position:absolute;top:22%;left:50%;transform:translateX(-50%);">
+            <div class="vd-cue-circle"></div>
           </div>
+          <div class="vd-ts-cross" style="opacity:0.65">+</div>
         </div>
-        <div class="vd-caption">Keep eyes on the center cross<br>at all times</div>`,
+        <div class="vd-caption">A brief circle cue flashes<br>above or below the cross</div>`,
 
-        // Step 1 — Cue circle flashes above or below
-        `<div class="vd-cue-wrap">
-          <div class="vd-cue-circle"></div>
-          <div class="vd-cue-cross">+</div>
-        </div>
-        <div class="vd-caption">A small circle cue briefly flashes<br>above or below the cross</div>`,
+        // Step 2 — Congruent: all arrows same direction, above fixation
+        `${antScreen(congruentRow('←'), 'top')}
+        <div class="vd-caption">5 arrows appear above or below<br>All point the <em>same</em> direction here</div>`,
 
-        // Step 2 — Arrow row appears above/below fixation (congruent flankers)
-        `<div class="vd-ant-scene">
-          <div class="vd-ant-flanker-row">
-            <span class="vd-ant-arrow">←</span><span class="vd-ant-arrow">←</span>
-            <span class="vd-ant-arrow--center">←</span>
-            <span class="vd-ant-arrow">←</span><span class="vd-ant-arrow">←</span>
+        // Step 3 — Incongruent: center arrow opposes flankers
+        `${antScreen(incongruentRow(), 'top', 0.35)}
+        <div class="vd-caption">The center arrow can <em>oppose</em> the flankers<br>Always judge <em>only</em> the center one</div>`,
+
+        // Step 4 — Response keys
+        `<div class="vd-task-screen" style="display:flex;align-items:center;justify-content:center;flex-direction:column;gap:18px;">
+          <div style="animation:vd-arrow-slide-in 0.5s cubic-bezier(0.16,1,0.3,1) both">
+            ${incongruentRow()}
           </div>
-          <div class="vd-ant-cross">+</div>
-        </div>
-        <div class="vd-caption">5 arrows appear above or below<br>the fixation cross</div>`,
-
-        // Step 3 — Identify CENTER arrow only (incongruent example)
-        `<div class="vd-ant-scene">
-          <div class="vd-ant-flanker-row">
-            <span class="vd-ant-arrow vd-ant-arrow--dim">→</span>
-            <span class="vd-ant-arrow vd-ant-arrow--dim">→</span>
-            <span class="vd-ant-arrow--center-volt">←</span>
-            <span class="vd-ant-arrow vd-ant-arrow--dim">→</span>
-            <span class="vd-ant-arrow vd-ant-arrow--dim">→</span>
-          </div>
-          <div class="vd-ant-cross">+</div>
-        </div>
-        <div class="vd-caption">Ignore the flanking arrows<br>Judge <em>only</em> the center one</div>`,
-
-        // Step 4 — Press ← or →
-        `<div class="vd-scene">
-          <div class="vd-lr-keys">
+          <div class="vd-lr-keys" style="animation:vd-fade-up 0.45s cubic-bezier(0.16,1,0.3,1) both;animation-delay:120ms">
             <div class="vd-lr-key vd-lr-key--l">← Left</div>
             <div class="vd-lr-key vd-lr-key--r">Right →</div>
           </div>
         </div>
-        <div class="vd-caption">Press the arrow key matching<br>the center arrow's direction</div>`,
+        <div class="vd-caption">Press the key that matches<br>the <em>center</em> arrow's direction</div>`,
 
-        // Step 5 — Speed
-        `<div class="vd-scene">
-          <div class="vd-speed">⚡</div>
+        // Step 5 — Speed emphasis with the stimulus still visible
+        `<div class="vd-task-screen" style="display:flex;align-items:center;justify-content:center;flex-direction:column;gap:14px;">
+          <div style="animation:vd-arrow-slide-in 0.5s cubic-bezier(0.16,1,0.3,1) both">
+            ${congruentRow('→')}
+          </div>
+          <div class="vd-speed" style="font-size:1.8rem;animation-delay:100ms">⚡</div>
         </div>
-        <div class="vd-caption">Respond as fast and accurately<br>as possible — every ms counts</div>`,
+        <div class="vd-caption">Respond as fast and accurately<br>as possible — every millisecond counts</div>`,
       ];
       return demos[idx] || '';
     }
