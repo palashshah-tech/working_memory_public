@@ -211,24 +211,24 @@ export function InstructionsView(params = {}) {
     .iv-demo-panel {
       position: fixed;
       top: 50%;
-      right: 48px;
-      transform: translateY(-50%) translateX(20px);
-      width: 260px;
-      background: rgba(12, 12, 14, 0.85);
-      backdrop-filter: blur(40px);
-      -webkit-backdrop-filter: blur(40px);
-      border: 1px solid rgba(255,255,255,0.07);
-      border-radius: 10px;
-      padding: 28px 24px;
+      left: 50%;
+      transform: translate(-50%, -50%) scale(0.88);
+      width: 300px;
+      background: rgba(10, 10, 12, 0.92);
+      backdrop-filter: blur(48px);
+      -webkit-backdrop-filter: blur(48px);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 14px;
+      padding: 36px 32px;
       z-index: 9999;
       pointer-events: none;
       opacity: 0;
-      transition: opacity 0.55s cubic-bezier(0.4,0,0.2,1), transform 0.55s cubic-bezier(0.4,0,0.2,1);
-      box-shadow: 0 32px 80px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.06);
+      transition: opacity 0.45s cubic-bezier(0.4,0,0.2,1), transform 0.45s cubic-bezier(0.4,0,0.2,1);
+      box-shadow: 0 40px 100px rgba(0,0,0,0.85), inset 0 1px 0 rgba(255,255,255,0.07);
     }
     .iv-demo-panel.visible {
       opacity: 1;
-      transform: translateY(-50%) translateX(0);
+      transform: translate(-50%, -50%) scale(1);
     }
     .iv-demo-label {
       font-family: var(--font-mono);
