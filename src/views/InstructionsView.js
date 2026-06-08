@@ -1219,10 +1219,10 @@ export function InstructionsView(params = {}) {
           ${tsOutline(2, 40)}
           ${tsOutline(3, 80)}
           <div class="vd-ts-cross" style="opacity:0.2">+</div>
-          <div class="vd-decision" style="position:absolute;bottom:14px;left:50%;transform:translateX(-50%);">
-            <div class="vd-key vd-key--s">S &nbsp;Same</div>
-            <div class="vd-key vd-key--d">D &nbsp;Diff</div>
-          </div>
+        </div>
+        <div class="vd-decision">
+          <div class="vd-key vd-key--s">S &nbsp;Same</div>
+          <div class="vd-key vd-key--d">D &nbsp;Diff</div>
         </div>
         <div class="vd-caption">One square probed — same color<br>as before, or <em>different</em>?</div>`,
       ];
@@ -1238,7 +1238,7 @@ export function InstructionsView(params = {}) {
         { top: '12%', left: '60%'  },  // distractor — top-right
         { top: '54%', left: '20%'  },  // distractor — bottom-left
         { top: '50%', left: '56%'  },  // target 2 — bottom-right
-      ];\n
+      ];
       function dtSq(c, posIdx, cls = '', extra = '') {
         const p = DPOS[posIdx];
         return `<div class="vd-ts-sq ${cls}" style="top:${p.top};left:${p.left};background:${c.bg};box-shadow:0 0 20px ${c.glow};${extra}"></div>`;
