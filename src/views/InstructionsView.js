@@ -1313,10 +1313,10 @@ export function InstructionsView(params = {}) {
           ${dtSq(SQ_COLORS[0], 0, 'vd-sq--probe', 'animation-delay:0ms')}
           ${dtOutline(1, 60)}${dtOutline(2, 120)}${dtOutline(3, 180)}
           <div class="vd-ts-cross" style="opacity:0.12">+</div>
-          <div class="vd-decision" style="position:absolute;bottom:14px;left:50%;transform:translateX(-50%);">
-            <div class="vd-key vd-key--s">S &nbsp;Same</div>
-            <div class="vd-key vd-key--d">D &nbsp;Diff</div>
-          </div>
+        </div>
+        <div class="vd-decision">
+          <div class="vd-key vd-key--s">S &nbsp;Same</div>
+          <div class="vd-key vd-key--d">D &nbsp;Diff</div>
         </div>
         <div class="vd-caption">Is this color the <em>same</em> as before?<br>Press S or D</div>`,
 
@@ -1387,7 +1387,7 @@ export function InstructionsView(params = {}) {
           <div class="vd-ts-ring"></div>
           <div class="vd-ts-ring"></div>
           <div class="vd-ts-cross" style="opacity:${crossOpacity}">${extra || '+'}</div>
-          ${rowHtml ? `<div style="${rowStyle}animation:vd-arrow-slide-in 0.55s cubic-bezier(0.16,1,0.3,1) both;animation-delay:80ms">${rowHtml}</div>` : ''}
+          ${rowHtml ? `<div style="${rowStyle}"><div style="animation:vd-arrow-slide-in 0.55s cubic-bezier(0.16,1,0.3,1) both;animation-delay:80ms">${rowHtml}</div></div>` : ''}
         </div>`;
       }
 
