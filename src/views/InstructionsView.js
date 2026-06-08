@@ -213,18 +213,18 @@ export function InstructionsView(params = {}) {
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%) scale(0.88);
-      width: 300px;
-      background: rgba(10, 10, 12, 0.92);
-      backdrop-filter: blur(48px);
-      -webkit-backdrop-filter: blur(48px);
-      border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 14px;
-      padding: 36px 32px;
+      width: 500px;
+      background: rgba(4, 4, 6, 0.38);
+      backdrop-filter: blur(72px);
+      -webkit-backdrop-filter: blur(72px);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 20px;
+      padding: 28px 28px 24px;
       z-index: 9999;
       pointer-events: none;
       opacity: 0;
       transition: opacity 0.45s cubic-bezier(0.4,0,0.2,1), transform 0.45s cubic-bezier(0.4,0,0.2,1);
-      box-shadow: 0 40px 100px rgba(0,0,0,0.85), inset 0 1px 0 rgba(255,255,255,0.07);
+      box-shadow: 0 0 0 1px rgba(255,255,255,0.03), 0 40px 100px rgba(0,0,0,0.55);
     }
     .iv-demo-panel.visible {
       opacity: 1;
@@ -236,28 +236,91 @@ export function InstructionsView(params = {}) {
       font-size: 9px;
       letter-spacing: 0.26em;
       color: var(--accent-volt);
-      margin-bottom: 22px;
-      opacity: 0.8;
+      margin-bottom: 16px;
+      opacity: 0.7;
     }
     .iv-demo-stage {
       width: 100%;
-      min-height: 160px;
+      min-height: 200px;
       display: flex;
       align-items: center;
       justify-content: center;
       flex-direction: column;
-      gap: 20px;
+      gap: 16px;
     }
     .vd-caption {
       font-family: var(--font-mono);
-      font-size: 0.68rem;
-      color: #52525b;
+      font-size: 0.66rem;
+      color: rgba(255,255,255,0.28);
       text-align: center;
-      line-height: 1.55;
-      letter-spacing: 0.04em;
-      max-width: 240px;
+      line-height: 1.6;
+      letter-spacing: 0.05em;
+      max-width: 300px;
       animation: vd-fade-up 0.5s cubic-bezier(0.16,1,0.3,1) both;
-      animation-delay: 220ms;
+      animation-delay: 240ms;
+    }
+    .vd-caption em {
+      color: rgba(255,255,255,0.55);
+      font-style: normal;
+    }
+
+    /* ── Task Screen: the miniature task viewport ── */
+    .vd-task-screen {
+      position: relative;
+      width: 100%;
+      height: 200px;
+      border-radius: 10px;
+      background: rgba(0,0,0,0.28);
+      border: 1px solid rgba(255,255,255,0.04);
+      overflow: hidden;
+      animation: vd-fade-up 0.38s cubic-bezier(0.16,1,0.3,1) both;
+    }
+    /* Center fixation cross inside task screen */
+    .vd-ts-cross {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%,-50%);
+      font-size: 1.8rem;
+      font-weight: 300;
+      color: rgba(255,255,255,0.75);
+      line-height: 1;
+      animation: vd-breathe 2.2s ease-in-out infinite;
+      z-index: 2;
+    }
+    /* Expanding ring from cross */
+    .vd-ts-ring {
+      position: absolute;
+      top: 50%; left: 50%;
+      width: 48px; height: 48px;
+      margin: -24px 0 0 -24px;
+      border-radius: 50%;
+      border: 1px solid rgba(255,255,255,0.1);
+      animation: vd-ring-out 2.4s cubic-bezier(0.16,1,0.3,1) infinite;
+    }
+    .vd-ts-ring:nth-child(2) { animation-delay: 1.2s; }
+    /* Scattered square: absolute positioned within task screen */
+    .vd-ts-sq {
+      position: absolute;
+      width: 40px; height: 40px;
+      border-radius: 5px;
+    }
+    /* Probe outline (blank squares at test phase) */
+    .vd-ts-sq--outline {
+      background: transparent !important;
+      box-shadow: none !important;
+      border: 1.5px solid rgba(255,255,255,0.12);
+      animation: vd-spring-in 0.5s cubic-bezier(0.34,1.56,0.64,1) both;
+    }
+    /* "HOLD" label overlay */
+    .vd-ts-hold {
+      position: absolute;
+      bottom: 14px; left: 50%;
+      transform: translateX(-50%);
+      font-family: var(--font-mono);
+      font-size: 8px;
+      letter-spacing: 0.22em;
+      color: rgba(255,255,255,0.18);
+      animation: vd-breathe 2s ease-in-out infinite;
     }
 
     /* ── Spring entrance keyframes ── */
@@ -1103,51 +1166,65 @@ export function InstructionsView(params = {}) {
 
     // ── VWM Pure ─────────────────────────────────────────────────────
     if (task === 'vwm-pure') {
+
+      // Scatter positions: organic spread mimicking actual random VWM placement
+      // pos = { top, left } in percent, relative to task screen
+      const POS = [
+        { top: '18%', left: '12%'  },  // top-left quadrant
+        { top: '14%', left: '62%'  },  // top-right
+        { top: '56%', left: '22%'  },  // bottom-left
+        { top: '52%', left: '58%'  },  // bottom-right
+      ];
+
+      // Build a square at a specific scatter position
+      function tsSq(c, posIdx, cls = '', extra = '') {
+        const p = POS[posIdx];
+        return `<div class="vd-ts-sq ${cls}" style="top:${p.top};left:${p.left};background:${c.bg};box-shadow:0 0 20px ${c.glow};${extra}"></div>`;
+      }
+      function tsOutline(posIdx, delay = 0) {
+        const p = POS[posIdx];
+        return `<div class="vd-ts-sq vd-ts-sq--outline" style="top:${p.top};left:${p.left};animation-delay:${delay}ms"></div>`;
+      }
+
       const demos = [
 
         // Step 0 — Fixation cross
-        `<div class="vd-scene">
-          <div class="vd-fixation">
-            <div class="vd-fix-ring"></div>
-            <div class="vd-fix-ring"></div>
-            <div class="vd-fix-cross">+</div>
-          </div>
+        `<div class="vd-task-screen">
+          <div class="vd-ts-ring"></div>
+          <div class="vd-ts-ring"></div>
+          <div class="vd-ts-cross">+</div>
         </div>
-        <div class="vd-caption">Keep your eyes on the cross<br>until the squares appear</div>`,
+        <div class="vd-caption">Keep eyes on the cross<br>until the squares appear</div>`,
 
-        // Step 1 — Colored squares flash in briefly
-        `<div class="vd-scene">
-          <div class="vd-grid">
-            ${cSq(SQ_COLORS[0],'vd-sq--flash')}${cSq(SQ_COLORS[3],'vd-sq--flash')}
-            ${cSq(SQ_COLORS[1],'vd-sq--flash')}${cSq(SQ_COLORS[2],'vd-sq--flash')}
-          </div>
+        // Step 1 — Colored squares at scattered, natural positions
+        `<div class="vd-task-screen">
+          ${tsSq(SQ_COLORS[0], 0, 'vd-sq--flash', 'animation-delay:0ms')}
+          ${tsSq(SQ_COLORS[3], 1, 'vd-sq--flash', 'animation-delay:80ms')}
+          ${tsSq(SQ_COLORS[1], 2, 'vd-sq--flash', 'animation-delay:160ms')}
+          ${tsSq(SQ_COLORS[2], 3, 'vd-sq--flash', 'animation-delay:240ms')}
         </div>
-        <div class="vd-caption">4 colored squares flash briefly<br>Memorize <em>every</em> color</div>`,
+        <div class="vd-caption">Colored squares flash at random positions<br>Memorize <em>every</em> color</div>`,
 
-        // Step 2 — Blank screen, hold in memory
-        `<div class="vd-hold-wrap">
-          <div class="vd-hold-grid">
-            <div class="vd-hold-sq"></div><div class="vd-hold-sq"></div>
-            <div class="vd-hold-sq"></div><div class="vd-hold-sq"></div>
-          </div>
-          <div class="vd-hold-label">RETENTION INTERVAL</div>
+        // Step 2 — Blank screen, squares gone — hold in memory
+        `<div class="vd-task-screen">
+          <div class="vd-ts-cross" style="animation:vd-breathe 2.2s ease-in-out infinite; opacity:0.4">+</div>
+          <div class="vd-ts-hold">RETENTION INTERVAL</div>
         </div>
-        <div class="vd-caption">Screen clears — hold all colors<br>in your mind</div>`,
+        <div class="vd-caption">Screen clears — hold all colors<br>in working memory</div>`,
 
-        // Step 3 — Probe + respond
-        `<div class="vd-scene">
-          <div class="vd-grid">
-            <div class="vd-sq vd-sq--blank"></div>
-            ${cSq(SQ_COLORS[3],'vd-sq--probe')}
-            <div class="vd-sq vd-sq--blank"></div>
-            <div class="vd-sq vd-sq--blank"></div>
-          </div>
-          <div class="vd-decision">
+        // Step 3 — Probe at one position, rest are outlines
+        `<div class="vd-task-screen">
+          ${tsOutline(0, 0)}
+          ${tsSq(SQ_COLORS[3], 1, 'vd-sq--probe', 'animation-delay:80ms')}
+          ${tsOutline(2, 40)}
+          ${tsOutline(3, 80)}
+          <div class="vd-ts-cross" style="opacity:0.2">+</div>
+          <div class="vd-decision" style="position:absolute;bottom:14px;left:50%;transform:translateX(-50%);">
             <div class="vd-key vd-key--s">S &nbsp;Same</div>
             <div class="vd-key vd-key--d">D &nbsp;Diff</div>
           </div>
         </div>
-        <div class="vd-caption">One square reappears — is its<br>color the <em>same</em> or <em>different</em>?</div>`,
+        <div class="vd-caption">One square probed — same color<br>as before, or <em>different</em>?</div>`,
       ];
       return demos[idx] || '';
     }
