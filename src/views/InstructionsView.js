@@ -57,7 +57,7 @@ const getTaskInfo = () => ({
     title: t('t3_title'),
     tag: t('t3_tag'),
     summary: t('t3_sum'),
-    steps: [ t('t3_s1'), t('t3_s2'), t('t3_s3'), t('t3_s4'), t('t3_s5'), t('t3_s6') ],
+    steps: [ t('t3_s1'), t('t3_s3'), t('t3_s4'), t('t3_s5'), t('t3_s6') ],
     keys: [{ label: t('key_left'), key: '←', color: '#34d399' }, { label: t('key_right'), key: '→', color: '#f87171' }],
   },
 });
@@ -543,27 +543,34 @@ export function InstructionsView(params = {}) {
     .vd-ant-flanker-row {
       display: flex;
       align-items: center;
-      gap: 2px;
+      gap: 1.8vmin;
       animation: vd-arrow-slide-in 0.55s cubic-bezier(0.16,1,0.3,1) both;
       animation-delay: 60ms;
     }
+    .vd-ant-arrow-svg {
+      display: inline-block;
+      fill: currentColor;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
     .vd-ant-arrow {
-      font-size: 1.55rem;
-      line-height: 1;
-      color: #71717a;
+      width: 6.5vmin;
+      height: 1.95vmin;
+      color: #707a8a;
     }
     .vd-ant-arrow--center {
-      font-size: 1.85rem;
+      width: 7.8vmin;
+      height: 2.34vmin;
       color: #ffffff;
       position: relative;
     }
     .vd-ant-arrow--center-volt {
-      font-size: 1.85rem;
+      width: 7.8vmin;
+      height: 2.34vmin;
       color: var(--accent-volt);
       position: relative;
     }
     .vd-ant-arrow--dim {
-      color: rgba(113,113,122,0.25);
+      color: rgba(112, 122, 138, 0.25);
     }
 
     /* ── Cue ── */
@@ -1328,24 +1335,44 @@ export function InstructionsView(params = {}) {
       // ANT task screen: fixation cross always at center,
       // flanker row appears above or below it — exactly as in the real task.
 
-      // Congruent flanker: →→→→→ (all pointing same way)
-      const congruentRow = (dir = '→') =>
-        `<div class="vd-ant-flanker-row">
-          <span class="vd-ant-arrow">${dir}</span>
-          <span class="vd-ant-arrow">${dir}</span>
-          <span class="vd-ant-arrow--center">${dir}</span>
-          <span class="vd-ant-arrow">${dir}</span>
-          <span class="vd-ant-arrow">${dir}</span>
-        </div>`;
+      const getArrowSVG = (direction, extraClass = '') => {
+        const flipStyle = (direction === 'left' || direction === '←') ? 'transform: scaleX(-1);' : '';
+        return `
+          <svg viewBox="0 0 100 30" class="vd-ant-arrow-svg ${extraClass}" style="${flipStyle}">
+            <!-- Three stacked chevrons for fletching/feathers -->
+            <path d="M 24 5 L 16 15 L 24 25 L 20 25 L 12 15 L 20 5 Z" />
+            <path d="M 18 5 L 10 15 L 18 25 L 14 25 L 6 15 L 14 5 Z" />
+            <path d="M 12 5 L 4 15 L 12 25 L 8 25 L 0 15 L 8 5 Z" />
+            <!-- Rounded nock at leftmost end -->
+            <circle cx="4" cy="15" r="1.5" />
+            <!-- Arrow shaft -->
+            <line x1="4" y1="15" x2="85" y2="15" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" />
+            <!-- Arrowhead with slight indentation at the back -->
+            <path d="M 82 7 L 98 15 L 82 23 L 86 15 Z" />
+          </svg>
+        `;
+      };
 
-      // Incongruent flanker: →→←→→ (center opposes flankers)
+      // Congruent flanker: all pointing same way
+      const congruentRow = (dir = 'right') => {
+        const d = (dir === 'left' || dir === '←') ? 'left' : 'right';
+        return `<div class="vd-ant-flanker-row">
+          ${getArrowSVG(d, 'vd-ant-arrow')}
+          ${getArrowSVG(d, 'vd-ant-arrow')}
+          ${getArrowSVG(d, 'vd-ant-arrow--center')}
+          ${getArrowSVG(d, 'vd-ant-arrow')}
+          ${getArrowSVG(d, 'vd-ant-arrow')}
+        </div>`;
+      };
+
+      // Incongruent flanker: center opposes flankers
       const incongruentRow = () =>
         `<div class="vd-ant-flanker-row">
-          <span class="vd-ant-arrow vd-ant-arrow--dim">→</span>
-          <span class="vd-ant-arrow vd-ant-arrow--dim">→</span>
-          <span class="vd-ant-arrow--center-volt">←</span>
-          <span class="vd-ant-arrow vd-ant-arrow--dim">→</span>
-          <span class="vd-ant-arrow vd-ant-arrow--dim">→</span>
+          ${getArrowSVG('right', 'vd-ant-arrow vd-ant-arrow--dim')}
+          ${getArrowSVG('right', 'vd-ant-arrow vd-ant-arrow--dim')}
+          ${getArrowSVG('left', 'vd-ant-arrow--center-volt')}
+          ${getArrowSVG('right', 'vd-ant-arrow vd-ant-arrow--dim')}
+          ${getArrowSVG('right', 'vd-ant-arrow vd-ant-arrow--dim')}
         </div>`;
 
       // Reusable ANT task screen builder
@@ -1364,32 +1391,21 @@ export function InstructionsView(params = {}) {
         </div>`;
       }
 
-      // Smart consolidation: 6 instruction steps → 4 distinct visuals
-      // Steps 2 & 3 both benefit from seeing the actual flanker display
+      // Smart consolidation: 5 instruction steps now
       const demos = [
         // Step 0 — Fixation only
         `${antScreen('', null)}
         <div class="vd-caption">A fixation cross sits at center<br>Fix your gaze on it</div>`,
 
-        // Step 1 — Cue circle flashes above cross
-        `<div class="vd-task-screen">
-          <div class="vd-ts-ring"></div><div class="vd-ts-ring"></div>
-          <div style="position:absolute;top:22%;left:50%;transform:translateX(-50%);">
-            <div class="vd-cue-circle"></div>
-          </div>
-          <div class="vd-ts-cross" style="opacity:0.65">+</div>
-        </div>
-        <div class="vd-caption">A brief circle cue flashes<br>above or below the cross</div>`,
-
-        // Step 2 — Congruent: all arrows same direction, above fixation
+        // Step 1 — Congruent: all arrows same direction, above fixation
         `${antScreen(congruentRow('←'), 'top')}
         <div class="vd-caption">5 arrows appear above or below<br>All point the <em>same</em> direction here</div>`,
 
-        // Step 3 — Incongruent: center arrow opposes flankers
+        // Step 2 — Incongruent: center arrow opposes flankers
         `${antScreen(incongruentRow(), 'top', 0.35)}
         <div class="vd-caption">The center arrow can <em>oppose</em> the flankers<br>Always judge <em>only</em> the center one</div>`,
 
-        // Step 4 — Response keys
+        // Step 3 — Response keys
         `<div class="vd-task-screen" style="display:flex;align-items:center;justify-content:center;flex-direction:column;gap:18px;">
           <div style="animation:vd-arrow-slide-in 0.5s cubic-bezier(0.16,1,0.3,1) both">
             ${incongruentRow()}
@@ -1401,7 +1417,7 @@ export function InstructionsView(params = {}) {
         </div>
         <div class="vd-caption">Press the key that matches<br>the <em>center</em> arrow's direction</div>`,
 
-        // Step 5 — Speed emphasis with the stimulus still visible
+        // Step 4 — Speed emphasis with the stimulus still visible
         `<div class="vd-task-screen" style="display:flex;align-items:center;justify-content:center;flex-direction:column;gap:14px;">
           <div style="animation:vd-arrow-slide-in 0.5s cubic-bezier(0.16,1,0.3,1) both">
             ${congruentRow('→')}
