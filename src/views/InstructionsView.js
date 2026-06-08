@@ -148,15 +148,20 @@ export function InstructionsView(params = {}) {
                   <div class="iv-distractor-card-premium">
                     <div class="iv-dist-head">DIAGNOSTIC MATRIX // DISTRACTOR NOISE</div>
                     <div class="iv-dist-display">
-                      <div class="iv-dist-sq-p vwm-target"></div>
-                      <div class="iv-dist-sq-p vwm-target"></div>
+                      <div class="iv-dist-sq-p vwm-target" style="background:#e74c3c; box-shadow: 0 0 15px rgba(231,76,60,0.35);"></div>
+                      <div class="iv-dist-sq-p vwm-target" style="background:#27ae60; box-shadow: 0 0 15px rgba(39,174,96,0.35);"></div>
                       <div class="iv-dist-sq-p vwm-noise"></div>
-                      <div class="iv-dist-sq-p vwm-target"></div>
+                      <div class="iv-dist-sq-p vwm-target" style="background:#f39c12; box-shadow: 0 0 15px rgba(243,156,18,0.35);"></div>
                       <div class="iv-dist-sq-p vwm-noise"></div>
                     </div>
                     <div class="iv-dist-legend-p">
-                      <span><span class="dot-p target-dot"></span> TARGET</span>
-                      <span><span class="dot-p noise-dot"></span> DISTRACTOR</span>
+                      <span>
+                        <span class="dot-p" style="background:#e74c3c;"></span>
+                        <span class="dot-p" style="background:#27ae60; margin-left:-4px;"></span>
+                        <span class="dot-p" style="background:#f39c12; margin-left:-4px;"></span>
+                        &nbsp;TARGETS
+                      </span>
+                      <span><span class="dot-p noise-dot"></span> DISTRACTORS</span>
                     </div>
                     <p class="iv-dist-text-p">${t('dist_tip')}</p>
                   </div>
@@ -529,8 +534,8 @@ export function InstructionsView(params = {}) {
     }
 
     .vwm-noise {
-      background: transparent;
-      border: 2px solid rgba(255, 255, 255, 0.25);
+      background: #ffffff;
+      box-shadow: 0 0 15px rgba(255, 255, 255, 0.2);
     }
 
     .iv-dist-legend-p {
@@ -562,7 +567,8 @@ export function InstructionsView(params = {}) {
     }
 
     .noise-dot {
-      border: 1px solid rgba(255, 255, 255, 0.3);
+      background: #ffffff;
+      box-shadow: 0 0 8px rgba(255, 255, 255, 0.25);
     }
 
     .iv-dist-text-p {
