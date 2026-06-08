@@ -1205,26 +1205,27 @@ export function InstructionsView(params = {}) {
         </div>
         <div class="vd-caption">Colored squares flash at random positions<br>Memorize <em>every</em> color</div>`,
 
-        // Step 2 — Blank screen, squares gone — hold in memory
-        `<div class="vd-task-screen">
-          <div class="vd-ts-cross" style="animation:vd-breathe 2.2s ease-in-out infinite; opacity:0.4">+</div>
-          <div class="vd-ts-hold">RETENTION INTERVAL</div>
-        </div>
-        <div class="vd-caption">Screen clears — hold all colors<br>in working memory</div>`,
-
-        // Step 3 — Probe at one position, rest are outlines
+        // Step 2 — t1_s3: "After a blank, squares reappear — indicate same/different"
+        // Show the test array: probe colored at one position, rest empty outlines
         `<div class="vd-task-screen">
           ${tsOutline(0, 0)}
           ${tsSq(SQ_COLORS[3], 1, 'vd-sq--probe', 'animation-delay:80ms')}
           ${tsOutline(2, 40)}
           ${tsOutline(3, 80)}
-          <div class="vd-ts-cross" style="opacity:0.2">+</div>
+          <div class="vd-ts-cross" style="opacity:0.18">+</div>
+        </div>
+        <div class="vd-caption">Squares reappear — one still colored<br>all others as empty outlines</div>`,
+
+        // Step 3 — t1_s4: "Respond accurately, speed is NOT important"
+        `<div class="vd-task-screen" style="display:flex;align-items:center;justify-content:center;flex-direction:column;gap:14px;">
+          <div class="vd-accuracy">✓</div>
+          <div style="font-family:var(--font-mono);font-size:8px;letter-spacing:0.2em;color:rgba(255,255,255,0.18);animation:vd-breathe 2s ease-in-out infinite;">ACCURACY · NOT SPEED</div>
         </div>
         <div class="vd-decision">
           <div class="vd-key vd-key--s">S &nbsp;Same</div>
           <div class="vd-key vd-key--d">D &nbsp;Diff</div>
         </div>
-        <div class="vd-caption">One square probed — same color<br>as before, or <em>different</em>?</div>`,
+        <div class="vd-caption">Take your time on every trial<br>Speed does <em>not</em> matter here</div>`,
       ];
       return demos[idx] || '';
     }
@@ -1274,9 +1275,14 @@ export function InstructionsView(params = {}) {
         `${studyArray}
         <div class="vd-caption">Colored = <em>targets</em> · White = <em>distractors</em><br>Both appear at the same time</div>`,
 
-        // Step 1 — focus on colored, ghost whites
-        `${focusArray}
-        <div class="vd-caption">Filter out the white squares<br>Encode <em>only</em> the colored ones</div>`,
+        // Step 1 — t2_s2: "Focus ONLY on colored — ignore everything white"
+        // No whites in the display at all — only the 2 colored targets remain
+        `<div class="vd-task-screen">
+          ${dtSq(SQ_COLORS[0], 0, '', 'animation:vd-spring-in 0.55s cubic-bezier(0.34,1.56,0.64,1) both')}
+          ${dtSq(SQ_COLORS[2], 3, '', 'animation:vd-spring-in 0.55s cubic-bezier(0.34,1.56,0.64,1) both;animation-delay:100ms')}
+          <div class="vd-ts-hold" style="font-size:7.5px;letter-spacing:0.15em;bottom:12px;">ONLY THESE MATTER</div>
+        </div>
+        <div class="vd-caption">Mentally erase the white squares<br>Encode <em>only</em> the colored ones</div>`,
 
         // Step 2 — blank retention interval
         `<div class="vd-task-screen">
