@@ -230,168 +230,320 @@ export function InstructionsView(params = {}) {
       opacity: 1;
       transform: translate(-50%, -50%) scale(1);
     }
+    /* ── Demo Panel inner typography ── */
     .iv-demo-label {
       font-family: var(--font-mono);
       font-size: 9px;
-      letter-spacing: 0.22em;
+      letter-spacing: 0.26em;
       color: var(--accent-volt);
-      margin-bottom: 18px;
+      margin-bottom: 22px;
+      opacity: 0.8;
     }
     .iv-demo-stage {
       width: 100%;
-      min-height: 130px;
+      min-height: 160px;
       display: flex;
       align-items: center;
       justify-content: center;
       flex-direction: column;
-      gap: 12px;
+      gap: 20px;
     }
-    /* Fixation cross demo */
-    .demo-fix {
-      font-size: 2.8rem;
-      color: #fff;
-      line-height: 1;
-      animation: demo-pulse 1.6s ease-in-out infinite;
+    .vd-caption {
+      font-family: var(--font-mono);
+      font-size: 0.68rem;
+      color: #52525b;
+      text-align: center;
+      line-height: 1.55;
+      letter-spacing: 0.04em;
+      max-width: 240px;
+      animation: vd-fade-up 0.5s cubic-bezier(0.16,1,0.3,1) both;
+      animation-delay: 220ms;
     }
-    @keyframes demo-pulse {
-      0%,100% { opacity: 1; transform: scale(1); }
-      50% { opacity: 0.45; transform: scale(0.92); }
+
+    /* ── Spring entrance keyframes ── */
+    @keyframes vd-spring-in {
+      0%   { opacity: 0; transform: scale(0.6) translateY(6px); }
+      60%  { opacity: 1; transform: scale(1.06) translateY(-2px); }
+      80%  { transform: scale(0.97) translateY(1px); }
+      100% { opacity: 1; transform: scale(1) translateY(0); }
     }
-    /* Colored squares demo */
-    .demo-squares {
-      display: flex;
-      gap: 10px;
-      animation: demo-fade-seq 2s ease-in-out infinite;
+    @keyframes vd-fade-up {
+      0%   { opacity: 0; transform: translateY(6px); }
+      100% { opacity: 1; transform: translateY(0); }
     }
-    .demo-sq {
-      width: 32px;
-      height: 32px;
-      border-radius: 4px;
+    @keyframes vd-breathe {
+      0%,100% { opacity: 1;  transform: scale(1); }
+      50%     { opacity: 0.4; transform: scale(0.86); }
     }
-    @keyframes demo-fade-seq {
-      0%   { opacity: 0; transform: scale(0.82); }
-      15%  { opacity: 1; transform: scale(1); }
-      55%  { opacity: 1; }
-      70%  { opacity: 0; transform: scale(0.96); }
+    @keyframes vd-ring-out {
+      0%   { transform: scale(0.9); opacity: 0.5; }
+      100% { transform: scale(2.2); opacity: 0; }
+    }
+    @keyframes vd-sq-flash {
+      0%   { opacity: 0; transform: scale(0.65); }
+      18%  { opacity: 1; transform: scale(1.07); }
+      30%  { transform: scale(1); }
+      68%  { opacity: 1; transform: scale(1); }
+      82%  { opacity: 0; transform: scale(0.92); }
       100% { opacity: 0; }
     }
-    /* Blank / hold demo */
-    .demo-blank-ring {
-      width: 56px;
-      height: 56px;
-      border-radius: 50%;
-      border: 1.5px solid rgba(255,255,255,0.18);
+    @keyframes vd-blink-out {
+      0%,45%  { opacity: 1; }
+      55%,100%{ opacity: 0; }
+    }
+    @keyframes vd-probe-pop {
+      0%   { opacity: 0; transform: scale(0.5); }
+      55%  { opacity: 1; transform: scale(1.08); }
+      75%  { transform: scale(0.96); }
+      100% { opacity: 1; transform: scale(1); }
+    }
+    @keyframes vd-key-alt {
+      0%,42%  { background: rgba(52,211,153,0.18); border-color: rgba(52,211,153,0.5); color: #34d399; transform: scale(1); }
+      45%     { transform: scale(0.93); }
+      48%,90% { background: rgba(52,211,153,0.06); border-color: rgba(52,211,153,0.2); color: rgba(52,211,153,0.45); transform: scale(1); }
+      100%    { background: rgba(52,211,153,0.18); border-color: rgba(52,211,153,0.5); color: #34d399; }
+    }
+    @keyframes vd-key-alt-d {
+      0%,42%  { background: rgba(248,113,113,0.06); border-color: rgba(248,113,113,0.2); color: rgba(248,113,113,0.4); transform: scale(1); }
+      48%,90% { background: rgba(248,113,113,0.18); border-color: rgba(248,113,113,0.5); color: #f87171; }
+      93%     { transform: scale(0.93); }
+      100%    { background: rgba(248,113,113,0.06); border-color: rgba(248,113,113,0.2); color: rgba(248,113,113,0.4); }
+    }
+    @keyframes vd-cue-flash {
+      0%,100% { opacity: 0; transform: scale(0.72); }
+      35%,65% { opacity: 1; transform: scale(1); }
+    }
+    @keyframes vd-arrow-slide-in {
+      0%   { opacity: 0; transform: translateY(-10px); }
+      60%  { opacity: 1; transform: translateY(2px); }
+      100% { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes vd-ignore-fade {
+      0%,100% { opacity: 0.12; }
+      50%     { opacity: 0.06; }
+    }
+    @keyframes vd-accuracy-pop {
+      0%   { opacity: 0; transform: scale(0.4) rotate(-10deg); }
+      55%  { opacity: 1; transform: scale(1.15) rotate(3deg); }
+      75%  { transform: scale(0.95) rotate(0deg); }
+      100% { opacity: 1; transform: scale(1) rotate(0deg); }
+    }
+    @keyframes vd-speed-flash {
+      0%,100% { opacity: 0.3; transform: scale(0.9); }
+      50%     { opacity: 1;   transform: scale(1.08); }
+    }
+
+    /* ── Scene wrapper ── */
+    .vd-scene {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 14px;
+      animation: vd-fade-up 0.38s cubic-bezier(0.16,1,0.3,1) both;
+    }
+
+    /* ── Fixation cross ── */
+    .vd-fixation {
       position: relative;
       display: flex; align-items: center; justify-content: center;
+      width: 72px; height: 72px;
     }
-    .demo-blank-ring::after {
-      content: '';
-      width: 10px; height: 10px;
+    .vd-fix-ring {
+      position: absolute;
+      width: 100%; height: 100%;
       border-radius: 50%;
-      background: rgba(255,255,255,0.15);
-      animation: demo-pulse 1.6s ease-in-out infinite;
+      border: 1px solid rgba(255,255,255,0.12);
+      animation: vd-ring-out 2.4s cubic-bezier(0.16,1,0.3,1) infinite;
     }
-    /* Reappear / probe demo */
-    .demo-probe-wrap {
-      display: flex;
-      gap: 10px;
+    .vd-fix-ring:nth-child(2) { animation-delay: 1.2s; }
+    .vd-fix-cross {
+      font-size: 2.6rem;
+      color: #ffffff;
+      line-height: 1;
+      font-weight: 300;
+      animation: vd-breathe 2.2s ease-in-out infinite;
       position: relative;
+      z-index: 1;
     }
-    .demo-probe-sq {
-      width: 32px; height: 32px;
-      border-radius: 4px;
-      border: 1.5px solid rgba(255,255,255,0.15);
+
+    /* ── VWM 2×2 grid ── */
+    .vd-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    .vd-sq {
+      width: 38px; height: 38px;
+      border-radius: 5px;
+      animation: vd-spring-in 0.55s cubic-bezier(0.34,1.56,0.64,1) both;
+    }
+    .vd-sq:nth-child(1) { animation-delay: 0ms; }
+    .vd-sq:nth-child(2) { animation-delay: 60ms; }
+    .vd-sq:nth-child(3) { animation-delay: 120ms; }
+    .vd-sq:nth-child(4) { animation-delay: 180ms; }
+    .vd-sq--flash {
+      animation: vd-sq-flash 2.8s cubic-bezier(0.16,1,0.3,1) infinite both;
+    }
+    .vd-sq--flash:nth-child(1) { animation-delay: 0ms; }
+    .vd-sq--flash:nth-child(2) { animation-delay: 70ms; }
+    .vd-sq--flash:nth-child(3) { animation-delay: 140ms; }
+    .vd-sq--flash:nth-child(4) { animation-delay: 210ms; }
+    .vd-sq--blank {
+      background: transparent !important;
+      box-shadow: none !important;
+      border: 1.5px solid rgba(255,255,255,0.1);
+      animation: vd-spring-in 0.5s cubic-bezier(0.34,1.56,0.64,1) both;
+    }
+    .vd-sq--probe {
+      border: none;
+      animation: vd-probe-pop 0.6s cubic-bezier(0.34,1.56,0.64,1) both;
+      animation-delay: 80ms;
+    }
+    .vd-sq--dim {
+      background: #fff !important;
+      box-shadow: 0 0 10px rgba(255,255,255,0.2) !important;
+      animation: vd-ignore-fade 2.2s ease-in-out infinite both, vd-spring-in 0.55s cubic-bezier(0.34,1.56,0.64,1) both;
+    }
+    .vd-sq--dim:nth-child(1) { animation-delay: 0ms, 0ms; }
+    .vd-sq--dim:nth-child(2) { animation-delay: 0ms, 60ms; }
+    .vd-sq--dim:nth-child(3) { animation-delay: 0.4s, 120ms; }
+    .vd-sq--dim:nth-child(4) { animation-delay: 0.4s, 180ms; }
+
+    /* ── Hold / blank phase ── */
+    .vd-hold-wrap {
+      display: flex; flex-direction: column; align-items: center; gap: 10px;
+      animation: vd-fade-up 0.4s cubic-bezier(0.16,1,0.3,1) both;
+    }
+    .vd-hold-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    .vd-hold-sq {
+      width: 38px; height: 38px;
+      border-radius: 5px;
+      border: 1.5px solid rgba(255,255,255,0.08);
       background: transparent;
     }
-    .demo-probe-sq.colored {
-      border: none;
-      animation: demo-probe-color 2.4s ease-in-out infinite;
+    .vd-hold-label {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      letter-spacing: 0.2em;
+      color: rgba(255,255,255,0.2);
+      animation: vd-breathe 2s ease-in-out infinite;
     }
-    @keyframes demo-probe-color {
-      0%,30% { background: #e74c3c; box-shadow: 0 0 14px rgba(231,76,60,0.45); }
-      60%    { background: #27ae60; box-shadow: 0 0 14px rgba(39,174,96,0.45); }
-      100%   { background: #f39c12; box-shadow: 0 0 14px rgba(243,156,18,0.45); }
+
+    /* ── Decision keys ── */
+    .vd-decision {
+      display: flex; gap: 10px;
+      animation: vd-fade-up 0.45s cubic-bezier(0.16,1,0.3,1) both;
+      animation-delay: 180ms;
     }
-    /* Same/Diff response demo */
-    .demo-keys {
-      display: flex;
-      gap: 16px;
-    }
-    .demo-key {
-      padding: 8px 14px;
-      border-radius: 5px;
+    .vd-key {
+      padding: 9px 16px;
+      border-radius: 6px;
       font-family: var(--font-mono);
       font-size: 11px;
       font-weight: 600;
-      letter-spacing: 0.05em;
+      letter-spacing: 0.06em;
+      border: 1px solid;
     }
-    .demo-key.s { background: rgba(52,211,153,0.12); border: 1px solid rgba(52,211,153,0.35); color: #34d399; }
-    .demo-key.d { background: rgba(248,113,113,0.12); border: 1px solid rgba(248,113,113,0.35); color: #f87171; }
-    /* Distractor: colored + white squares */
-    .demo-dist-row {
+    .vd-key--s {
+      background: rgba(52,211,153,0.12);
+      border-color: rgba(52,211,153,0.4);
+      color: #34d399;
+      animation: vd-key-alt 2.6s ease-in-out infinite;
+    }
+    .vd-key--d {
+      background: rgba(248,113,113,0.08);
+      border-color: rgba(248,113,113,0.25);
+      color: rgba(248,113,113,0.5);
+      animation: vd-key-alt-d 2.6s ease-in-out infinite;
+    }
+
+    /* ── ANT Scene ── */
+    .vd-ant-scene {
       display: flex;
-      gap: 8px;
+      flex-direction: column;
       align-items: center;
+      gap: 6px;
+      animation: vd-fade-up 0.38s cubic-bezier(0.16,1,0.3,1) both;
     }
-    .demo-dist-sq {
-      width: 30px; height: 30px;
-      border-radius: 4px;
-    }
-    .demo-dist-sq.color { }
-    .demo-dist-sq.white {
-      background: #fff;
-      box-shadow: 0 0 10px rgba(255,255,255,0.2);
-    }
-    /* Arrow / ANT demos */
-    .demo-arrow-row {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-    }
-    .demo-arrow {
-      font-size: 1.5rem;
+    .vd-ant-cross {
+      font-size: 1.1rem;
+      color: rgba(255,255,255,0.35);
       line-height: 1;
-      color: #a1a1aa;
-      transition: color 0.3s;
+      font-weight: 300;
+      margin: 0;
+      animation: vd-breathe 2.2s ease-in-out infinite;
     }
-    .demo-arrow.center {
-      font-size: 1.9rem;
-      color: #fff;
-    }
-    /* Cue circle */
-    .demo-cue-circle {
-      width: 48px; height: 48px;
-      border-radius: 50%;
-      border: 2px solid rgba(255,255,255,0.55);
-      animation: demo-cue-flash 1.8s ease-in-out infinite;
-    }
-    @keyframes demo-cue-flash {
-      0%,100% { opacity: 0; transform: scale(0.7); }
-      40%,60% { opacity: 1; transform: scale(1); }
-    }
-    /* Arrow ← → keys */
-    .demo-lr-keys {
+    .vd-ant-flanker-row {
       display: flex;
-      gap: 16px;
+      align-items: center;
+      gap: 2px;
+      animation: vd-arrow-slide-in 0.55s cubic-bezier(0.16,1,0.3,1) both;
+      animation-delay: 60ms;
     }
-    .demo-lr-key {
-      padding: 8px 14px;
-      border-radius: 5px;
-      font-family: var(--font-mono);
-      font-size: 13px;
-      font-weight: 700;
-    }
-    .demo-lr-key.left  { background: rgba(52,211,153,0.12); border: 1px solid rgba(52,211,153,0.35); color: #34d399; }
-    .demo-lr-key.right { background: rgba(248,113,113,0.12); border: 1px solid rgba(248,113,113,0.35); color: #f87171; }
-    /* demo sub-text */
-    .demo-caption {
-      font-size: 0.72rem;
+    .vd-ant-arrow {
+      font-size: 1.55rem;
+      line-height: 1;
       color: #71717a;
-      text-align: center;
-      line-height: 1.5;
-      margin-top: 4px;
+    }
+    .vd-ant-arrow--center {
+      font-size: 1.85rem;
+      color: #ffffff;
+      position: relative;
+    }
+    .vd-ant-arrow--center-volt {
+      font-size: 1.85rem;
+      color: var(--accent-volt);
+      position: relative;
+    }
+    .vd-ant-arrow--dim {
+      color: rgba(113,113,122,0.25);
+    }
+
+    /* ── Cue ── */
+    .vd-cue-wrap {
+      display: flex; flex-direction: column; align-items: center; gap: 8px;
+      animation: vd-fade-up 0.4s cubic-bezier(0.16,1,0.3,1) both;
+    }
+    .vd-cue-cross { font-size: 1.1rem; color: rgba(255,255,255,0.3); }
+    .vd-cue-circle {
+      width: 44px; height: 44px;
+      border-radius: 50%;
+      border: 1.5px solid rgba(255,255,255,0.6);
+      animation: vd-cue-flash 2s cubic-bezier(0.16,1,0.3,1) infinite;
+    }
+    .vd-cue-cross2 { font-size: 1.1rem; color: rgba(255,255,255,0.3); }
+
+    /* ── LR keys ── */
+    .vd-lr-keys {
+      display: flex; gap: 12px;
+      animation: vd-fade-up 0.45s cubic-bezier(0.16,1,0.3,1) both;
+      animation-delay: 100ms;
+    }
+    .vd-lr-key {
+      padding: 10px 18px;
+      border-radius: 6px;
       font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: 700;
       letter-spacing: 0.04em;
+      border: 1px solid;
+    }
+    .vd-lr-key--l { background: rgba(52,211,153,0.12); border-color: rgba(52,211,153,0.4); color: #34d399; animation: vd-spring-in 0.55s cubic-bezier(0.34,1.56,0.64,1) both; }
+    .vd-lr-key--r { background: rgba(248,113,113,0.12); border-color: rgba(248,113,113,0.4); color: #f87171; animation: vd-spring-in 0.55s cubic-bezier(0.34,1.56,0.64,1) both; animation-delay: 80ms; }
+
+    /* ── Accuracy / Speed ── */
+    .vd-accuracy {
+      font-size: 2.6rem;
+      color: var(--accent-volt);
+      animation: vd-accuracy-pop 0.7s cubic-bezier(0.34,1.56,0.64,1) both;
+    }
+    .vd-speed {
+      font-size: 2.4rem;
+      animation: vd-speed-flash 1.4s ease-in-out infinite;
     }
 
     .iv-hud {
@@ -929,75 +1081,209 @@ export function InstructionsView(params = {}) {
     });
   });
 
-  // ─── Hover Demo Panel ────────────────────────────────────────────
-  // Builds per-step mini visual demonstrations that appear after a
-  // short dwell delay so they feel deliberate, not jumpy.
+  // ─── Hover Demo Panel ─────────────────────────────────────────────────────
+  // Apple-quality per-step visual demos. Spring physics via CSS cubic-bezier.
+  // Staggered child entrance. Accurate representation of each task phase.
 
-  const COLORS_POOL = [
-    { bg: '#e74c3c', shadow: 'rgba(231,76,60,0.45)' },
-    { bg: '#27ae60', shadow: 'rgba(39,174,96,0.45)' },
-    { bg: '#f39c12', shadow: 'rgba(243,156,18,0.45)' },
-    { bg: '#3498db', shadow: 'rgba(52,152,219,0.45)' },
-    { bg: '#9b59b6', shadow: 'rgba(155,89,182,0.45)' },
+  const SQ_COLORS = [
+    { bg: '#e74c3c', glow: 'rgba(231,76,60,0.55)' },
+    { bg: '#27ae60', glow: 'rgba(39,174,96,0.55)'  },
+    { bg: '#f59e0b', glow: 'rgba(245,158,11,0.55)' },
+    { bg: '#3b82f6', glow: 'rgba(59,130,246,0.55)' },
+    { bg: '#8b5cf6', glow: 'rgba(139,92,246,0.55)' },
+    { bg: '#ec4899', glow: 'rgba(236,72,153,0.55)' },
   ];
 
-  function colorSq(c) {
-    return `<div class="demo-sq" style="background:${c.bg};box-shadow:0 0 14px ${c.shadow};"></div>`;
+  // Build a colored VWM square div
+  function cSq(c, cls = '') {
+    return `<div class="vd-sq ${cls}" style="background:${c.bg};box-shadow:0 0 18px ${c.glow};"></div>`;
   }
 
-  // Define stage HTML per task + step index
   function getDemoContent(task, idx) {
+
+    // ── VWM Pure ─────────────────────────────────────────────────────
     if (task === 'vwm-pure') {
-      const stages = [
-        // Step 0: fixation cross
-        `<div class="demo-fix">+</div><div class="demo-caption">Focus on the cross</div>`,
-        // Step 1: colored squares flash
-        `<div class="demo-squares">${COLORS_POOL.slice(0,3).map(colorSq).join('')}</div><div class="demo-caption">Memorize the colors</div>`,
-        // Step 2: blank → probe
-        `<div class="demo-blank-ring"></div><div class="demo-caption">Hold them in memory...</div>`,
-        // Step 3: respond
-        `<div class="demo-probe-wrap"><div class="demo-probe-sq"></div><div class="demo-probe-sq colored"></div><div class="demo-probe-sq"></div></div><div class="demo-keys"><div class="demo-key s">S Same</div><div class="demo-key d">D Diff</div></div>`,
+      const demos = [
+
+        // Step 0 — Fixation cross
+        `<div class="vd-scene">
+          <div class="vd-fixation">
+            <div class="vd-fix-ring"></div>
+            <div class="vd-fix-ring"></div>
+            <div class="vd-fix-cross">+</div>
+          </div>
+        </div>
+        <div class="vd-caption">Keep your eyes on the cross<br>until the squares appear</div>`,
+
+        // Step 1 — Colored squares flash in briefly
+        `<div class="vd-scene">
+          <div class="vd-grid">
+            ${cSq(SQ_COLORS[0],'vd-sq--flash')}${cSq(SQ_COLORS[3],'vd-sq--flash')}
+            ${cSq(SQ_COLORS[1],'vd-sq--flash')}${cSq(SQ_COLORS[2],'vd-sq--flash')}
+          </div>
+        </div>
+        <div class="vd-caption">4 colored squares flash briefly<br>Memorize <em>every</em> color</div>`,
+
+        // Step 2 — Blank screen, hold in memory
+        `<div class="vd-hold-wrap">
+          <div class="vd-hold-grid">
+            <div class="vd-hold-sq"></div><div class="vd-hold-sq"></div>
+            <div class="vd-hold-sq"></div><div class="vd-hold-sq"></div>
+          </div>
+          <div class="vd-hold-label">RETENTION INTERVAL</div>
+        </div>
+        <div class="vd-caption">Screen clears — hold all colors<br>in your mind</div>`,
+
+        // Step 3 — Probe + respond
+        `<div class="vd-scene">
+          <div class="vd-grid">
+            <div class="vd-sq vd-sq--blank"></div>
+            ${cSq(SQ_COLORS[3],'vd-sq--probe')}
+            <div class="vd-sq vd-sq--blank"></div>
+            <div class="vd-sq vd-sq--blank"></div>
+          </div>
+          <div class="vd-decision">
+            <div class="vd-key vd-key--s">S &nbsp;Same</div>
+            <div class="vd-key vd-key--d">D &nbsp;Diff</div>
+          </div>
+        </div>
+        <div class="vd-caption">One square reappears — is its<br>color the <em>same</em> or <em>different</em>?</div>`,
       ];
-      return stages[idx] || '';
+      return demos[idx] || '';
     }
+
+    // ── VWM Distractor ───────────────────────────────────────────────
     if (task === 'vwm-distractor') {
-      const stages = [
-        // Step 0: colored + white squares
-        `<div class="demo-dist-row">${colorSq(COLORS_POOL[0])}<div class="demo-dist-sq white"></div>${colorSq(COLORS_POOL[2])}<div class="demo-dist-sq white"></div>${colorSq(COLORS_POOL[3])}</div><div class="demo-caption">Colored = targets · White = ignore</div>`,
-        // Step 1: focus only colored
-        `<div class="demo-dist-row">${colorSq(COLORS_POOL[1])}<div class="demo-dist-sq white" style="opacity:0.25"></div>${colorSq(COLORS_POOL[4])}</div><div class="demo-caption">Ignore the white ones</div>`,
-        // Step 2: blank hold
-        `<div class="demo-blank-ring"></div><div class="demo-caption">Hold color items in memory</div>`,
-        // Step 3: probe reappears
-        `<div class="demo-probe-wrap"><div class="demo-probe-sq"></div><div class="demo-probe-sq colored"></div><div class="demo-probe-sq"></div></div><div class="demo-caption">One target reappears colored</div>`,
-        // Step 4: decide
-        `<div class="demo-keys"><div class="demo-key s">S Same</div><div class="demo-key d">D Diff</div></div><div class="demo-caption">Same or Different?</div>`,
-        // Step 5: accuracy emphasis
-        `<div class="demo-fix" style="font-size:2rem;color:var(--accent-volt);">✓</div><div class="demo-caption">Accuracy matters most</div>`,
+      const demos = [
+
+        // Step 0 — Colored targets + white distractors appear together
+        `<div class="vd-scene">
+          <div class="vd-grid">
+            ${cSq(SQ_COLORS[0])}
+            <div class="vd-sq" style="background:#ffffff;box-shadow:0 0 12px rgba(255,255,255,0.25);animation:vd-spring-in 0.55s cubic-bezier(0.34,1.56,0.64,1) both;animation-delay:60ms"></div>
+            <div class="vd-sq" style="background:#ffffff;box-shadow:0 0 12px rgba(255,255,255,0.25);animation:vd-spring-in 0.55s cubic-bezier(0.34,1.56,0.64,1) both;animation-delay:120ms"></div>
+            ${cSq(SQ_COLORS[2],'')}
+          </div>
+        </div>
+        <div class="vd-caption">Colored squares = targets<br>White squares = distractors</div>`,
+
+        // Step 1 — Ignore white, focus only on colored
+        `<div class="vd-scene">
+          <div class="vd-grid">
+            ${cSq(SQ_COLORS[0])}
+            <div class="vd-sq vd-sq--dim"></div>
+            <div class="vd-sq vd-sq--dim"></div>
+            ${cSq(SQ_COLORS[2],'')}
+          </div>
+        </div>
+        <div class="vd-caption">Tune out the white squares<br>Remember <em>only</em> the colored ones</div>`,
+
+        // Step 2 — Blank retention
+        `<div class="vd-hold-wrap">
+          <div class="vd-hold-grid">
+            <div class="vd-hold-sq"></div><div class="vd-hold-sq"></div>
+            <div class="vd-hold-sq"></div><div class="vd-hold-sq"></div>
+          </div>
+          <div class="vd-hold-label">HOLD IN MEMORY</div>
+        </div>
+        <div class="vd-caption">Blank screen — hold the colored<br>items in working memory</div>`,
+
+        // Step 3 — Probe reappears colored, rest outlines
+        `<div class="vd-scene">
+          <div class="vd-grid">
+            <div class="vd-sq vd-sq--blank"></div>
+            ${cSq(SQ_COLORS[0],'vd-sq--probe')}
+            <div class="vd-sq vd-sq--blank"></div>
+            <div class="vd-sq vd-sq--blank"></div>
+          </div>
+        </div>
+        <div class="vd-caption">One colored item reappears<br>Other positions show as outlines</div>`,
+
+        // Step 4 — Decide same/different
+        `<div class="vd-scene">
+          <div class="vd-decision">
+            <div class="vd-key vd-key--s">S &nbsp;Same</div>
+            <div class="vd-key vd-key--d">D &nbsp;Diff</div>
+          </div>
+        </div>
+        <div class="vd-caption">Is the probed color the <em>same</em><br>as what you saw before?</div>`,
+
+        // Step 5 — Accuracy matters
+        `<div class="vd-scene">
+          <div class="vd-accuracy">✓</div>
+        </div>
+        <div class="vd-caption">Accuracy is the priority<br>Take your time on each trial</div>`,
       ];
-      return stages[idx] || '';
+      return demos[idx] || '';
     }
+
+    // ── ANT ──────────────────────────────────────────────────────────
     if (task === 'ant') {
-      const stages = [
-        // Step 0: fixation cross
-        `<div class="demo-fix">+</div><div class="demo-caption">Center fixation</div>`,
-        // Step 1: cue circle flash
-        `<div class="demo-cue-circle"></div><div class="demo-caption">Cue flash — watch for it</div>`,
-        // Step 2: arrow appears
-        `<div class="demo-arrow-row"><span class="demo-arrow">←</span><span class="demo-arrow">←</span><span class="demo-arrow center">←</span><span class="demo-arrow">←</span><span class="demo-arrow">←</span></div><div class="demo-caption">Arrow appears above/below center</div>`,
-        // Step 3: center arrow
-        `<div class="demo-arrow-row"><span class="demo-arrow" style="opacity:0.2">→</span><span class="demo-arrow" style="opacity:0.2">→</span><span class="demo-arrow center" style="color:var(--accent-volt)">→</span><span class="demo-arrow" style="opacity:0.2">→</span><span class="demo-arrow" style="opacity:0.2">→</span></div><div class="demo-caption">Judge only the CENTER arrow</div>`,
-        // Step 4: key presses
-        `<div class="demo-lr-keys"><div class="demo-lr-key left">← Left</div><div class="demo-lr-key right">Right →</div></div><div class="demo-caption">Use arrow keys to respond</div>`,
-        // Step 5: speed
-        `<div class="demo-fix" style="font-size:2rem;color:var(--accent-volt);">⚡</div><div class="demo-caption">As fast & accurate as possible</div>`,
+      const demos = [
+
+        // Step 0 — Fixation cross center
+        `<div class="vd-scene">
+          <div class="vd-fixation">
+            <div class="vd-fix-ring"></div>
+            <div class="vd-fix-ring"></div>
+            <div class="vd-fix-cross">+</div>
+          </div>
+        </div>
+        <div class="vd-caption">Keep eyes on the center cross<br>at all times</div>`,
+
+        // Step 1 — Cue circle flashes above or below
+        `<div class="vd-cue-wrap">
+          <div class="vd-cue-circle"></div>
+          <div class="vd-cue-cross">+</div>
+        </div>
+        <div class="vd-caption">A small circle cue briefly flashes<br>above or below the cross</div>`,
+
+        // Step 2 — Arrow row appears above/below fixation (congruent flankers)
+        `<div class="vd-ant-scene">
+          <div class="vd-ant-flanker-row">
+            <span class="vd-ant-arrow">←</span><span class="vd-ant-arrow">←</span>
+            <span class="vd-ant-arrow--center">←</span>
+            <span class="vd-ant-arrow">←</span><span class="vd-ant-arrow">←</span>
+          </div>
+          <div class="vd-ant-cross">+</div>
+        </div>
+        <div class="vd-caption">5 arrows appear above or below<br>the fixation cross</div>`,
+
+        // Step 3 — Identify CENTER arrow only (incongruent example)
+        `<div class="vd-ant-scene">
+          <div class="vd-ant-flanker-row">
+            <span class="vd-ant-arrow vd-ant-arrow--dim">→</span>
+            <span class="vd-ant-arrow vd-ant-arrow--dim">→</span>
+            <span class="vd-ant-arrow--center-volt">←</span>
+            <span class="vd-ant-arrow vd-ant-arrow--dim">→</span>
+            <span class="vd-ant-arrow vd-ant-arrow--dim">→</span>
+          </div>
+          <div class="vd-ant-cross">+</div>
+        </div>
+        <div class="vd-caption">Ignore the flanking arrows<br>Judge <em>only</em> the center one</div>`,
+
+        // Step 4 — Press ← or →
+        `<div class="vd-scene">
+          <div class="vd-lr-keys">
+            <div class="vd-lr-key vd-lr-key--l">← Left</div>
+            <div class="vd-lr-key vd-lr-key--r">Right →</div>
+          </div>
+        </div>
+        <div class="vd-caption">Press the arrow key matching<br>the center arrow's direction</div>`,
+
+        // Step 5 — Speed
+        `<div class="vd-scene">
+          <div class="vd-speed">⚡</div>
+        </div>
+        <div class="vd-caption">Respond as fast and accurately<br>as possible — every ms counts</div>`,
       ];
-      return stages[idx] || '';
+      return demos[idx] || '';
     }
+
     return '';
   }
 
-  // Inject the demo panel into the DOM (outside the card so it can be fixed)
+  // Inject panel — appended to body so it sits above everything
   const demoPanel = document.createElement('div');
   demoPanel.className = 'iv-demo-panel';
   demoPanel.innerHTML = `<div class="iv-demo-label">VISUAL DEMO</div><div class="iv-demo-stage" id="iv-demo-stage"></div>`;
