@@ -22,7 +22,7 @@ const ARROWS = { left: '←', right: '→' };
 
 function getArrowHTML(direction, isTarget) {
   const flipStyle = direction === 'right' ? 'transform: scaleX(-1);' : '';
-  const c = isTarget ? 'var(--accent-volt)' : 'rgba(255, 255, 255, 0.4)';
+  const c = 'rgba(255, 255, 255, 0.85)';
 
   // Archery arrow matching the user's exact SVG layout (1200x300 viewBox)
   // Transparent gaps are used for the decorative rings so it works on any background color.

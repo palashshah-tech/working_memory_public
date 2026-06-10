@@ -162,7 +162,7 @@ export function InstructionsView(params = {}) {
         </svg>`;
       };
       const congRow = `<div class="sf-ant-row">${antSvg('right','')}${antSvg('right','')}${antSvg('right','sf-ant-center')}${antSvg('right','')}${antSvg('right','')}</div>`;
-      const incRow  = `<div class="sf-ant-row">${antSvg('right','sf-ant-dim')}${antSvg('right','sf-ant-dim')}${antSvg('left','sf-ant-volt')}${antSvg('right','sf-ant-dim')}${antSvg('right','sf-ant-dim')}</div>`;
+      const incRow  = `<div class="sf-ant-row">${antSvg('right','sf-ant-dim')}${antSvg('right','sf-ant-dim')}${antSvg('left','sf-ant-center')}${antSvg('right','sf-ant-dim')}${antSvg('right','sf-ant-dim')}</div>`;
       return [
         frame(fixEl(), '', 'FIXATION', '400–1200ms'),
         conn(),
