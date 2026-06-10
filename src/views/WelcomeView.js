@@ -612,6 +612,10 @@ export function WelcomeView(params = {}) {
       userAgent: navigator.userAgent
     };
 
+    sessionStorage.removeItem('practice_done_vwm-pure');
+    sessionStorage.removeItem('practice_done_vwm-distractor');
+    sessionStorage.removeItem('practice_done_ant');
+
     Storage.saveCurrentSession({ name, email, age, gender, handle, startedAt: new Date().toISOString(), trials: [], metadata });
     navigate('instructions', { task: 'vwm-pure' });
   });

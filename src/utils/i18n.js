@@ -34,6 +34,9 @@ const DICTIONARY = {
     "tv_practice_hud": "PRACTICE · {task}",
     "tv_practice_hud_trial": "PRACTICE TRIAL",
     "tv_practice_hud_end": "End Practice ⤑",
+    "tv_practice_done_title": "Practice Complete!",
+    "tv_practice_done_text": "You have completed the practice round. Ready to start the real assessment?",
+    "tv_practice_done_btn": "Start Assessment →",
 
     // Instructions
     "btn_ready": "Start",
@@ -217,6 +220,9 @@ const DICTIONARY = {
     "tv_practice_hud": "練習 · {task}",
     "tv_practice_hud_trial": "練習試行",
     "tv_practice_hud_end": "練習終了 ⤑",
+    "tv_practice_done_title": "練習終了！",
+    "tv_practice_done_text": "操作方法を確認できましたか？ 次は本番計測が始まります。準備ができたら以下のボタンを押してください。",
+    "tv_practice_done_btn": "本番を開始する →",
 
     // Instructions
     "btn_ready": "スタート",

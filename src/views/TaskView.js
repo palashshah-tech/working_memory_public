@@ -11,9 +11,17 @@ import { CANVAS_SIZE } from '../engine/StimulusGenerator.js';
 import { t } from '../utils/i18n.js';
 
 export function TaskView(taskType = 'vwm-pure', params = {}) {
-  const isPractice = params.practice === true || params.isPractice === true;
+  // Automatically run 2 trials in practice mode first for the public version
+  const practiceDone = sessionStorage.getItem(`practice_done_${taskType}`) === 'true';
+  const isPractice = !practiceDone;
   const isANT = taskType === 'ant';
   const isDistractor = taskType === 'vwm-distractor';
+
+  const onPracticeComplete = () => {
+    sessionStorage.setItem(`practice_done_${taskType}`, 'true');
+    document.querySelectorAll('head style[data-view-style]').forEach(el => el.remove());
+    TaskView(taskType, params);
+  };
 
   const labelText = isPractice
     ? t('tv_practice_hud', { task: taskType.toUpperCase().replace('-', ' · ') })
@@ -60,8 +68,6 @@ export function TaskView(taskType = 'vwm-pure', params = {}) {
         <div class="stim-canvas" id="stim-canvas"></div>
       </div>
 
-
-
       <!-- Response buttons -->
       <div class="task-response" id="task-response" style="display:none;">
         ${!isANT ? `
@@ -72,6 +78,16 @@ export function TaskView(taskType = 'vwm-pure', params = {}) {
           <button class="resp-btn right-btn" id="btn-right">${t('key_right').toUpperCase()} → <span class="resp-key">→</span></button>
         `}
       </div>
+
+      <!-- Practice Completion Overlay -->
+      <div id="practice-complete-overlay" class="legal-modal-overlay" style="display:none; z-index:3000; justify-content:center; align-items:center;">
+        <div class="legal-modal-card glass-card" style="max-width:400px; text-align:center; padding:32px;">
+          <h3 style="font-family:var(--font-display); font-size:1.6rem; color:#d4ff00; margin-top:0; margin-bottom:16px;">${t('tv_practice_done_title')}</h3>
+          <p style="font-family:var(--font-body); font-size:14px; color:var(--text-secondary); line-height:1.6; margin-bottom:28px;">${t('tv_practice_done_text')}</p>
+          <button id="btn-start-real" class="btn-volt" style="padding:14px 28px; font-size:14px; font-weight:bold; width:100%; border:none; border-radius:8px; cursor:pointer;">${t('tv_practice_done_btn')}</button>
+        </div>
+      </div>
+
     </div>
   `);
 
@@ -116,18 +132,18 @@ export function TaskView(taskType = 'vwm-pure', params = {}) {
   if (isANT) {
     runANT($('#countdown-wrap'), $('#countdown-word'), $('#stim-wrap'), $('#stim-canvas'),
            $('#task-response'), $('#hud-trial'), $('#hud-acc'), $('#hud-bar'),
-           $('#task-skip-btn'), $('#feedback-overlay'), isPractice);
+           $('#task-skip-btn'), $('#feedback-overlay'), isPractice, onPracticeComplete);
   } else {
     runVWM(taskType, isDistractor,
            $('#countdown-wrap'), $('#countdown-word'), $('#stim-wrap'), $('#stim-canvas'),
            $('#task-response'), $('#hud-trial'), $('#hud-acc'), $('#hud-bar'),
-           isDistractor ? $('#dist-legend') : null, $('#task-skip-btn'), $('#feedback-overlay'), isPractice);
+           isDistractor ? $('#dist-legend') : null, $('#task-skip-btn'), $('#feedback-overlay'), isPractice, onPracticeComplete);
   }
 }
 
 /* ---------------------------------------------------------- */
 function runVWM(taskType, isDistractor, cdWrap, cdWord, stimWrap, canvas,
-                responseArea, hudTrial, hudAcc, hudBar, legendEl, skipBtn, fbOverlay, isPractice) {
+                responseArea, hudTrial, hudAcc, hudBar, legendEl, skipBtn, fbOverlay, isPractice, onPracticeComplete) {
 
   const engine = new TaskEngine({ taskType, withDistractors: isDistractor, isPractice });
   let dead = false;
@@ -152,7 +168,13 @@ function runVWM(taskType, isDistractor, cdWrap, cdWord, stimWrap, canvas,
     cleanup();
 
     if (isPractice) {
-      setTimeout(() => navigate('', { openPractice: true }), 50);
+      setTimeout(() => {
+        const overlay = $('#practice-complete-overlay');
+        if (overlay) {
+          overlay.style.display = 'flex';
+          $('#btn-start-real').onclick = onPracticeComplete;
+        }
+      }, 50);
     } else {
       const skippedAt = Date.now();
       const session = Storage.getCurrentSession();
@@ -213,7 +235,11 @@ function runVWM(taskType, isDistractor, cdWrap, cdWord, stimWrap, canvas,
     if (dead) return;  // skip already navigated — do NOT navigate again
     cleanup();
     if (isPractice) {
-      navigate('', { openPractice: true });
+      const overlay = $('#practice-complete-overlay');
+      if (overlay) {
+        overlay.style.display = 'flex';
+        $('#btn-start-real').onclick = onPracticeComplete;
+      }
     } else {
       if (taskType === 'vwm-pure') navigate('transition', { next: 'vwm-distractor' });
       else navigate('transition', { next: 'ant' });
@@ -225,7 +251,7 @@ function runVWM(taskType, isDistractor, cdWrap, cdWord, stimWrap, canvas,
 
 /* ---------------------------------------------------------- */
 function runANT(cdWrap, cdWord, stimWrap, canvas, responseArea,
-                hudTrial, hudAcc, hudBar, skipBtn, fbOverlay, isPractice) {
+                hudTrial, hudAcc, hudBar, skipBtn, fbOverlay, isPractice, onPracticeComplete) {
 
   const engine = new ANTEngine(isPractice);
   let dead = false;
@@ -250,7 +276,13 @@ function runANT(cdWrap, cdWord, stimWrap, canvas, responseArea,
     cleanup();
 
     if (isPractice) {
-      setTimeout(() => navigate('', { openPractice: true }), 50);
+      setTimeout(() => {
+        const overlay = $('#practice-complete-overlay');
+        if (overlay) {
+          overlay.style.display = 'flex';
+          $('#btn-start-real').onclick = onPracticeComplete;
+        }
+      }, 50);
     } else {
       const skippedAt = Date.now();
       const session = Storage.getCurrentSession();
@@ -305,7 +337,11 @@ function runANT(cdWrap, cdWord, stimWrap, canvas, responseArea,
     if (dead) return;  // skip already navigated
     cleanup();
     if (isPractice) {
-      navigate('', { openPractice: true });
+      const overlay = $('#practice-complete-overlay');
+      if (overlay) {
+        overlay.style.display = 'flex';
+        $('#btn-start-real').onclick = onPracticeComplete;
+      }
     } else {
       navigate('complete');
     }
