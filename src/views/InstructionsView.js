@@ -255,7 +255,7 @@ export function InstructionsView(params = {}) {
 
             <!-- Start test button -->
             <button class="iv-cta-premium" id="btn-start">
-              <span class="cta-label">INITIALIZE TEST SEQUENCE</span>
+              <span class="cta-label">${t('btn_ready')}</span>
               <span class="cta-arrow">→</span>
             </button>
           </div>

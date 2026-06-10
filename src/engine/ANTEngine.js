@@ -20,32 +20,32 @@ const ANT_CONFIG = {
 
 const ARROWS = { left: '←', right: '→' };
 
-function getArrowHTML(direction) {
+function getArrowHTML(direction, isTarget) {
   const flipStyle = direction === 'right' ? 'transform: scaleX(-1);' : '';
-  const c = '#707a8a';
+  const c = isTarget ? 'var(--accent-volt)' : 'rgba(255, 255, 255, 0.4)';
 
   // Archery arrow matching the user's exact SVG layout (1200x300 viewBox)
   // Transparent gaps are used for the decorative rings so it works on any background color.
   return `
-    <svg viewBox="0 0 1200 300" class="ant-arrow" style="width:14vmin;height:3.5vmin;${flipStyle}display:inline-block;overflow:visible;">
+    <svg viewBox="0 0 1200 300" class="ant-arrow" style="width:14vmin;height:3.5vmin;${flipStyle}display:inline-block;overflow:visible;color:${c};">
       <!-- Shaft segments (with gaps for decorative rings) -->
-      <line x1="180" y1="150" x2="240" y2="150" stroke="${c}" stroke-width="12" />
-      <line x1="246" y1="150" x2="255" y2="150" stroke="${c}" stroke-width="12" />
-      <line x1="261" y1="150" x2="270" y2="150" stroke="${c}" stroke-width="12" />
-      <line x1="276" y1="150" x2="980" y2="150" stroke="${c}" stroke-width="12" />
+      <line x1="180" y1="150" x2="240" y2="150" stroke="currentColor" stroke-width="12" />
+      <line x1="246" y1="150" x2="255" y2="150" stroke="currentColor" stroke-width="12" />
+      <line x1="261" y1="150" x2="270" y2="150" stroke="currentColor" stroke-width="12" />
+      <line x1="276" y1="150" x2="980" y2="150" stroke="currentColor" stroke-width="12" />
       <!-- Round caps for shaft outer ends -->
-      <circle cx="180" cy="150" r="6" fill="${c}" />
-      <circle cx="980" cy="150" r="6" fill="${c}" />
+      <circle cx="180" cy="150" r="6" fill="currentColor" />
+      <circle cx="980" cy="150" r="6" fill="currentColor" />
       <!-- Arrowhead -->
-      <polygon points="90,150 180,90 150,150 180,210" fill="${c}" />
+      <polygon points="90,150 180,90 150,150 180,210" fill="currentColor" />
       <!-- Tail Fangs Top -->
-      <line x1="850" y1="150" x2="930" y2="80" stroke="${c}" stroke-width="10" stroke-linecap="round" />
-      <line x1="900" y1="150" x2="980" y2="80" stroke="${c}" stroke-width="10" stroke-linecap="round" />
-      <line x1="950" y1="150" x2="1030" y2="80" stroke="${c}" stroke-width="10" stroke-linecap="round" />
+      <line x1="850" y1="150" x2="930" y2="80" stroke="currentColor" stroke-width="10" stroke-linecap="round" />
+      <line x1="900" y1="150" x2="980" y2="80" stroke="currentColor" stroke-width="10" stroke-linecap="round" />
+      <line x1="950" y1="150" x2="1030" y2="80" stroke="currentColor" stroke-width="10" stroke-linecap="round" />
       <!-- Tail Fangs Bottom -->
-      <line x1="850" y1="150" x2="930" y2="220" stroke="${c}" stroke-width="10" stroke-linecap="round" />
-      <line x1="900" y1="150" x2="980" y2="220" stroke="${c}" stroke-width="10" stroke-linecap="round" />
-      <line x1="950" y1="150" x2="1030" y2="220" stroke="${c}" stroke-width="10" stroke-linecap="round" />
+      <line x1="850" y1="150" x2="930" y2="220" stroke="currentColor" stroke-width="10" stroke-linecap="round" />
+      <line x1="900" y1="150" x2="980" y2="220" stroke="currentColor" stroke-width="10" stroke-linecap="round" />
+      <line x1="950" y1="150" x2="1030" y2="220" stroke="currentColor" stroke-width="10" stroke-linecap="round" />
     </svg>
   `;
 }
@@ -236,8 +236,8 @@ export class ANTEngine {
     const f_dir = flank === 'congruent' ? dir : (dir === 'left' ? 'right' : 'left');
     const y = pos === 'above' ? `calc(50% - 15vmin)` : `calc(50% + 15vmin)`;
     
-    const flankArrow = getArrowHTML(f_dir);
-    const targetArrow = getArrowHTML(t_dir);
+    const flankArrow = getArrowHTML(f_dir, false);
+    const targetArrow = getArrowHTML(t_dir, true);
     
     this.container.innerHTML = `<div class="task-fixation">+</div>
       <div style="position:absolute;top:${y};left:50%;transform:translate(-50%,-50%);display:flex;align-items:center;gap:2vmin;">

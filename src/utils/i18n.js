@@ -23,7 +23,7 @@ const DICTIONARY = {
     "access_placeholder": "Enter access code",
     "privacy_text": "I agree to the <a href='#' id='agree-privacy-link' style='color:var(--accent-volt); text-decoration:none;'>Privacy Policy</a> and consent to the collection of my cognitive and device telemetry data for evaluation purposes.",
     "disclaimer_text": "Please secure <strong>12 minutes</strong> to complete this task. If you are not able to complete all tasks in a row within 12 mins, you will need to try again. The system logs you out automatically.",
-    "btn_init": "Initialize Assessment →",
+    "btn_init": "Start →",
     "access_required": "Access code is required",
     "access_invalid": "Access code is invalid or inactive",
     "access_limit_reached": "This access code has reached its usage limit.",
@@ -50,7 +50,7 @@ const DICTIONARY = {
     "tv_practice_hud_end": "End Practice ⤑",
 
     // Instructions
-    "btn_ready": "I'm Ready — Begin →",
+    "btn_ready": "Start",
     "dist_tip": "This task measures your ability to <strong>filter out irrelevant information</strong> while maintaining memory for relevant items.",
     "dist_color": "Colored = Remember these",
     "dist_gray": "White = IGNORE (distractors)",
@@ -63,7 +63,7 @@ const DICTIONARY = {
     "t1_s1": "A fixation cross <strong>+</strong> appears — focus on it.",
     "t1_s2": "You will briefly see coloured squares on the screen. Your task is to remember the color of the square as many items as you can within the brief flash moment.",
     "t1_s3": "After a blank, the squares reappear at which you need to indicate the one square still being coloured (“the target”) is same as the previous display or different by pressing a button.",
-    "t1_s4": "<strong style='color:var(--accent-volt)'>Respond as accurate as possible, try your best to get all trials correct. Speed is not important in this task.</strong>",
+    "t1_s4": "<strong style='color:var(--accent-volt)'>Respond as accurately as possible; prioritize accuracy over speed. Response times are recorded for reference only.</strong>",
 
     // Task 2: VWM Distractor
     "t2_tag": "TASK 2 OF 3",
@@ -74,7 +74,7 @@ const DICTIONARY = {
     "t2_s3": "A blank period follows — hold the target colors in memory.",
     "t2_s4": "One target reappears in color; the rest are empty outlines.",
     "t2_s5": "Decide if that one colored item is the SAME or DIFFERENT.",
-    "t2_s6": "<strong style='color:var(--accent-volt)'>Respond as accurate as possible, try your best to get all trials correct. Speed is not important in this task.</strong>",
+    "t2_s6": "<strong style='color:var(--accent-volt)'>Respond as accurately as possible; prioritize accuracy over speed. Response times are recorded for reference only.</strong>",
 
     // Task 3: ANT
     "t3_tag": "TASK 3 OF 3",
@@ -213,9 +213,9 @@ const DICTIONARY = {
     "gender_none": "回答しない",
     "label_handle": "ハンドルネーム / ニックネーム",
     "placeholder_name": "山田 太郎",
-    "placeholder_email": "yamada@example.com",
+    "placeholder_email": "taro.yamada@example.com",
     "placeholder_age": "21",
-    "placeholder_handle": "例：yamada_taro",
+    "placeholder_handle": "ゲームマスター",
     "label_access_code": "アクセスコード",
     "access_placeholder": "アクセスコードを入力",
     "privacy_text": "<a href='#' id='agree-privacy-link-ja' style='color:var(--accent-volt); text-decoration:none;'>プライバシーポリシー</a>に同意し、評価目的での認知およびデバイステレメトリデータの収集に同意します。",
@@ -247,7 +247,7 @@ const DICTIONARY = {
     "tv_practice_hud_end": "練習終了 ⤑",
 
     // Instructions
-    "btn_ready": "スタート →",
+    "btn_ready": "スタート",
     "dist_tip": "このタスクは、関連するアイテムの記憶を維持しながら、<strong>無関係な情報を除外する能力</strong>を測定します。",
     "dist_color": "色付き = これらを記憶する",
     "dist_gray": "白色 = 無視する（妨害）",
@@ -257,10 +257,10 @@ const DICTIONARY = {
     "t1_tag": "タスク 1 / 3",
     "t1_title": "ワーキングメモリ容量タスク",
     "t1_sum": "このタスクは、視覚的な短期記憶容量に挑戦します。あなたはいくつのアイテムを覚えられますか？",
-    "t1_s1": "中央に十字マーク <strong>+</strong> が表示されます。それを注視してください。",
+    "t1_s1": "中央に十字マーク <strong>+</strong> が表示されます。そこに注視もしくは注意を向けてください。",
     "t1_s2": "画面に色付きの四角形が一瞬表示されます。あなたのタスクは、その短い瞬間にできるだけ多くの四角形の色を覚えることです。",
     "t1_s3": "空白の後、四角形が再び表示されます。そのうちの1つだけが色付けされています（「ターゲット」）。それが②で表示されたものと同じ色か、違う色かをボタンを押して指示してください。",
-    "t1_s4": "<strong style='color:var(--accent-volt)'>可能な限り正確に回答し、すべての試行で正解するように最善を尽くしてください。速度より正確さを優先してください（反応時間は参考値として記録されます）。</strong>",
+    "t1_s4": "<strong style='color:var(--accent-volt)'>可能な限り正確に回答し、すべての試行で正解するように最善を尽くしてください。速度より正確さを優先してください（反応時間は参考として記録されます）。</strong>",
 
     // Task 2: VWM Distractor
     "t2_tag": "タスク 2 / 3",
@@ -271,17 +271,17 @@ const DICTIONARY = {
     "t2_s3": "空白の時間が続きます — ターゲットの色を記憶にとどめてください。",
     "t2_s4": "ターゲットの1つが再び色付きで表示されます。残りは無色の四角です。",
     "t2_s5": "その色付きのアイテムが同じ（SAME）か違う（DIFFERENT）かを判断してください。",
-    "t2_s6": "<strong style='color:var(--accent-volt)'>可能な限り正確に回答し、すべての試行で正解するように最善を尽くしてください。速度より正確さを優先してください（反応時間は参考値として記録されます）。</strong>",
+    "t2_s6": "<strong style='color:var(--accent-volt)'>可能な限り正確に回答し、すべての試行で正解するように最善を尽くしてください。速度より正確さを優先してください（反応時間は参考として記録されます）。</strong>",
 
     // Task 3: ANT
     "t3_tag": "タスク 3 / 3",
     "t3_title": "アテンション・ネットワーク・テスト",
-    "t3_sum": "画面に矢印が一列に呈示されます。その中央にあるターゲット矢印の方向を可能な限り早く特定してください。",
-    "t3_s1": "画面中央に十字マークが表示されます。",
-    "t3_s2": "合図として円が一瞬点滅することがあります（タイミングや場所を示します）。",
-    "t3_s3": "画面中央の上または下に、5つの矢印が横一列に呈示されます。",
-    "t3_s4": "ターゲットは一列に並んだ矢印の中央にあります。その<strong>中央に呈示されているターゲット矢印の方向</strong>を特定してください。",
-    "t3_s5": "ターゲット矢印が左向き（←）なら <kbd>←</kbd> を、右向き（→）なら <kbd>→</kbd> を押してください。",
+    "t3_sum": "画面に一列に並んだ矢印が表示されます。<strong>画面中央に呈示されているターゲット（中央の矢印）の方向</strong>を可能な限り早く特定してください。",
+    "t3_s1": "中央に十字マークが表示されます。",
+    "t3_s2": "時々、合図として円が一瞬点滅します — これはタイミングや場所を示します。",
+    "t3_s3": "画面中央の上または下に、一列に並んだ複数の矢印が表示されます。",
+    "t3_s4": "ターゲットは一列に並んだ複数の矢印の中央にあります。その<strong>中央の矢印の方向</strong>を特定してください。",
+    "t3_s5": "左の場合は <kbd>←</kbd> を、右の場合は <kbd>→</kbd> を押してください。",
     "t3_s6": "可能な限り早く、正確に回答してください。",
 
     // Keys
