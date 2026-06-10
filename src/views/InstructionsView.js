@@ -138,11 +138,27 @@ export function InstructionsView(params = {}) {
 
     if (taskKey === 'ant') {
       const antSvg = (dir, cls) => {
-        const flip = dir === 'left' ? 'transform:scaleX(-1)' : '';
-        return `<svg viewBox="0 0 100 30" class="sf-ant-arrow${cls ? ' ' + cls : ''}" style="${flip}">
-          <path d="M 0 15 L 9 7 L 6 15 L 9 23 Z" fill="currentColor"/>
-          <line x1="9" y1="15" x2="68" y2="15" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
-          <path d="M 64 4 L 100 15 L 64 26 L 73 15 Z" fill="currentColor"/>
+        const flip = dir === 'right' ? 'transform:scaleX(-1)' : '';
+        // High-fidelity archery arrow matching user's exact SVG layout (1200x300 viewBox)
+        return `<svg viewBox="0 0 1200 300" class="sf-ant-arrow${cls ? ' ' + cls : ''}" style="${flip}" overflow="visible">
+          <!-- Shaft segments (with gaps for decorative rings) -->
+          <line x1="180" y1="150" x2="240" y2="150" stroke="currentColor" stroke-width="12" />
+          <line x1="246" y1="150" x2="255" y2="150" stroke="currentColor" stroke-width="12" />
+          <line x1="261" y1="150" x2="270" y2="150" stroke="currentColor" stroke-width="12" />
+          <line x1="276" y1="150" x2="980" y2="150" stroke="currentColor" stroke-width="12" />
+          <!-- Round caps for shaft outer ends -->
+          <circle cx="180" cy="150" r="6" fill="currentColor" />
+          <circle cx="980" cy="150" r="6" fill="currentColor" />
+          <!-- Arrowhead -->
+          <polygon points="90,150 180,90 150,150 180,210" fill="currentColor" />
+          <!-- Tail Fangs Top -->
+          <line x1="850" y1="150" x2="930" y2="80" stroke="currentColor" stroke-width="10" stroke-linecap="round" />
+          <line x1="900" y1="150" x2="980" y2="80" stroke="currentColor" stroke-width="10" stroke-linecap="round" />
+          <line x1="950" y1="150" x2="1030" y2="80" stroke="currentColor" stroke-width="10" stroke-linecap="round" />
+          <!-- Tail Fangs Bottom -->
+          <line x1="850" y1="150" x2="930" y2="220" stroke="currentColor" stroke-width="10" stroke-linecap="round" />
+          <line x1="900" y1="150" x2="980" y2="220" stroke="currentColor" stroke-width="10" stroke-linecap="round" />
+          <line x1="950" y1="150" x2="1030" y2="220" stroke="currentColor" stroke-width="10" stroke-linecap="round" />
         </svg>`;
       };
       const congRow = `<div class="sf-ant-row">${antSvg('right','')}${antSvg('right','')}${antSvg('right','sf-ant-center')}${antSvg('right','')}${antSvg('right','')}</div>`;
@@ -399,16 +415,15 @@ export function InstructionsView(params = {}) {
 
     .sf-ant-arrow {
       display: inline-block;
-      width: 16px;
+      width: 24px;
       height: 6px;
-      fill: currentColor;
       color: #707a8a;
       overflow: visible;
     }
 
-    .sf-ant-center { color: #ffffff;           width: 18px; height: 6.5px; }
+    .sf-ant-center { color: #ffffff;              width: 28px; height: 7px; }
     .sf-ant-dim    { color: rgba(112,122,138,0.22); }
-    .sf-ant-volt   { color: var(--accent-volt); width: 18px; height: 6.5px; }
+    .sf-ant-volt   { color: var(--accent-volt);    width: 28px; height: 7px; }
 
     .sf-respond-keys {
       display: flex;

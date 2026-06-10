@@ -21,17 +21,31 @@ const ANT_CONFIG = {
 const ARROWS = { left: '←', right: '→' };
 
 function getArrowHTML(direction) {
-  const flipStyle = direction === 'left' ? 'transform: scaleX(-1);' : '';
-  const arrowColor = '#707a8a';
+  const flipStyle = direction === 'right' ? 'transform: scaleX(-1);' : '';
+  const c = '#707a8a';
 
+  // Archery arrow matching the user's exact SVG layout (1200x300 viewBox)
+  // Transparent gaps are used for the decorative rings so it works on any background color.
   return `
-    <svg viewBox="0 0 100 30" class="ant-arrow" style="width: 10vmin; height: 3vmin; fill: ${arrowColor}; color: ${arrowColor}; ${flipStyle} display: inline-block;">
-      <!-- Small tail notch (direction indicator) -->
-      <path d="M 0 15 L 9 7 L 6 15 L 9 23 Z" fill="${arrowColor}" />
-      <!-- Arrow shaft -->
-      <line x1="9" y1="15" x2="68" y2="15" stroke="${arrowColor}" stroke-width="2.5" stroke-linecap="round" />
-      <!-- Large prominent arrowhead -->
-      <path d="M 64 4 L 100 15 L 64 26 L 73 15 Z" fill="${arrowColor}" />
+    <svg viewBox="0 0 1200 300" class="ant-arrow" style="width:10vmin;height:2.5vmin;${flipStyle}display:inline-block;overflow:visible;">
+      <!-- Shaft segments (with gaps for decorative rings) -->
+      <line x1="180" y1="150" x2="240" y2="150" stroke="${c}" stroke-width="12" />
+      <line x1="246" y1="150" x2="255" y2="150" stroke="${c}" stroke-width="12" />
+      <line x1="261" y1="150" x2="270" y2="150" stroke="${c}" stroke-width="12" />
+      <line x1="276" y1="150" x2="980" y2="150" stroke="${c}" stroke-width="12" />
+      <!-- Round caps for shaft outer ends -->
+      <circle cx="180" cy="150" r="6" fill="${c}" />
+      <circle cx="980" cy="150" r="6" fill="${c}" />
+      <!-- Arrowhead -->
+      <polygon points="90,150 180,90 150,150 180,210" fill="${c}" />
+      <!-- Tail Fangs Top -->
+      <line x1="850" y1="150" x2="930" y2="80" stroke="${c}" stroke-width="10" stroke-linecap="round" />
+      <line x1="900" y1="150" x2="980" y2="80" stroke="${c}" stroke-width="10" stroke-linecap="round" />
+      <line x1="950" y1="150" x2="1030" y2="80" stroke="${c}" stroke-width="10" stroke-linecap="round" />
+      <!-- Tail Fangs Bottom -->
+      <line x1="850" y1="150" x2="930" y2="220" stroke="${c}" stroke-width="10" stroke-linecap="round" />
+      <line x1="900" y1="150" x2="980" y2="220" stroke="${c}" stroke-width="10" stroke-linecap="round" />
+      <line x1="950" y1="150" x2="1030" y2="220" stroke="${c}" stroke-width="10" stroke-linecap="round" />
     </svg>
   `;
 }
