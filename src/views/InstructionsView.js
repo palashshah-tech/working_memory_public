@@ -265,6 +265,32 @@ export function InstructionsView(params = {}) {
   `);
 
   injectStyle(`
+    :root {
+      --sf-width: 160px;
+      --sf-height: 106px;
+      --sf-sq-size: 16px;
+      --sf-arrow-w: 28px;
+      --sf-arrow-h: 7px;
+      --sf-center-w: 32px;
+      --sf-center-h: 8px;
+      --sf-fix-size: 1.25rem;
+      --sf-arr-size: 0.95rem;
+    }
+
+    @media (max-width: 1200px) {
+      :root {
+        --sf-width: 118px;
+        --sf-height: 84px;
+        --sf-sq-size: 13px;
+        --sf-arrow-w: 20px;
+        --sf-arrow-h: 5px;
+        --sf-center-w: 24px;
+        --sf-center-h: 6px;
+        --sf-fix-size: 1.05rem;
+        --sf-arr-size: 0.8rem;
+      }
+    }
+
     /* ============================================================
        Scandinavian Minimalism / Lenna EV UI System
        ============================================================ */
@@ -313,8 +339,8 @@ export function InstructionsView(params = {}) {
 
     .sf-frame {
       position: relative;
-      width: 200px;
-      height: 128px;
+      width: var(--sf-width);
+      height: var(--sf-height);
       background: rgba(0, 0, 0, 0.52);
       border: 1px solid rgba(255, 255, 255, 0.07);
       border-radius: 7px;
@@ -341,7 +367,7 @@ export function InstructionsView(params = {}) {
       position: absolute;
       top: 50%; left: 50%;
       transform: translate(-50%, -50%);
-      font-size: 1.4rem;
+      font-size: var(--sf-fix-size);
       font-weight: 300;
       color: rgba(255, 255, 255, 0.75);
       line-height: 1;
@@ -350,8 +376,8 @@ export function InstructionsView(params = {}) {
 
     .sf-sq {
       position: absolute;
-      width: 20px;
-      height: 20px;
+      width: var(--sf-sq-size);
+      height: var(--sf-sq-size);
       border-radius: 2.5px;
     }
 
@@ -369,13 +395,13 @@ export function InstructionsView(params = {}) {
     .sf-conn {
       display: flex;
       align-items: center;
-      height: 128px;
+      height: var(--sf-height);
       padding: 0 10px;
       flex-shrink: 0;
     }
 
     .sf-arr {
-      font-size: 1.1rem;
+      font-size: var(--sf-arr-size);
       color: rgba(255, 255, 255, 0.13);
     }
 
@@ -415,15 +441,15 @@ export function InstructionsView(params = {}) {
 
     .sf-ant-arrow {
       display: inline-block;
-      width: 32px;
-      height: 8px;
+      width: var(--sf-arrow-w);
+      height: var(--sf-arrow-h);
       color: #707a8a;
       overflow: visible;
     }
 
-    .sf-ant-center { color: #ffffff;              width: 38px; height: 9.5px; }
+    .sf-ant-center { color: #ffffff;              width: var(--sf-center-w); height: var(--sf-center-h); }
     .sf-ant-dim    { color: rgba(112,122,138,0.22); }
-    .sf-ant-volt   { color: var(--accent-volt);    width: 38px; height: 9.5px; }
+    .sf-ant-volt   { color: var(--accent-volt);    width: var(--sf-center-w); height: var(--sf-center-h); }
 
     .sf-respond-keys {
       display: flex;
@@ -523,8 +549,20 @@ export function InstructionsView(params = {}) {
 
     .iv-hud {
       display: flex;
-      gap: 64px;
+      gap: 48px;
       align-items: flex-start;
+    }
+
+    @media (max-width: 1024px) {
+      .iv-hud {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 32px;
+      }
+      .iv-hud-left {
+        flex: 1 1 auto;
+        width: 100% !important;
+      }
     }
 
     /* Left Panel Styles */
