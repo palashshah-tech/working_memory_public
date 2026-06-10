@@ -15,6 +15,10 @@ const DICTIONARY = {
     "gender_other": "Other",
     "gender_none": "Do not want to declare",
     "label_handle": "Gamer Handle",
+    "placeholder_name": "John Doe",
+    "placeholder_email": "john@example.com",
+    "placeholder_age": "21",
+    "placeholder_handle": "e.g., X_REAPER_X",
     "label_access_code": "Access Code",
     "access_placeholder": "Enter access code",
     "privacy_text": "I agree to the <a href='#' id='agree-privacy-link' style='color:var(--accent-volt); text-decoration:none;'>Privacy Policy</a> and consent to the collection of my cognitive and device telemetry data for evaluation purposes.",
@@ -177,7 +181,20 @@ const DICTIONARY = {
     "ad_modal_tab_overview": "Overview",
     "ad_modal_tab_raw": "Raw Data",
     "ad_modal_no_raw": "No raw trial data saved for this candidate.",
-    "ad_syncing": "Syncing with Cloud Database..."
+    "ad_syncing": "Syncing with Cloud Database...",
+    "cv_raw_total_trials": "Total trials",
+    "cv_raw_overall_accuracy": "Overall accuracy",
+    "cv_raw_avg_rt": "Avg response time",
+    "cv_raw_fastest_correct": "Fastest correct",
+    "cv_raw_slowest_correct": "Slowest correct",
+    "cv_raw_best_streak": "Best streak",
+    "cv_raw_streak_val": "{streak} in a row",
+    "cv_raw_your_performance": "Your Performance",
+    "cv_raw_rt_trial_by_trial": "Response Time — Trial by Trial",
+    "cv_raw_spark_desc": "Each bar = one trial. Green = correct, red = incorrect. Height = how long you took.",
+    "cv_raw_spark_correct": "Correct",
+    "cv_raw_spark_incorrect": "Incorrect",
+    "cv_raw_spark_duration": "Duration (ms)"
   },
   ja: {
     // Welcome
@@ -194,12 +211,16 @@ const DICTIONARY = {
     "gender_female": "女性",
     "gender_other": "その他",
     "gender_none": "回答しない",
-    "label_handle": "ゲーマーハンドル",
+    "label_handle": "ハンドルネーム / ニックネーム",
+    "placeholder_name": "山田 太郎",
+    "placeholder_email": "yamada@example.com",
+    "placeholder_age": "21",
+    "placeholder_handle": "例：yamada_taro",
     "label_access_code": "アクセスコード",
     "access_placeholder": "アクセスコードを入力",
     "privacy_text": "<a href='#' id='agree-privacy-link-ja' style='color:var(--accent-volt); text-decoration:none;'>プライバシーポリシー</a>に同意し、評価目的での認知およびデバイステレメトリデータの収集に同意します。",
     "disclaimer_text": "このタスクを完了するために<strong>12分</strong>を確保してください。12分以内にすべてのタスクを連続して完了できない場合は、もう一度やり直す必要があります。システムは自動的にログアウトします。",
-    "btn_init": "評価を開始する →",
+    "btn_init": "スタート →",
     "access_required": "アクセスコードを入力してください",
     "access_invalid": "アクセスコードが無効です",
     "access_limit_reached": "このアクセスコードは使用回数の上限に達しています。",
@@ -226,20 +247,20 @@ const DICTIONARY = {
     "tv_practice_hud_end": "練習終了 ⤑",
 
     // Instructions
-    "btn_ready": "準備完了 — 始める →",
+    "btn_ready": "スタート →",
     "dist_tip": "このタスクは、関連するアイテムの記憶を維持しながら、<strong>無関係な情報を除外する能力</strong>を測定します。",
     "dist_color": "色付き = これらを記憶する",
     "dist_gray": "白色 = 無視する（妨害）",
-    "step_title": "ステップバイステップ",
+    "step_title": "手順",
 
     // Task 1: VWM Pure
     "t1_tag": "タスク 1 / 3",
     "t1_title": "ワーキングメモリ容量タスク",
     "t1_sum": "このタスクは、視覚的な短期記憶容量に挑戦します。あなたはいくつのアイテムを覚えられますか？",
-    "t1_s1": "中央に十字マーク <strong>+</strong> が表示されます。それに注目してください。",
+    "t1_s1": "中央に十字マーク <strong>+</strong> が表示されます。それを注視してください。",
     "t1_s2": "画面に色付きの四角形が一瞬表示されます。あなたのタスクは、その短い瞬間にできるだけ多くの四角形の色を覚えることです。",
-    "t1_s3": "空白の後、四角形が再び表示されます。そのうちの1つだけが色付けされています（「ターゲット」）。それが以前の表示と同じ色か、違う色かをボタンを押して指示してください。",
-    "t1_s4": "<strong style='color:var(--accent-volt)'>可能な限り正確に回答し、すべての試行で正解するように最善を尽くしてください。このタスクでは速度は重要ではありません。</strong>",
+    "t1_s3": "空白の後、四角形が再び表示されます。そのうちの1つだけが色付けされています（「ターゲット」）。それが②で表示されたものと同じ色か、違う色かをボタンを押して指示してください。",
+    "t1_s4": "<strong style='color:var(--accent-volt)'>可能な限り正確に回答し、すべての試行で正解するように最善を尽くしてください。速度より正確さを優先してください（反応時間は参考値として記録されます）。</strong>",
 
     // Task 2: VWM Distractor
     "t2_tag": "タスク 2 / 3",
@@ -248,19 +269,19 @@ const DICTIONARY = {
     "t2_s1": "色付きのターゲットアイテムと白色の妨害アイテムが一緒に表示されます。",
     "t2_s2": "<strong>色付きのアイテムだけに集中してください</strong> — 白色の方はすべて無視してください。",
     "t2_s3": "空白の時間が続きます — ターゲットの色を記憶にとどめてください。",
-    "t2_s4": "ターゲットの1つが再び色付きで表示されます。残りは空の輪郭です。",
+    "t2_s4": "ターゲットの1つが再び色付きで表示されます。残りは無色の四角です。",
     "t2_s5": "その色付きのアイテムが同じ（SAME）か違う（DIFFERENT）かを判断してください。",
-    "t2_s6": "<strong style='color:var(--accent-volt)'>可能な限り正確に回答し、すべての試行で正解するように最善を尽くしてください。このタスクでは速度は重要ではありません。</strong>",
+    "t2_s6": "<strong style='color:var(--accent-volt)'>可能な限り正確に回答し、すべての試行で正解するように最善を尽くしてください。速度より正確さを優先してください（反応時間は参考値として記録されます）。</strong>",
 
     // Task 3: ANT
     "t3_tag": "タスク 3 / 3",
     "t3_title": "アテンション・ネットワーク・テスト",
-    "t3_sum": "画面に矢印が表示されます。<strong>中央の矢印の方向</strong>を可能な限り早く特定してください。",
-    "t3_s1": "中央に十字マークが表示されます。",
-    "t3_s2": "時々、短い円のキュー（合図）が点滅します — これはタイミングや場所を示します。",
-    "t3_s3": "中央の上または下に矢印のターゲットが表示されます。",
-    "t3_s4": "<strong>中央の矢印の方向</strong>を特定してください。",
-    "t3_s5": "左の場合は <kbd>←</kbd> を、右の場合は <kbd>→</kbd> を押してください。",
+    "t3_sum": "画面に矢印が一列に呈示されます。その中央にあるターゲット矢印の方向を可能な限り早く特定してください。",
+    "t3_s1": "画面中央に十字マークが表示されます。",
+    "t3_s2": "合図として円が一瞬点滅することがあります（タイミングや場所を示します）。",
+    "t3_s3": "画面中央の上または下に、5つの矢印が横一列に呈示されます。",
+    "t3_s4": "ターゲットは一列に並んだ矢印の中央にあります。その<strong>中央に呈示されているターゲット矢印の方向</strong>を特定してください。",
+    "t3_s5": "ターゲット矢印が左向き（←）なら <kbd>←</kbd> を、右向き（→）なら <kbd>→</kbd> を押してください。",
     "t3_s6": "可能な限り早く、正確に回答してください。",
 
     // Keys
@@ -288,7 +309,7 @@ const DICTIONARY = {
     // Complete
     "cv_title": "評価完了",
     "cv_acc": "正解率 {acc}% で無事完了しました！よくできました！",
-    "cv_msg": "結果は安全に記録され、私たちのチームによって審査されます。近日中にご連絡いたします。",
+    "cv_msg": "結果は無事に記録され、私たちのチームによって解析されます。近日中にご連絡いたします。",
     "cv_status": "ステータス",
     "cv_candidate": "候補者",
     "cv_tasks": "完了したタスク",
@@ -357,7 +378,20 @@ const DICTIONARY = {
     "ad_modal_tab_overview": "概要",
     "ad_modal_tab_raw": "生データ",
     "ad_modal_no_raw": "この候補者の生試験データは保存されていません。",
-    "ad_syncing": "クラウドデータベースと同期中..."
+    "ad_syncing": "クラウドデータベースと同期中...",
+    "cv_raw_total_trials": "総試行数",
+    "cv_raw_overall_accuracy": "全体正解率",
+    "cv_raw_avg_rt": "平均反応時間",
+    "cv_raw_fastest_correct": "最速正解",
+    "cv_raw_slowest_correct": "最遅正解",
+    "cv_raw_best_streak": "最大連勝",
+    "cv_raw_streak_val": "{streak} 回連続",
+    "cv_raw_your_performance": "パフォーマンス詳細",
+    "cv_raw_rt_trial_by_trial": "反応時間の推移 (試行ごと)",
+    "cv_raw_spark_desc": "各バー＝1試行。緑＝正解、赤＝不正解。バーの高さ＝回答にかかった時間。",
+    "cv_raw_spark_correct": "正解",
+    "cv_raw_spark_incorrect": "不正解",
+    "cv_raw_spark_duration": "反応時間 (ms)"
   }
 };
 

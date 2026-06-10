@@ -315,12 +315,12 @@ function renderCandidateRaw(trials) {
   const accColor = acc >= 70 ? '#34d399' : acc >= 50 ? '#fbbf24' : '#f87171';
 
   const stats = [
-    { label: 'Total trials',      val: trials.length,           color: '' },
-    { label: 'Overall accuracy',  val: acc + '%',               color: accColor },
-    { label: 'Avg response time', val: avgRT + 'ms',            color: '' },
-    { label: 'Fastest correct',   val: fastRT.toFixed(2) + 'ms',         color: '#34d399' },
-    { label: 'Slowest correct',   val: slowRT.toFixed(2) + 'ms',         color: '#fbbf24' },
-    { label: 'Best streak',       val: maxStreak + ' in a row', color: '' },
+    { label: t('cv_raw_total_trials'),      val: trials.length,           color: '' },
+    { label: t('cv_raw_overall_accuracy'),  val: acc + '%',               color: accColor },
+    { label: t('cv_raw_avg_rt'),            val: avgRT + 'ms',            color: '' },
+    { label: t('cv_raw_fastest_correct'),   val: fastRT.toFixed(2) + 'ms',         color: '#34d399' },
+    { label: t('cv_raw_slowest_correct'),   val: slowRT.toFixed(2) + 'ms',         color: '#fbbf24' },
+    { label: t('cv_raw_best_streak'),       val: t('cv_raw_streak_val', { streak: maxStreak }), color: '' },
   ];
 
   const glanceHtml = stats.map(s =>
@@ -342,14 +342,14 @@ function renderCandidateRaw(trials) {
 
   return (
     '<div class="cv-raw-card">' +
-    '<div class="cv-summary-title" style="margin-bottom:16px;">Your Performance</div>' +
+    '<div class="cv-summary-title" style="margin-bottom:16px;">' + t('cv_raw_your_performance') + '</div>' +
     '<div class="cv-raw-glance">' + glanceHtml + '</div>' +
-    '<div class="cv-summary-title" style="margin-bottom:8px;">Response Time — Trial by Trial</div>' +
-    '<div style="font-size:11px;color:var(--text-tertiary);margin-bottom:8px;">Each bar = one trial. Green = correct, red = incorrect. Height = how long you took.</div>' +
+    '<div class="cv-summary-title" style="margin-bottom:8px;">' + t('cv_raw_rt_trial_by_trial') + '</div>' +
+    '<div style="font-size:11px;color:var(--text-tertiary);margin-bottom:8px;">' + t('cv_raw_spark_desc') + '</div>' +
     '<div class="cv-sparkline">' + sparkBars + '</div>' +
     '<div class="cv-spark-legend">' +
-    '<div class="cv-spark-leg-item"><div class="cv-spark-leg-dot" style="background:rgba(52,211,153,0.75)"></div>Correct</div>' +
-    '<div class="cv-spark-leg-item"><div class="cv-spark-leg-dot" style="background:rgba(248,113,113,0.65)"></div>Incorrect</div>' +
+    '<div class="cv-spark-leg-item"><div class="cv-spark-leg-dot" style="background:rgba(52,211,153,0.75)"></div>' + t('cv_raw_spark_correct') + '</div>' +
+    '<div class="cv-spark-leg-item"><div class="cv-spark-leg-dot" style="background:rgba(248,113,113,0.65)"></div>' + t('cv_raw_spark_incorrect') + '</div>' +
     '</div>' +
     '</div>'
   );

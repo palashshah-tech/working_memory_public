@@ -168,7 +168,7 @@ export function WelcomeView(params = {}) {
               <div class="badge badge-volt">${t('badge_task')}</div>
             </div>
           </div>
-          <h1 class="wv-title">${t('app_title')}<span class="dot">.</span></h1>
+          <h1 class="wv-title">${t('app_title')}${getLang() === 'ja' ? '' : '<span class="dot">.</span>'}</h1>
           <p class="wv-tagline">${t('app_tagline')}</p>
         </header>
 
@@ -178,15 +178,15 @@ export function WelcomeView(params = {}) {
             <div class="input-grid">
               <div class="field">
                 <label>${t('label_name')}</label>
-                <input type="text" id="r-name" placeholder="John Doe" required />
+                <input type="text" id="r-name" placeholder="${t('placeholder_name')}" required />
               </div>
               <div class="field">
                 <label>${t('label_email')}</label>
-                <input type="email" id="r-email" placeholder="john@example.com" required />
+                <input type="email" id="r-email" placeholder="${t('placeholder_email')}" required />
               </div>
               <div class="field">
                 <label>${t('label_age')}</label>
-                <input type="number" id="r-age" min="13" max="60" placeholder="21" required />
+                <input type="number" id="r-age" min="13" max="60" placeholder="${t('placeholder_age')}" required />
               </div>
               <div class="field">
                 <label>${t('label_gender')}</label>
@@ -200,7 +200,7 @@ export function WelcomeView(params = {}) {
               </div>
               <div class="field" style="grid-column: 1 / -1;">
                 <label>${t('label_handle')}</label>
-                <input type="text" id="r-handle" placeholder="X_REAPER_X" required />
+                <input type="text" id="r-handle" placeholder="${t('placeholder_handle')}" required />
               </div>
             </div>
 

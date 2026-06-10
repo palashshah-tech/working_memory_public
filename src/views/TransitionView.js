@@ -75,28 +75,12 @@ export function TransitionView(params = {}) {
             <span>${t('tr_capacity')}</span>
             <span style="color:#d4ff00">${results.maxK.toFixed(2)}</span>
           </div>
-          <div class="trv-stat-row">
-            <span>${t('tr_rt')}</span>
-            <span>${Math.round(results.meanRT)}ms</span>
-          </div>
         </div>
 
         <p class="trv-sub">${t('tr_break')}</p>
 
-        <div class="trv-card">
-          <div class="trv-card-head">
-            <span class="trv-badge">UP NEXT</span>
-            <span class="trv-prog">${info.number} ${t('tr_of3')}</span>
-          </div>
-          <div class="trv-icon">${info.icon}</div>
-          <h3 class="trv-card-title">${info.title}</h3>
-          <p class="trv-card-desc">${info.desc}</p>
-          <div class="trv-bar-wrap">
-            <div class="trv-bar">
-              <div class="trv-bar-fill" style="width:${((info.number - 1) / info.total) * 100}%"></div>
-            </div>
-            <span class="trv-bar-label">${info.number - 1} ${t('tr_of3')}</span>
-          </div>
+        <div style="font-family:var(--font-mono); font-size:11px; color:#d4ff00; letter-spacing:0.12em; text-transform:uppercase; margin-top:8px; margin-bottom:16px;">
+          ${info.number - 1} / ${info.total} ${t('tr_of3')}
         </div>
 
         <button class="trv-cta" id="btn-continue">
