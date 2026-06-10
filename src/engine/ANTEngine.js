@@ -119,14 +119,20 @@ export class ANTEngine {
     if (this.isPractice) {
       return [
         {
-          cueType: Math.random() < 0.5 ? 'center' : 'spatial',
+          cueType: 'center',
           flankerType: 'congruent',
           targetDirection: Math.random() < 0.5 ? 'left' : 'right',
           targetPosition: Math.random() < 0.5 ? 'above' : 'below',
         },
         {
-          cueType: Math.random() < 0.5 ? 'none' : 'double',
+          cueType: 'double',
           flankerType: 'incongruent',
+          targetDirection: Math.random() < 0.5 ? 'left' : 'right',
+          targetPosition: Math.random() < 0.5 ? 'above' : 'below',
+        },
+        {
+          cueType: 'spatial',
+          flankerType: 'congruent',
           targetDirection: Math.random() < 0.5 ? 'left' : 'right',
           targetPosition: Math.random() < 0.5 ? 'above' : 'below',
         }

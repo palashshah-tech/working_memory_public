@@ -52,7 +52,7 @@ const DICTIONARY = {
     "t1_s1": "A fixation cross <strong>+</strong> appears — focus on it.",
     "t1_s2": "You will briefly see coloured squares on the screen. Your task is to remember the color of the square as many items as you can within the brief flash moment.",
     "t1_s3": "After a blank, the squares reappear at which you need to indicate the one square still being coloured (“the target”) is same as the previous display or different by pressing a button.",
-    "t1_s4": "<strong style='color:var(--accent-volt)'>Respond as accurately as possible; prioritize accuracy over speed. Response times are recorded for reference only.</strong>",
+    "t1_s4": "<strong style='color:var(--accent-volt)'>Before the main assessment, there will be 3 rounds of practice (starting with 1 target and scaling up to 3 targets). Respond as accurately as possible; prioritize accuracy over speed. Response times are recorded for reference only.</strong>",
 
     // Task 2: VWM Distractor
     "t2_tag": "TASK 2 OF 3",
@@ -63,7 +63,7 @@ const DICTIONARY = {
     "t2_s3": "A blank period follows — hold the target colors in memory.",
     "t2_s4": "One target reappears in color; the rest are empty outlines.",
     "t2_s5": "Decide if that one colored item is the SAME or DIFFERENT.",
-    "t2_s6": "<strong style='color:var(--accent-volt)'>Respond as accurately as possible; prioritize accuracy over speed. Response times are recorded for reference only.</strong>",
+    "t2_s6": "<strong style='color:var(--accent-volt)'>Before the main assessment, there will be 3 rounds of practice (starting with 1 target and scaling up to 3 targets). Respond as accurately as possible; prioritize accuracy over speed. Response times are recorded for reference only.</strong>",
 
     // Task 3: ANT
     "t3_tag": "TASK 3 OF 3",
@@ -74,7 +74,7 @@ const DICTIONARY = {
     "t3_s3": "An arrow target appears above or below center.",
     "t3_s4": "Identify the <strong>center arrow</strong> direction.",
     "t3_s5": "Press <kbd>←</kbd> for LEFT, <kbd>→</kbd> for RIGHT.",
-    "t3_s6": "Respond as quickly and accurately as possible.",
+    "t3_s6": "Before the main assessment, there will be 3 rounds of practice (3 standard trials of the same type). Respond as quickly and accurately as possible.",
 
     // Keys
     "key_same": "Same",
@@ -238,7 +238,7 @@ const DICTIONARY = {
     "t1_s1": "中央に十字マーク <strong>+</strong> が表示されます。そこに注視もしくは注意を向けてください。",
     "t1_s2": "画面に色付きの四角形が一瞬表示されます。あなたのタスクは、その短い瞬間にできるだけ多くの四角形の色を覚えることです。",
     "t1_s3": "空白の後、四角形が再び表示されます。そのうちの1つだけが色付けされています（「ターゲット」）。それが②で表示されたものと同じ色か、違う色かをボタンを押して指示してください。",
-    "t1_s4": "<strong style='color:var(--accent-volt)'>可能な限り正確に回答し、すべての試行で正解するように最善を尽くしてください。速度より正確さを優先してください（反応時間は参考として記録されます）。</strong>",
+    "t1_s4": "<strong style='color:var(--accent-volt)'>本番の測定を開始する前に、3回（ターゲット数が1個から3個まで段階的に増えます）の練習ラウンドがあります。可能な限り正確に回答し、すべての試行で正解するように最善を尽くしてください。速度より正確さを優先してください（反応時間は参考として記録されます）。</strong>",
 
     // Task 2: VWM Distractor
     "t2_tag": "タスク 2 / 3",
@@ -249,7 +249,7 @@ const DICTIONARY = {
     "t2_s3": "空白の時間が続きます — ターゲットの色を記憶にとどめてください。",
     "t2_s4": "ターゲットの1つが再び色付きで表示されます。残りは無色の四角です。",
     "t2_s5": "その色付きのアイテムが同じ（SAME）か違う（DIFFERENT）かを判断してください。",
-    "t2_s6": "<strong style='color:var(--accent-volt)'>可能な限り正確に回答し、すべての試行で正解するように最善を尽くしてください。速度より正確さを優先してください（反応時間は参考として記録されます）。</strong>",
+    "t2_s6": "<strong style='color:var(--accent-volt)'>本番の測定を開始する前に、3回（ターゲット数が1個から3個まで段階的に増えます）の練習ラウンドがあります。可能な限り正確に回答し、すべての試行で正解するように最善を尽くしてください。速度より正確さを優先してください（反応時間は参考として記録されます）。</strong>",
 
     // Task 3: ANT
     "t3_tag": "タスク 3 / 3",
@@ -260,7 +260,7 @@ const DICTIONARY = {
     "t3_s3": "画面中央の上または下に、一列に並んだ複数の矢印が表示されます。",
     "t3_s4": "ターゲットは一列に並んだ複数の矢印の中央にあります。その<strong>画面中央に呈示されているターゲットの矢印の方向</strong>を特定してください。",
     "t3_s5": "左の場合は <kbd>←</kbd> を、右の場合は <kbd>→</kbd> を押してください。",
-    "t3_s6": "可能な限り早く、正確に回答してください。",
+    "t3_s6": "本番の測定を開始する前に、3回の練習ラウンド（同一内容の標準的な試行を3回行います）があります。可能な限り早く、正確に回答してください。",
 
     // Keys
     "key_same": "同じ",

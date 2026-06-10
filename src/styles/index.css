@@ -28,6 +28,10 @@
   --border-medium: rgba(255, 255, 255, 0.1);
   --border-volt: rgba(212, 255, 0, 0.2);
 
+  /* Typography Colors */
+  --text-primary: #e0e0e2;
+  --text-secondary: #9a9a9f;
+
   /* Spacing */
   --space-1: 4px;
   --space-2: 8px;

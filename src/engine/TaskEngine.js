@@ -27,8 +27,10 @@ export class TaskEngine {
 
     // Define condition blocks
     if (isPractice) {
-      this.blocks = taskType === 'vwm-pure' ? [{t:2, d:0}] : [{t:2, d:2}];
-      this.trialsPerBlock = 2;
+      this.blocks = taskType === 'vwm-pure'
+        ? [{t:1, d:0}, {t:2, d:0}, {t:3, d:0}]
+        : [{t:1, d:1}, {t:2, d:2}, {t:3, d:3}];
+      this.trialsPerBlock = 1;
     } else {
       this.blocks = taskType === 'vwm-pure'
         ? [{t:1, d:0}, {t:2, d:0}, {t:3, d:0}, {t:4, d:0}, {t:6, d:0}, {t:8, d:0}]
@@ -122,7 +124,7 @@ export class TaskEngine {
     await this._countdown();
     if (!this.running) { this._finish(); return; }
 
-    while (this.running && this.blockIdx < this.blocks.length) {
+    while (this.running && this.blockIdx < this.blocks.length && this.trialNum < this.maxTrials) {
       await this._runOneTrial();
       if (!this.running) break;
       
@@ -197,22 +199,28 @@ export class TaskEngine {
 
     this.trialsInBlock++;
 
-    if (isCorrect) {
-      this.streak++;
-      this.consecutiveMistakes = 0;
-      if (this.streak >= 2) {
-        // Advance only if not at the maximum block index
-        if (this.blockIdx < this.blocks.length - 1) {
-          this.blockIdx++;
-        }
-        this.streak = 0;
-        this.mistakesInBlock = 0;
-        this.trialsInBlock = 0;
+    if (this.isPractice) {
+      if (this.blockIdx < this.blocks.length - 1) {
+        this.blockIdx++;
       }
     } else {
-      this.streak = 0;
-      this.mistakesInBlock++;
-      this.consecutiveMistakes++;
+      if (isCorrect) {
+        this.streak++;
+        this.consecutiveMistakes = 0;
+        if (this.streak >= 2) {
+          // Advance only if not at the maximum block index
+          if (this.blockIdx < this.blocks.length - 1) {
+            this.blockIdx++;
+          }
+          this.streak = 0;
+          this.mistakesInBlock = 0;
+          this.trialsInBlock = 0;
+        }
+      } else {
+        this.streak = 0;
+        this.mistakesInBlock++;
+        this.consecutiveMistakes++;
+      }
     }
 
     const record = {
@@ -228,7 +236,7 @@ export class TaskEngine {
 
     // After trial processing, check termination
     // Keep it going until the person gets three wrong in a row (consecutively)
-    if (this.consecutiveMistakes >= 3) {
+    if (!this.isPractice && this.consecutiveMistakes >= 3) {
       this.running = false; // Terminate task
     }
 

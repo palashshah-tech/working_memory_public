@@ -32,7 +32,7 @@ export function TaskView(taskType = 'vwm-pure', params = {}) {
     : t('tv_skip', { default: 'Skip Section ⤑' });
 
   const trialText = isPractice
-    ? `${t('tv_practice_hud_trial')} 1 / 2`
+    ? `${t('tv_practice_hud_trial')} 1 / 3`
     : 'TRIAL 1';
 
   render(`
@@ -81,10 +81,11 @@ export function TaskView(taskType = 'vwm-pure', params = {}) {
 
       <!-- Practice Completion Overlay -->
       <div id="practice-complete-overlay" class="legal-modal-overlay" style="display:none; z-index:3000; justify-content:center; align-items:center;">
-        <div class="legal-modal-card glass-card" style="max-width:400px; text-align:center; padding:32px;">
-          <h3 style="font-family:var(--font-display); font-size:1.6rem; color:#d4ff00; margin-top:0; margin-bottom:16px;">${t('tv_practice_done_title')}</h3>
-          <p style="font-family:var(--font-body); font-size:14px; color:var(--text-secondary); line-height:1.6; margin-bottom:28px;">${t('tv_practice_done_text')}</p>
-          <button id="btn-start-real" class="btn-volt" style="padding:14px 28px; font-size:14px; font-weight:bold; width:100%; border:none; border-radius:8px; cursor:pointer;">${t('tv_practice_done_btn')}</button>
+        <div class="legal-modal-card glass-card practice-complete-card">
+          <div class="modal-mesh-glow"></div>
+          <h3 class="practice-complete-title">${t('tv_practice_done_title')}</h3>
+          <p class="practice-complete-text">${t('tv_practice_done_text')}</p>
+          <button id="btn-start-real" class="btn-volt practice-complete-btn">${t('tv_practice_done_btn')}</button>
         </div>
       </div>
 
@@ -127,6 +128,80 @@ export function TaskView(taskType = 'vwm-pure', params = {}) {
     .resp-key { position:absolute; top:-10px; right:10px; font-size:10px; font-family:var(--font-mono); color:#5a5a5f; }
     .dist-legend-fixed { position:fixed; top:80px; display:flex; gap:20px; font-family:var(--font-mono); font-size:10px; color:#5a5a5f; }
     .leg-dot { width:8px; height:8px; display:inline-block; margin-right:6px; border-radius:1px; }
+
+    /* Premium Practice Complete Modal styling */
+    .legal-modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(4, 4, 5, 0.85);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 3000;
+      padding: 24px;
+    }
+    .practice-complete-card {
+      max-width: 440px;
+      width: 100%;
+      text-align: center;
+      padding: 48px 36px;
+      background: rgba(14, 14, 16, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      box-shadow: 0 40px 100px rgba(0, 0, 0, 0.95), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+      position: relative;
+      overflow: hidden;
+      animation: modal-zoom 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    @keyframes modal-zoom {
+      0% { opacity: 0; transform: scale(0.96) translateY(16px); }
+      100% { opacity: 1; transform: scale(1) translateY(0); }
+    }
+    .modal-mesh-glow {
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(circle at center, rgba(212, 255, 0, 0.04) 0%, transparent 60%);
+      pointer-events: none;
+      z-index: 0;
+    }
+    .practice-complete-title {
+      font-family: var(--font-display);
+      font-size: 2.2rem;
+      font-style: italic;
+      font-weight: 600;
+      color: var(--accent-volt);
+      text-shadow: 0 0 30px rgba(212, 255, 0, 0.2);
+      margin-top: 0;
+      margin-bottom: 16px;
+      position: relative;
+      z-index: 1;
+    }
+    .practice-complete-text {
+      font-family: var(--font-body);
+      font-size: 0.95rem;
+      color: var(--text-secondary);
+      line-height: 1.65;
+      margin-bottom: 36px;
+      position: relative;
+      z-index: 1;
+    }
+    .practice-complete-btn {
+      width: 100%;
+      padding: 16px 24px;
+      font-size: 0.9rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      border-radius: 4px;
+      border: none;
+      cursor: pointer;
+      position: relative;
+      z-index: 1;
+    }
   `);
 
   if (isANT) {
@@ -216,7 +291,7 @@ function runVWM(taskType, isDistractor, cdWrap, cdWord, stimWrap, canvas,
 
     hudBar.style.width = `${Math.min(100, (meta.trialNum / engine.maxTrials) * 100)}%`;
     hudTrial.textContent = isPractice
-      ? `${t('tv_practice_hud_trial')} ${meta.trialNum + 1} / 2`
+      ? `${t('tv_practice_hud_trial')} ${meta.trialNum + 1} / 3`
       : `TRIAL ${meta.trialNum + 1}`;
   };
 
@@ -318,7 +393,7 @@ function runANT(cdWrap, cdWord, stimWrap, canvas, responseArea,
     responseArea.style.display = (state === 'target') ? 'flex' : 'none';
     hudBar.style.width  = `${(data.trialIndex / data.totalTrials) * 100}%`;
     hudTrial.textContent = isPractice
-      ? `${t('tv_practice_hud_trial')} ${data.trialIndex + 1} / 2`
+      ? `${t('tv_practice_hud_trial')} ${data.trialIndex + 1} / 3`
       : `TRIAL ${data.trialIndex + 1}`;
   };
 
