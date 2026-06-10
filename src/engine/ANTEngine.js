@@ -27,7 +27,7 @@ function getArrowHTML(direction) {
   // Archery arrow matching the user's exact SVG layout (1200x300 viewBox)
   // Transparent gaps are used for the decorative rings so it works on any background color.
   return `
-    <svg viewBox="0 0 1200 300" class="ant-arrow" style="width:10vmin;height:2.5vmin;${flipStyle}display:inline-block;overflow:visible;">
+    <svg viewBox="0 0 1200 300" class="ant-arrow" style="width:14vmin;height:3.5vmin;${flipStyle}display:inline-block;overflow:visible;">
       <!-- Shaft segments (with gaps for decorative rings) -->
       <line x1="180" y1="150" x2="240" y2="150" stroke="${c}" stroke-width="12" />
       <line x1="246" y1="150" x2="255" y2="150" stroke="${c}" stroke-width="12" />
@@ -240,7 +240,7 @@ export class ANTEngine {
     const targetArrow = getArrowHTML(t_dir);
     
     this.container.innerHTML = `<div class="task-fixation">+</div>
-      <div style="position:absolute;top:${y};left:50%;transform:translate(-50%,-50%);display:flex;align-items:center;gap:2.5vmin;">
+      <div style="position:absolute;top:${y};left:50%;transform:translate(-50%,-50%);display:flex;align-items:center;gap:2vmin;">
         ${flankArrow}${flankArrow}${targetArrow}${flankArrow}${flankArrow}
       </div>`;
   }

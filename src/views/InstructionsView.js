@@ -313,8 +313,8 @@ export function InstructionsView(params = {}) {
 
     .sf-frame {
       position: relative;
-      width: 118px;
-      height: 84px;
+      width: 200px;
+      height: 128px;
       background: rgba(0, 0, 0, 0.52);
       border: 1px solid rgba(255, 255, 255, 0.07);
       border-radius: 7px;
@@ -341,7 +341,7 @@ export function InstructionsView(params = {}) {
       position: absolute;
       top: 50%; left: 50%;
       transform: translate(-50%, -50%);
-      font-size: 1.05rem;
+      font-size: 1.4rem;
       font-weight: 300;
       color: rgba(255, 255, 255, 0.75);
       line-height: 1;
@@ -350,15 +350,15 @@ export function InstructionsView(params = {}) {
 
     .sf-sq {
       position: absolute;
-      width: 13px;
-      height: 13px;
-      border-radius: 2px;
+      width: 20px;
+      height: 20px;
+      border-radius: 2.5px;
     }
 
     .sf-sq--outline {
       background: transparent !important;
       box-shadow: none !important;
-      border: 1.2px solid rgba(255, 255, 255, 0.2);
+      border: 1.5px solid rgba(255, 255, 255, 0.2);
     }
 
     .sf-sq--white {
@@ -369,13 +369,13 @@ export function InstructionsView(params = {}) {
     .sf-conn {
       display: flex;
       align-items: center;
-      height: 84px;
+      height: 128px;
       padding: 0 10px;
       flex-shrink: 0;
     }
 
     .sf-arr {
-      font-size: 0.8rem;
+      font-size: 1.1rem;
       color: rgba(255, 255, 255, 0.13);
     }
 
@@ -410,20 +410,20 @@ export function InstructionsView(params = {}) {
       transform: translateX(-50%);
       display: flex;
       align-items: center;
-      gap: 2px;
+      gap: 4px;
     }
 
     .sf-ant-arrow {
       display: inline-block;
-      width: 24px;
-      height: 6px;
+      width: 32px;
+      height: 8px;
       color: #707a8a;
       overflow: visible;
     }
 
-    .sf-ant-center { color: #ffffff;              width: 28px; height: 7px; }
+    .sf-ant-center { color: #ffffff;              width: 38px; height: 9.5px; }
     .sf-ant-dim    { color: rgba(112,122,138,0.22); }
-    .sf-ant-volt   { color: var(--accent-volt);    width: 28px; height: 7px; }
+    .sf-ant-volt   { color: var(--accent-volt);    width: 38px; height: 9.5px; }
 
     .sf-respond-keys {
       display: flex;
