@@ -22,20 +22,16 @@ const ARROWS = { left: '←', right: '→' };
 
 function getArrowHTML(direction) {
   const flipStyle = direction === 'left' ? 'transform: scaleX(-1);' : '';
-  const arrowColor = '#707a8a'; // Exact slate-gray monotone color from the reference image
-  
+  const arrowColor = '#707a8a';
+
   return `
     <svg viewBox="0 0 100 30" class="ant-arrow" style="width: 10vmin; height: 3vmin; fill: ${arrowColor}; color: ${arrowColor}; ${flipStyle} display: inline-block;">
-      <!-- Three stacked chevrons for fletching/feathers -->
-      <path d="M 24 5 L 16 15 L 24 25 L 20 25 L 12 15 L 20 5 Z" />
-      <path d="M 18 5 L 10 15 L 18 25 L 14 25 L 6 15 L 14 5 Z" />
-      <path d="M 12 5 L 4 15 L 12 25 L 8 25 L 0 15 L 8 5 Z" />
-      <!-- Rounded nock at leftmost end -->
-      <circle cx="4" cy="15" r="1.5" />
+      <!-- Small tail notch (direction indicator) -->
+      <path d="M 0 15 L 9 7 L 6 15 L 9 23 Z" fill="${arrowColor}" />
       <!-- Arrow shaft -->
-      <line x1="4" y1="15" x2="85" y2="15" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" />
-      <!-- Arrowhead with slight indentation at the back -->
-      <path d="M 82 7 L 98 15 L 82 23 L 86 15 Z" />
+      <line x1="9" y1="15" x2="68" y2="15" stroke="${arrowColor}" stroke-width="2.5" stroke-linecap="round" />
+      <!-- Large prominent arrowhead -->
+      <path d="M 64 4 L 100 15 L 64 26 L 73 15 Z" fill="${arrowColor}" />
     </svg>
   `;
 }
