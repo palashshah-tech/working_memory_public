@@ -209,9 +209,6 @@ export function WelcomeView(params = {}) {
                 <input type="checkbox" id="r-privacy" required style="margin-top:2px; width:auto; cursor:pointer;" />
                 <label for="r-privacy" style="font-size:12px; color:#ffffff; line-height:1.4; cursor:pointer; font-family:var(--font-body);">${t('privacy_text')}</label>
               </div>
-              <p class="notice" style="max-width:none; color:#ffffff;">
-                <span>${t('disclaimer_text')}</span>
-              </p>
               <button type="submit" class="btn-volt" style="align-self: flex-end;">${t('btn_init')}</button>
             </div>
           </form>
