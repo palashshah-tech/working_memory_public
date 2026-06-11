@@ -294,10 +294,11 @@ export function WelcomeView(params = {}) {
     }
 
     .form-title {
+      font-family: var(--font-body);
       font-size: 1.5rem;
       margin-bottom: var(--space-8);
       text-transform: uppercase;
-      font-weight: 500;
+      font-weight: 600;
       letter-spacing: 0.1em;
       color: #fff;
     }
