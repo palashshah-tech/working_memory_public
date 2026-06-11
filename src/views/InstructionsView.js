@@ -89,8 +89,6 @@ export function InstructionsView(params = {}) {
       `<div class="sf-sq sf-sq--white" style="top:${top};left:${left}"></div>`;
     const fixEl = (op = 0.75) =>
       `<div class="sf-fix" style="opacity:${op}">+</div>`;
-    const conn = () =>
-      `<div class="sf-conn"><div class="sf-arr">→</div></div>`;
     const frame = (content, mod, label, timing) =>
       `<div class="sf-unit">
         <div class="sf-frame${mod ? ' sf-frame--' + mod : ''}">${content}</div>
@@ -103,37 +101,31 @@ export function InstructionsView(params = {}) {
     if (taskKey === 'vwm-pure') {
       return [
         frame(fixEl(), '', 'FIXATION', '~500ms'),
-        conn(),
         frame(
           sq(SQ[0],'15%','10%') + sq(SQ[1],'12%','58%') + sq(SQ[2],'56%','20%') + sq(SQ[3],'52%','56%') + fixEl(0.12),
           'encode', 'ENCODING', '200ms'
         ),
-        conn(),
         frame(fixEl(0.3), '', 'RETENTION', '900ms'),
-        conn(),
         frame(
           sq(SQ[0],'15%','10%') + oline('12%','58%') + oline('56%','20%') + oline('52%','56%') + fixEl(0.12),
           'probe', 'PROBE', 'respond'
         ),
-      ].join('');
+      ].map(f => `<div class="sf-slide">${f}</div>`).join('');
     }
 
     if (taskKey === 'vwm-distractor') {
       return [
         frame(fixEl(), '', 'FIXATION', '~500ms'),
-        conn(),
         frame(
           sq(SQ[0],'15%','10%') + wsq('12%','56%') + wsq('56%','18%') + sq(SQ[3],'52%','56%') + fixEl(0.12),
           'encode', 'ENCODING', '200ms'
         ),
-        conn(),
         frame(fixEl(0.3), '', 'RETENTION', '900ms'),
-        conn(),
         frame(
           sq(SQ[0],'15%','10%') + oline('12%','56%') + oline('56%','18%') + oline('52%','56%') + fixEl(0.12),
           'probe', 'PROBE', 'respond'
         ),
-      ].join('');
+      ].map(f => `<div class="sf-slide">${f}</div>`).join('');
     }
 
     if (taskKey === 'ant') {
@@ -163,14 +155,9 @@ export function InstructionsView(params = {}) {
       };
       const congRow = `<div class="sf-ant-row">${antSvg('right','')}${antSvg('right','')}${antSvg('right','sf-ant-center')}${antSvg('right','')}${antSvg('right','')}</div>`;
       const incRow  = `<div class="sf-ant-row">${antSvg('right','sf-ant-dim')}${antSvg('right','sf-ant-dim')}${antSvg('left','sf-ant-center')}${antSvg('right','sf-ant-dim')}${antSvg('right','sf-ant-dim')}</div>`;
-      return [
-        frame(fixEl(), '', 'FIXATION', '400–1200ms'),
-        conn(),
-        frame(congRow + fixEl(), '', 'CONGRUENT', 'same direction'),
-        conn(),
-        frame(incRow + fixEl(0.35), '', 'INCONGRUENT', 'center differs'),
-        conn(),
-        `<div class="sf-unit">
+      
+      const respFrame = `
+        <div class="sf-unit">
           <div class="sf-frame sf-frame--respond">
             <div class="sf-respond-keys">
               <div class="sf-resp-key sf-resp-key--l">← L</div>
@@ -181,8 +168,15 @@ export function InstructionsView(params = {}) {
             <div class="sf-phase">RESPOND</div>
             <div class="sf-timing sf-timing--fast">fast + accurate</div>
           </div>
-        </div>`,
-      ].join('');
+        </div>
+      `;
+      
+      return [
+        frame(fixEl(), '', 'FIXATION', '400–1200ms'),
+        frame(congRow + fixEl(), '', 'CONGRUENT', 'same direction'),
+        frame(incRow + fixEl(0.35), '', 'INCONGRUENT', 'center differs'),
+        respFrame
+      ].map(f => `<div class="sf-slide">${f}</div>`).join('');
     }
     return '';
   }
@@ -229,8 +223,17 @@ export function InstructionsView(params = {}) {
               <div class="iv-card-inner">
                 <h3 class="iv-card-title">TRIAL STRUCTURE</h3>
 
-                <!-- Static Trial Flow Strip -->
-                <div class="sf-strip">${buildFlowStrip()}</div>
+                <!-- Interactive Trial Flow Carousel -->
+                <div class="sf-carousel-container">
+                  <button class="sf-carousel-btn sf-prev-btn" id="sf-prev" type="button">◂</button>
+                  <div class="sf-carousel-viewport">
+                    <div class="sf-carousel-track" id="sf-track">
+                      ${buildFlowStrip()}
+                    </div>
+                  </div>
+                  <button class="sf-carousel-btn sf-next-btn" id="sf-next" type="button">▸</button>
+                </div>
+                <div class="sf-carousel-dots" id="sf-dots"></div>
 
                 <!-- Written Instructions -->
                 <div class="sf-instructions">
@@ -266,28 +269,28 @@ export function InstructionsView(params = {}) {
 
   injectStyle(`
     :root {
-      --sf-width: 160px;
-      --sf-height: 106px;
-      --sf-sq-size: 16px;
-      --sf-arrow-w: 28px;
-      --sf-arrow-h: 7px;
-      --sf-center-w: 32px;
-      --sf-center-h: 8px;
-      --sf-fix-size: 1.25rem;
-      --sf-arr-size: 0.95rem;
+      --sf-width: 240px;
+      --sf-height: 160px;
+      --sf-sq-size: 24px;
+      --sf-arrow-w: 42px;
+      --sf-arrow-h: 10.5px;
+      --sf-center-w: 48px;
+      --sf-center-h: 12px;
+      --sf-fix-size: 2.2rem;
+      --sf-arr-size: 1.5rem;
     }
 
-    @media (max-width: 1200px) {
+    @media (max-width: 980px) {
       :root {
-        --sf-width: 118px;
-        --sf-height: 84px;
-        --sf-sq-size: 13px;
-        --sf-arrow-w: 20px;
-        --sf-arrow-h: 5px;
-        --sf-center-w: 24px;
-        --sf-center-h: 6px;
-        --sf-fix-size: 1.05rem;
-        --sf-arr-size: 0.8rem;
+        --sf-width: 200px;
+        --sf-height: 133px;
+        --sf-sq-size: 20px;
+        --sf-arrow-w: 35px;
+        --sf-arrow-h: 9px;
+        --sf-center-w: 40px;
+        --sf-center-h: 10px;
+        --sf-fix-size: 1.8rem;
+        --sf-arr-size: 1.25rem;
       }
     }
 
@@ -318,23 +321,94 @@ export function InstructionsView(params = {}) {
       gap: 40px;
     }
 
-    /* ── Static Flow Strip ── */
-    .sf-strip {
+    /* ── Interactive Flow Carousel ── */
+    .sf-carousel-container {
       display: flex;
-      align-items: flex-start;
-      overflow-x: auto;
-      margin-bottom: 36px;
-      padding-bottom: 6px;
-      scrollbar-width: none;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      margin-bottom: 16px;
+      width: 100%;
+      position: relative;
     }
-    .sf-strip::-webkit-scrollbar { display: none; }
+
+    .sf-carousel-viewport {
+      overflow: hidden;
+      width: 100%;
+      max-width: 320px;
+      border-radius: 8px;
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      padding: 16px 0;
+    }
+
+    .sf-carousel-track {
+      display: flex;
+      transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+      width: 100%;
+    }
+
+    .sf-slide {
+      flex: 0 0 100%;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      box-sizing: border-box;
+      padding: 0 20px;
+    }
+
+    .sf-carousel-btn {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: #fff;
+      font-size: 18px;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+      flex-shrink: 0;
+      user-select: none;
+    }
+
+    .sf-carousel-btn:hover {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: var(--accent-volt);
+      color: var(--accent-volt);
+    }
+
+    .sf-carousel-dots {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 36px;
+    }
+
+    .sf-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.15);
+      cursor: pointer;
+      transition: all 0.25s;
+    }
+
+    .sf-dot.active {
+      background: var(--accent-volt);
+      box-shadow: 0 0 8px var(--accent-volt);
+      transform: scale(1.2);
+    }
 
     .sf-unit {
       display: flex;
       flex-direction: column;
       align-items: center;
       gap: 10px;
-      flex-shrink: 0;
+      width: 100%;
     }
 
     .sf-frame {
@@ -390,19 +464,6 @@ export function InstructionsView(params = {}) {
     .sf-sq--white {
       background: rgba(255, 255, 255, 0.82) !important;
       box-shadow: 0 0 5px rgba(255, 255, 255, 0.28) !important;
-    }
-
-    .sf-conn {
-      display: flex;
-      align-items: center;
-      height: var(--sf-height);
-      padding: 0 10px;
-      flex-shrink: 0;
-    }
-
-    .sf-arr {
-      font-size: var(--sf-arr-size);
-      color: rgba(255, 255, 255, 0.13);
     }
 
     .sf-meta {
@@ -734,8 +795,6 @@ export function InstructionsView(params = {}) {
       border: 1px solid rgba(255, 255, 255, 0.06);
       border-radius: 8px;
       box-shadow: 0 40px 100px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.08);
-      transition: transform 0.2s cubic-bezier(0.25, 1, 0.5, 1);
-      transform-style: preserve-3d;
     }
 
     .iv-card-glare {
@@ -749,7 +808,6 @@ export function InstructionsView(params = {}) {
 
     .iv-card-inner {
       padding: 48px;
-      transform: translateZ(24px);
     }
 
     .iv-card-title {
@@ -773,7 +831,7 @@ export function InstructionsView(params = {}) {
       gap: 32px;
       padding: 24px 0;
       border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-      transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), background 0.3s;
+      transition: padding-left 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), background 0.3s;
       position: relative;
     }
 
@@ -797,7 +855,7 @@ export function InstructionsView(params = {}) {
     }
 
     .iv-step-item-premium:hover {
-      transform: translateZ(12px) translateX(8px);
+      padding-left: 8px;
     }
 
     .iv-step-item-premium:hover .iv-step-content {
@@ -1060,24 +1118,99 @@ export function InstructionsView(params = {}) {
         gap: 20px;
       }
     }
+
+    @media (min-width: 1400px) {
+      .iv-container { max-width: 1400px; }
+      .iv-hud-left { flex: 0 0 380px; gap: 64px; }
+      .iv-title-premium { font-size: 4rem; }
+      .iv-desc { font-size: 1.15rem; }
+      .sf-inst-text { font-size: 1.05rem; }
+      .sf-carousel-viewport { max-width: 440px; }
+      :root {
+        --sf-width: 300px;
+        --sf-height: 200px;
+        --sf-sq-size: 30px;
+        --sf-arrow-w: 52px;
+        --sf-arrow-h: 13px;
+        --sf-center-w: 60px;
+        --sf-center-h: 15px;
+        --sf-fix-size: 2.8rem;
+        --sf-arr-size: 2rem;
+      }
+    }
+    @media (min-width: 1800px) {
+      .iv-container { max-width: 1700px; }
+      .iv-hud-left { flex: 0 0 460px; gap: 80px; }
+      .iv-title-premium { font-size: 4.8rem; }
+      .iv-desc { font-size: 1.3rem; }
+      .sf-inst-text { font-size: 1.2rem; }
+      .sf-carousel-viewport { max-width: 520px; }
+      :root {
+        --sf-width: 360px;
+        --sf-height: 240px;
+        --sf-sq-size: 36px;
+        --sf-arrow-w: 64px;
+        --sf-arrow-h: 16px;
+        --sf-center-w: 72px;
+        --sf-center-h: 18px;
+        --sf-fix-size: 3.4rem;
+        --sf-arr-size: 2.4rem;
+      }
+    }
   `);
 
-  // Interactive 3D Perspective Tilt Effect
-  const card = document.getElementById('iv-tilt-card');
-  if (card && window.innerWidth > 980) {
-    const handleMove = (e) => {
-      const rect = card.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
-      const xAxis = (rect.width / 2 - x) / 45;
-      const yAxis = (rect.height / 2 - y) / 45;
-      card.style.transform = `rotateY(${-xAxis}deg) rotateX(${yAxis}deg) translateZ(10px)`;
+  // Interactive Carousel Control Logic
+  const track = document.getElementById('sf-track');
+  const prevBtn = document.getElementById('sf-prev');
+  const nextBtn = document.getElementById('sf-next');
+  const dotsContainer = document.getElementById('sf-dots');
+  
+  if (track && prevBtn && nextBtn && dotsContainer) {
+    const slides = Array.from(track.children);
+    let currentIndex = 0;
+
+    const updateCarousel = () => {
+      track.style.transform = `translateX(-${currentIndex * 100}%)`;
+      
+      // Update active dot
+      const dots = Array.from(dotsContainer.children);
+      dots.forEach((dot, idx) => {
+        dot.classList.toggle('active', idx === currentIndex);
+      });
+
+      // Disable/enable buttons
+      prevBtn.style.opacity = currentIndex === 0 ? '0.2' : '1';
+      prevBtn.style.pointerEvents = currentIndex === 0 ? 'none' : 'auto';
+      nextBtn.style.opacity = currentIndex === slides.length - 1 ? '0.2' : '1';
+      nextBtn.style.pointerEvents = currentIndex === slides.length - 1 ? 'none' : 'auto';
     };
-    const handleLeave = () => {
-      card.style.transform = 'rotateY(0deg) rotateX(0deg) translateZ(0px)';
-    };
-    card.addEventListener('mousemove', handleMove);
-    card.addEventListener('mouseleave', handleLeave);
+
+    // Generate dots dynamically
+    slides.forEach((_, idx) => {
+      const dot = document.createElement('div');
+      dot.className = `sf-dot${idx === 0 ? ' active' : ''}`;
+      dot.addEventListener('click', () => {
+        currentIndex = idx;
+        updateCarousel();
+      });
+      dotsContainer.appendChild(dot);
+    });
+
+    prevBtn.addEventListener('click', () => {
+      if (currentIndex > 0) {
+        currentIndex--;
+        updateCarousel();
+      }
+    });
+
+    nextBtn.addEventListener('click', () => {
+      if (currentIndex < slides.length - 1) {
+        currentIndex++;
+        updateCarousel();
+      }
+    });
+
+    updateCarousel();
   }
 
   document.getElementById('btn-start').addEventListener('click', () => {

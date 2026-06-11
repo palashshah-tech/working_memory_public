@@ -181,7 +181,7 @@ export class ANTEngine {
     this.responseStartTime = now();
     if (this.onStateChange) this.onStateChange('target', { trialIndex: this.currentTrialIndex, totalTrials: total });
 
-    const answer = await this.waitForResponse(ANT_CONFIG.maxResponseTime);
+    const answer = await this.waitForResponse(this.isPractice ? 8000 : ANT_CONFIG.maxResponseTime);
     if (!this.isRunning) return;
 
     const record = {

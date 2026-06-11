@@ -123,9 +123,23 @@ export function TaskView(taskType = 'vwm-pure', params = {}) {
     }
     .task-fixation { color:#fff; opacity:0.2; font-size:6vmin; font-family:var(--font-mono); position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); }
     .task-response { position:fixed; bottom:60px; display:flex; gap:30px; z-index:100; }
-    .resp-btn { position:relative; padding:18px 50px; font-family:var(--font-body); font-weight:700; font-size:13px; background:transparent; border:1px solid rgba(255,255,255,0.1); color:#fff; cursor:pointer; transition:0.2s; }
+    .resp-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; position:relative; padding:18px 40px; font-family:var(--font-body); font-weight:700; font-size:13px; background:transparent; border:1px solid rgba(255,255,255,0.1); color:#fff; cursor:pointer; transition:0.2s; }
     .resp-btn:hover { border-color:var(--accent-volt); color:var(--accent-volt); transform:translateY(-2px); }
-    .resp-key { position:absolute; top:-10px; right:10px; font-size:10px; font-family:var(--font-mono); color:#5a5a5f; }
+    .resp-key {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 4px;
+      padding: 2px 6px;
+      font-size: 10px;
+      font-family: var(--font-mono);
+      color: #8a8a93;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.1);
+      vertical-align: middle;
+      line-height: 1;
+    }
     .dist-legend-fixed { position:fixed; top:80px; display:flex; gap:20px; font-family:var(--font-mono); font-size:10px; color:#5a5a5f; }
     .leg-dot { width:8px; height:8px; display:inline-block; margin-right:6px; border-radius:1px; }
 

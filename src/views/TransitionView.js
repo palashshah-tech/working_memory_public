@@ -198,6 +198,23 @@ export function TransitionView(params = {}) {
       transition: all 0.2s;
     }
     .trv-cta:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(212,255,0,0.3); }
+
+    @media (min-width: 1400px) {
+      .trv-body { max-width: 680px; gap: 32px; }
+      .trv-title { font-size: 2.8rem; }
+      .trv-sub { font-size: 1.25rem; }
+      .trv-prev-stats { max-width: 400px; padding: 24px 32px; }
+      .trv-stat-row { font-size: 14px; margin-bottom: 12px; }
+      .trv-cta { padding: 20px 60px; font-size: 1.2rem; }
+    }
+    @media (min-width: 1800px) {
+      .trv-body { max-width: 820px; gap: 40px; }
+      .trv-title { font-size: 3.4rem; }
+      .trv-sub { font-size: 1.4rem; }
+      .trv-prev-stats { max-width: 480px; padding: 30px 40px; }
+      .trv-stat-row { font-size: 16px; margin-bottom: 16px; }
+      .trv-cta { padding: 24px 72px; font-size: 1.35rem; }
+    }
   `);
 
   document.getElementById('btn-continue').addEventListener('click', () => {

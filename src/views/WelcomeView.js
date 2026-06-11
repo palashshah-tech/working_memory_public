@@ -162,7 +162,7 @@ export function WelcomeView(params = {}) {
       <div class="wv-content animate-fade">
         <header class="wv-header">
           <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom: 20px;">
-            <img src="/xiberlinc_logo.png" alt="Xiberlinc" style="height:42px;" />
+            <img src="/xiberlinc_logo.png" alt="Xiberlinc" style="height:42px; mix-blend-mode:screen;" />
             <div style="display:flex; gap:12px; align-items:center;">
               <button id="lang-toggle" class="btn-ghost" style="padding:4px 10px; font-size:12px; border-radius:4px;">${t('lang_toggle')}</button>
               <div class="badge badge-volt">${t('badge_task')}</div>
@@ -281,7 +281,7 @@ export function WelcomeView(params = {}) {
     .wv-tagline {
       font-size: 1.1rem;
       color: #ffffff;
-      white-space: nowrap;
+      line-height: 1.5;
     }
 
     .form-title {
@@ -323,6 +323,15 @@ export function WelcomeView(params = {}) {
       border-color: var(--accent-volt);
       outline: none;
       box-shadow: 0 0 10px var(--accent-volt-dim);
+    }
+    /* Hide number input spin-buttons (ticker) for clean look */
+    input::-webkit-outer-spin-button,
+    input::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+    input[type=number] {
+      -moz-appearance: textfield;
     }
 
     .wv-footer {
@@ -494,12 +503,45 @@ export function WelcomeView(params = {}) {
     .legal-links a:hover {
       color: var(--accent-volt) !important;
     }
+
+    @media (min-width: 1400px) {
+      .wv-container { max-width: 1100px; }
+      .wv-title { font-size: 4rem; }
+      .wv-tagline { font-size: 1.3rem; }
+      .form-title { font-size: 1.8rem; }
+      input, select { padding: 18px; font-size: 16px; }
+      .field label { font-size: 12.5px; }
+      .wv-main { padding: 48px !important; }
+    }
+    @media (min-width: 1800px) {
+      .wv-container { max-width: 1300px; }
+      .wv-title { font-size: 4.8rem; }
+      .wv-tagline { font-size: 1.5rem; }
+      .form-title { font-size: 2.1rem; }
+      input, select { padding: 22px; font-size: 18px; }
+      .field label { font-size: 14px; }
+      .wv-main { padding: 60px !important; }
+    }
   `);
 
   document.getElementById('lang-toggle').addEventListener('click', () => {
+    const nameVal = document.getElementById('r-name')?.value || '';
+    const emailVal = document.getElementById('r-email')?.value || '';
+    const ageVal = document.getElementById('r-age')?.value || '';
+    const genderVal = document.getElementById('r-gender')?.value || '';
+    const handleVal = document.getElementById('r-handle')?.value || '';
+    const privacyChecked = document.getElementById('r-privacy')?.checked || false;
+
     const newLang = getLang() === 'en' ? 'ja' : 'en';
     setLang(newLang);
     WelcomeView(); // Re-render
+
+    if (document.getElementById('r-name')) document.getElementById('r-name').value = nameVal;
+    if (document.getElementById('r-email')) document.getElementById('r-email').value = emailVal;
+    if (document.getElementById('r-age')) document.getElementById('r-age').value = ageVal;
+    if (document.getElementById('r-gender')) document.getElementById('r-gender').value = genderVal;
+    if (document.getElementById('r-handle')) document.getElementById('r-handle').value = handleVal;
+    if (document.getElementById('r-privacy')) document.getElementById('r-privacy').checked = privacyChecked;
   });
 
   // Modal Setup
