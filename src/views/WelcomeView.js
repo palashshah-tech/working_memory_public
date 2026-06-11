@@ -162,7 +162,7 @@ export function WelcomeView(params = {}) {
       <div class="wv-content animate-fade">
         <header class="wv-header">
           <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom: 20px;">
-            <img src="/xiberlinc_logo.png" alt="Xiberlinc" style="height:42px; mix-blend-mode:screen;" />
+            <img src="/xiberlinc_logo.png" alt="Xiberlinc" class="wv-logo" />
             <div style="display:flex; gap:12px; align-items:center;">
               <button id="lang-toggle" class="btn-ghost" style="padding:4px 10px; font-size:12px; border-radius:4px;">${t('lang_toggle')}</button>
               <div class="badge badge-volt">${t('badge_task')}</div>
@@ -262,6 +262,18 @@ export function WelcomeView(params = {}) {
       width: 100%;
       max-width: 800px;
       z-index: 10;
+    }
+
+    .wv-logo {
+      height: 48px;
+      mix-blend-mode: screen;
+      filter: brightness(1.4) contrast(1.3);
+      transition: var(--transition-fast);
+    }
+    @media (min-width: 768px) {
+      .wv-logo {
+        height: 64px;
+      }
     }
 
     .wv-header {

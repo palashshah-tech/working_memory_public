@@ -49,6 +49,58 @@ export function CompleteView() {
   const scores = session?.trials ? computeFullScores(session.trials) : null;
   const overallAccuracy = scores ? Math.round(scores.accuracyPure * 100) : 0; // fallback to pure accuracy for simple display
 
+  // Process trials for dashboard rendering
+  const trials = session?.trials || [];
+  const hasTrials = trials.length > 0;
+  
+  let glanceHtml = '';
+  let sparkBars = '';
+  if (hasTrials) {
+    const correct = trials.filter(t => t.isCorrect).length;
+    const acc     = (correct / trials.length * 100).toFixed(0);
+    const rtVals  = trials.filter(t => t.isCorrect && t.reactionTimeMs > 0).map(t => t.reactionTimeMs);
+    const avgRT   = rtVals.length ? Math.round(rtVals.reduce((a,b)=>a+b,0)/rtVals.length) : 0;
+    const fastRT  = rtVals.length ? Math.min(...rtVals) : 0;
+    const slowRT  = rtVals.length ? Math.max(...rtVals) : 0;
+    let maxStreak = 0, streak = 0;
+    trials.forEach(t => { if (t.isCorrect) { streak++; maxStreak = Math.max(maxStreak, streak); } else streak = 0; });
+
+    const accColor = acc >= 70 ? '#34d399' : acc >= 50 ? '#fbbf24' : '#f87171';
+
+    const stats = [
+      { label: t('cv_raw_total_trials'),      val: trials.length,           color: '' },
+      { label: t('cv_raw_overall_accuracy'),  val: acc + '%',               color: accColor },
+      { label: t('cv_raw_avg_rt'),            val: avgRT + 'ms',            color: '' },
+      { label: t('cv_raw_fastest_correct'),   val: fastRT.toFixed(2) + 'ms',         color: '#34d399' },
+      { label: t('cv_raw_slowest_correct'),   val: slowRT.toFixed(2) + 'ms',         color: '#fbbf24' },
+      { label: t('cv_raw_best_streak'),       val: t('cv_raw_streak_val', { streak: maxStreak }), color: '' },
+    ];
+
+    glanceHtml = stats.map(s => `
+      <div class="cv-raw-stat">
+        <div class="cv-raw-stat-label">${s.label}</div>
+        <div class="cv-raw-stat-val"${s.color ? ` style="color:${s.color}"` : ''}>${s.val}</div>
+      </div>
+    `).join('');
+
+    const maxRT = Math.min(1500, Math.max(...trials.map(t => t.reactionTimeMs || 0), 1));
+    sparkBars = trials.map((t, i) => {
+      const rt = t.reactionTimeMs || 0;
+      const h  = Math.max(4, (Math.min(rt, maxRT) / maxRT) * 100);
+      const bg = t.isCorrect ? 'rgba(52,211,153,0.75)' : 'rgba(248,113,113,0.65)';
+      return `<div class="cv-spark-bar" style="height:${h}%;background:${bg};" title="Trial ${i+1}: ${t.isCorrect ? 'correct' : 'incorrect'} ${rt}ms"></div>`;
+    }).join('');
+  }
+
+  const historyList = Storage.getLocalHistory() || [];
+  const historyHtml = historyList.map(h => `
+    <div class="cv-history-item">
+      <span class="cv-hist-date">${new Date(h.completedAt).toLocaleDateString()}</span>
+      <span class="cv-hist-score">Comp: <strong>${(h.scores?.compositeScore || 0).toFixed(1)}</strong></span>
+      <span class="cv-hist-acc">Acc: <strong>${Math.round((h.scores?.accuracyPure || 0) * 100)}%</strong></span>
+    </div>
+  `).join('');
+
   render(`
     <div class="view cv">
       <!-- Floating particles -->
@@ -70,7 +122,7 @@ export function CompleteView() {
       <div class="cv-orb cv-orb-1"></div>
       <div class="cv-orb cv-orb-2"></div>
 
-      <div class="cv-body">
+      <div class="cv-body ${hasTrials ? 'cv-body-wide' : ''}">
         <svg class="cv-ring" width="100" height="100" viewBox="0 0 100 100" fill="none">
           <circle cx="50" cy="50" r="46" stroke="url(#cvGrad)" stroke-width="2.5" fill="rgba(212,255,0,0.05)"/>
           <path d="M30 50L44 64L70 38" stroke="url(#cvGrad)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" class="cv-path"/>
@@ -90,40 +142,71 @@ export function CompleteView() {
           ${t('cv_msg')}
         </p>
 
-        ${renderCandidateRaw(session?.trials || [])}
-
-        <div class="cv-history">
-          <h3 class="cv-summary-title">${t('cv_history_title')}</h3>
-          <div class="cv-history-list">
-            ${Storage.getLocalHistory().map(h => `
-              <div class="cv-history-item">
-                <span class="cv-hist-date">${new Date(h.completedAt).toLocaleDateString()}</span>
-                <span class="cv-hist-score">Comp: <strong>${(h.scores?.compositeScore || 0).toFixed(1)}</strong></span>
-                <span class="cv-hist-acc">Acc: <strong>${Math.round((h.scores?.accuracyPure || 0) * 100)}%</strong></span>
+        <!-- Dashboard Layout Container -->
+        <div class="cv-dashboard">
+          
+          <!-- Column 1: Assessment Info & Attempts History -->
+          <div class="cv-dash-col cv-col-left">
+            <div class="cv-receipt">
+              <div class="cv-row">
+                <span class="cv-row-label">${t('cv_status')}</span>
+                <span class="cv-row-val">
+                  <span class="cv-dot"></span> Pending...
+                </span>
               </div>
-            `).join('')}
-          </div>
-        </div>
+              <div class="cv-row">
+                <span class="cv-row-label">${t('cv_candidate')}</span>
+                <span class="cv-row-val">${session?.name || '—'}</span>
+              </div>
+              <div class="cv-row">
+                <span class="cv-row-label">${t('cv_tasks')}</span>
+                <span class="cv-row-val">3 / 3 ✓</span>
+              </div>
+              <div class="cv-row">
+                <span class="cv-row-label">${t('cv_id')}</span>
+                <span class="cv-row-val mono">${id}</span>
+              </div>
+            </div>
 
-        <div class="cv-receipt">
-          <div class="cv-row">
-            <span class="cv-row-label">${t('cv_status')}</span>
-            <span class="cv-row-val">
-              <span class="cv-dot"></span> Pending...
-            </span>
+            ${historyHtml ? `
+              <div class="cv-history">
+                <h3 class="cv-summary-title">${t('cv_history_title')}</h3>
+                <div class="cv-history-list">
+                  ${historyHtml}
+                </div>
+              </div>
+            ` : ''}
           </div>
-          <div class="cv-row">
-            <span class="cv-row-label">${t('cv_candidate')}</span>
-            <span class="cv-row-val">${session?.name || '—'}</span>
-          </div>
-          <div class="cv-row">
-            <span class="cv-row-label">${t('cv_tasks')}</span>
-            <span class="cv-row-val">3 / 3 ✓</span>
-          </div>
-          <div class="cv-row">
-            <span class="cv-row-label">${t('cv_id')}</span>
-            <span class="cv-row-val mono">${id}</span>
-          </div>
+
+          ${hasTrials ? `
+            <!-- Column 2: Performance metrics grid -->
+            <div class="cv-dash-col cv-col-center">
+              <div class="cv-raw-card">
+                <div class="cv-summary-title" style="margin-bottom:16px;">${t('cv_raw_your_performance')}</div>
+                <div class="cv-raw-glance">${glanceHtml}</div>
+              </div>
+            </div>
+
+            <!-- Column 3: Response Time trial-by-trial graph -->
+            <div class="cv-dash-col cv-col-right">
+              <div class="cv-raw-card">
+                <div class="cv-summary-title" style="margin-bottom:8px;">${t('cv_raw_rt_trial_by_trial')}</div>
+                <div class="cv-spark-desc">${t('cv_raw_spark_desc')}</div>
+                <div class="cv-sparkline">${sparkBars}</div>
+                <div class="cv-spark-legend">
+                  <div class="cv-spark-leg-item">
+                    <div class="cv-spark-leg-dot" style="background:rgba(52,211,153,0.75)"></div>
+                    ${t('cv_raw_spark_correct')}
+                  </div>
+                  <div class="cv-spark-leg-item">
+                    <div class="cv-spark-leg-dot" style="background:rgba(248,113,113,0.65)"></div>
+                    ${t('cv_raw_spark_incorrect')}
+                  </div>
+                </div>
+              </div>
+            </div>
+          ` : ''}
+
         </div>
 
         <p class="cv-footer">
@@ -131,7 +214,6 @@ export function CompleteView() {
         </p>
       </div>
     </div>
-
   `);
 
   injectStyle(`
@@ -187,6 +269,7 @@ export function CompleteView() {
       text-align: center;
       display: flex; flex-direction: column; align-items: center; gap: 28px;
       position: relative; z-index: 1;
+      transition: max-width 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
     }
     .cv-ring { animation: scale-in 0.5s ease-out; }
     .cv-path { stroke-dasharray: 70; stroke-dashoffset: 70; animation: drawPath 0.6s ease-out 0.4s forwards; }
@@ -201,6 +284,28 @@ export function CompleteView() {
     .cv-message {
       color: var(--text-secondary); font-size: 1.05rem; line-height: 1.75;
     }
+    
+    /* ── Dashboard Layout ── */
+    .cv-dashboard {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+      text-align: left;
+    }
+    .cv-dash-col {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+      width: 100%;
+    }
+    .cv-spark-desc {
+      font-size: 11px;
+      color: var(--text-tertiary);
+      margin-bottom: 8px;
+      line-height: 1.5;
+    }
+
     .cv-receipt {
       width: 100%;
       background: rgba(13,13,18,0.7);
@@ -228,16 +333,8 @@ export function CompleteView() {
       box-shadow: 0 0 10px rgba(212,255,0,0.6);
       animation: pulse-glow 2s infinite;
     }
-    .cv-footer { font-size: 0.85rem; color: var(--text-tertiary); }
+    .cv-footer { font-size: 0.85rem; color: var(--text-tertiary); margin-top: 12px; }
 
-    .cv-summary-card {
-      width: 100%;
-      background: rgba(212,255,0,0.03);
-      border: 1px solid rgba(212,255,0,0.08);
-      border-radius: 16px;
-      padding: 24px;
-      text-align: left;
-    }
     .cv-summary-title {
       font-size: 11px;
       text-transform: uppercase;
@@ -246,16 +343,8 @@ export function CompleteView() {
       margin-bottom: 20px;
       font-family: var(--font-mono);
     }
-    .cv-summary-grid { display: flex; flex-direction: column; gap: 16px; }
-    .cv-summary-item { padding-bottom: 16px; border-bottom: 1px solid rgba(255,255,255,0.04); }
-    .cv-summary-item:last-child { border-bottom: none; padding-bottom: 0; }
-    .cs-label { font-size: 14px; font-weight: 600; margin-bottom: 8px; color: var(--text-primary); }
-    .cs-metrics { display: flex; gap: 24px; }
-    .cs-m { font-family: var(--font-mono); font-size: 12px; }
-    .cs-m span { color: var(--text-tertiary); margin-right: 6px; }
-    .cs-m strong { color: #d4ff00; }
 
-    .cv-history { width: 100%; margin-top: 12px; text-align: left; }
+    .cv-history { width: 100%; text-align: left; }
     .cv-history-list { display: flex; flex-direction: column; gap: 8px; }
     .cv-history-item {
       display: flex; justify-content: space-between; align-items: center;
@@ -269,7 +358,7 @@ export function CompleteView() {
     .cv-hist-score strong { color: #d4ff00; }
     .cv-hist-acc strong { color: #8aff00; }
 
-    /* Raw performance summary */
+    /* Performance card & stats */
     .cv-raw-card {
       width: 100%; text-align: left;
       background: rgba(13,13,18,0.7);
@@ -279,8 +368,8 @@ export function CompleteView() {
       box-shadow: 0 8px 32px rgba(0,0,0,0.3);
     }
     .cv-raw-glance {
-      display: grid; grid-template-columns: repeat(3, 1fr);
-      gap: 10px; margin-bottom: 24px;
+      display: grid; grid-template-columns: repeat(2, 1fr);
+      gap: 12px; margin-bottom: 16px;
     }
     .cv-raw-stat {
       background: rgba(212,255,0,0.04);
@@ -293,97 +382,59 @@ export function CompleteView() {
     .cv-raw-stat-val   { font-family: var(--font-display); font-size: 1.35rem; font-weight: 700; color: #d4ff00; }
     .cv-sparkline { display: flex; align-items: flex-end; gap: 2px; height: 60px; }
     .cv-spark-bar { flex: 1; border-radius: 2px 2px 0 0; min-height: 3px; opacity: 0.85; }
-    .cv-spark-legend { display: flex; gap: 14px; margin-top: 8px; }
+    .cv-spark-legend { display: flex; gap: 14px; margin-top: 16px; }
     .cv-spark-leg-item { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text-tertiary); }
     .cv-spark-leg-dot { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
 
+    /* Wide layout sizing */
+    @media (min-width: 1024px) {
+      .cv-body-wide {
+        max-width: 1100px;
+      }
+      .cv-dashboard {
+        display: grid;
+        grid-template-columns: 300px 1fr 1.2fr;
+        gap: 24px;
+        align-items: start;
+      }
+    }
+
     @media (min-width: 1400px) {
-      .cv-container { max-width: 600px; gap: 32px; }
+      .cv-body { gap: 32px; }
+      .cv-body-wide { max-width: 1300px; }
+      .cv-dashboard {
+        grid-template-columns: 340px 1fr 1.3fr;
+        gap: 32px;
+      }
       .cv-heading { font-size: 3rem; }
       .cv-message { font-size: 1.25rem; }
       .cv-receipt { padding: 12px 32px; }
       .cv-row { padding: 18px 0; }
       .cv-row-label, .cv-row-val { font-size: 15px; }
       .cv-row-val.mono { font-size: 14px; }
-      .cv-summary-card { padding: 32px; }
       .cv-summary-title { font-size: 13px; }
-      .cs-label { font-size: 16px; }
-      .cs-m { font-size: 14px; }
       .cv-raw-card { padding: 32px; }
       .cv-raw-stat-val { font-size: 1.6rem; }
       .cv-sparkline { height: 80px; }
     }
+
     @media (min-width: 1800px) {
-      .cv-container { max-width: 720px; gap: 40px; }
+      .cv-body { gap: 40px; }
+      .cv-body-wide { max-width: 1500px; }
+      .cv-dashboard {
+        grid-template-columns: 380px 1fr 1.4fr;
+        gap: 40px;
+      }
       .cv-heading { font-size: 3.6rem; }
       .cv-message { font-size: 1.4rem; }
       .cv-receipt { padding: 16px 40px; }
       .cv-row { padding: 22px 0; }
       .cv-row-label, .cv-row-val { font-size: 17px; }
       .cv-row-val.mono { font-size: 16px; }
-      .cv-summary-card { padding: 40px; }
       .cv-summary-title { font-size: 15px; }
-      .cs-label { font-size: 18px; }
-      .cs-m { font-size: 16px; }
       .cv-raw-card { padding: 40px; }
       .cv-raw-stat-val { font-size: 1.85rem; }
       .cv-sparkline { height: 100px; }
     }
   `);
-}
-
-/* ---- Raw performance summary shown to the candidate after completing ---- */
-function renderCandidateRaw(trials) {
-  if (!trials.length) return '';
-
-  const correct = trials.filter(t => t.isCorrect).length;
-  const acc     = (correct / trials.length * 100).toFixed(0);
-  const rtVals  = trials.filter(t => t.isCorrect && t.reactionTimeMs > 0).map(t => t.reactionTimeMs);
-  const avgRT   = rtVals.length ? Math.round(rtVals.reduce((a,b)=>a+b,0)/rtVals.length) : 0;
-  const fastRT  = rtVals.length ? Math.min(...rtVals) : 0;
-  const slowRT  = rtVals.length ? Math.max(...rtVals) : 0;
-  let maxStreak = 0, streak = 0;
-  trials.forEach(t => { if (t.isCorrect) { streak++; maxStreak = Math.max(maxStreak, streak); } else streak = 0; });
-
-  const accColor = acc >= 70 ? '#34d399' : acc >= 50 ? '#fbbf24' : '#f87171';
-
-  const stats = [
-    { label: t('cv_raw_total_trials'),      val: trials.length,           color: '' },
-    { label: t('cv_raw_overall_accuracy'),  val: acc + '%',               color: accColor },
-    { label: t('cv_raw_avg_rt'),            val: avgRT + 'ms',            color: '' },
-    { label: t('cv_raw_fastest_correct'),   val: fastRT.toFixed(2) + 'ms',         color: '#34d399' },
-    { label: t('cv_raw_slowest_correct'),   val: slowRT.toFixed(2) + 'ms',         color: '#fbbf24' },
-    { label: t('cv_raw_best_streak'),       val: t('cv_raw_streak_val', { streak: maxStreak }), color: '' },
-  ];
-
-  const glanceHtml = stats.map(s =>
-    '<div class="cv-raw-stat">' +
-    '<div class="cv-raw-stat-label">' + s.label + '</div>' +
-    '<div class="cv-raw-stat-val"' + (s.color ? ' style="color:' + s.color + '"' : '') + '>' + s.val + '</div>' +
-    '</div>'
-  ).join('');
-
-  // Cap the y-axis scaling at 1500ms so that occasional long responses or timeouts (e.g. 6000ms / 1200ms)
-  // do not squash the rest of the graph. Any response time >= 1500ms will be drawn at full height.
-  const maxRT = Math.min(1500, Math.max(...trials.map(t => t.reactionTimeMs || 0), 1));
-  const sparkBars = trials.map((t, i) => {
-    const rt = t.reactionTimeMs || 0;
-    const h  = Math.max(4, (Math.min(rt, maxRT) / maxRT) * 100);
-    const bg = t.isCorrect ? 'rgba(52,211,153,0.75)' : 'rgba(248,113,113,0.65)';
-    return '<div class="cv-spark-bar" style="height:' + h + '%;background:' + bg + ';" title="Trial ' + (i+1) + ': ' + (t.isCorrect ? 'correct' : 'incorrect') + ' ' + rt + 'ms"></div>';
-  }).join('');
-
-  return (
-    '<div class="cv-raw-card">' +
-    '<div class="cv-summary-title" style="margin-bottom:16px;">' + t('cv_raw_your_performance') + '</div>' +
-    '<div class="cv-raw-glance">' + glanceHtml + '</div>' +
-    '<div class="cv-summary-title" style="margin-bottom:8px;">' + t('cv_raw_rt_trial_by_trial') + '</div>' +
-    '<div style="font-size:11px;color:var(--text-tertiary);margin-bottom:8px;">' + t('cv_raw_spark_desc') + '</div>' +
-    '<div class="cv-sparkline">' + sparkBars + '</div>' +
-    '<div class="cv-spark-legend">' +
-    '<div class="cv-spark-leg-item"><div class="cv-spark-leg-dot" style="background:rgba(52,211,153,0.75)"></div>' + t('cv_raw_spark_correct') + '</div>' +
-    '<div class="cv-spark-leg-item"><div class="cv-spark-leg-dot" style="background:rgba(248,113,113,0.65)"></div>' + t('cv_raw_spark_incorrect') + '</div>' +
-    '</div>' +
-    '</div>'
-  );
 }
