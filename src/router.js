@@ -52,6 +52,18 @@ function handleRouteChange() {
       window.location.hash = '#/';
       return;
     }
+
+    // Session expiration check (TTL check: 20 minutes)
+    const startedAt = session.startedAt ? new Date(session.startedAt).getTime() : 0;
+    const elapsedMs = Date.now() - startedAt;
+    const ttlMs = 20 * 60 * 1000;
+    if (elapsedMs > ttlMs) {
+      console.warn(`Session expired (${Math.round(elapsedMs / 60000)} mins elapsed). Clearing session and redirecting to home.`);
+      Storage.clearCurrentSession();
+      localStorage.removeItem('cogscreen_session_id');
+      window.location.hash = '#/';
+      return;
+    }
   }
 
   // ONLY remove styles injected by views (marked with data-view-style),
