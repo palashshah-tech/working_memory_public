@@ -8,6 +8,7 @@ import { TaskView } from './views/TaskView.js';
 import { TransitionView } from './views/TransitionView.js';
 import { CompleteView } from './views/CompleteView.js';
 import { AdminView } from './views/AdminView.js';
+import { Storage } from './utils/storage.js';
 
 const routes = {
   '': WelcomeView,
@@ -41,6 +42,17 @@ function parseHash() {
 function handleRouteChange() {
   const route = parseHash();
   const handler = routes[route];
+
+  // Route protection: redirect to Welcome screen if no active session
+  const protectedRoutes = ['instructions', 'task/vwm-pure', 'task/vwm-distractor', 'task/ant', 'transition', 'complete'];
+  if (protectedRoutes.includes(route)) {
+    const session = Storage.getCurrentSession();
+    if (!session) {
+      console.warn(`Unauthorized access to protected route /#/${route} without active session. Redirecting to home.`);
+      window.location.hash = '#/';
+      return;
+    }
+  }
 
   // ONLY remove styles injected by views (marked with data-view-style),
   // NOT the Vite-injected CSS bundle styles
