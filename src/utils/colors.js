@@ -56,14 +56,14 @@ export function pickRandomColors(n) {
  *             'hard' → similar color (perceptually close)
  */
 export function pickDifferentColor(original, difficulty = 'medium') {
-  if (difficulty === 'hard') {
-    // Find a similar color pair
-    const pairs = SIMILAR_PAIRS.filter(([from]) => from === original);
-    if (pairs.length > 0) {
-      const [, similar] = pairs[Math.floor(Math.random() * pairs.length)];
-      return similar;
-    }
-  }
+  // To prevent the color from changing very slightly, we filter out all colors
+  // that are perceptually similar to the original color.
+  const similarColors = new Set();
+  similarColors.add(original);
+  SIMILAR_PAIRS.forEach(([c1, c2]) => {
+    if (c1 === original) similarColors.add(c2);
+    if (c2 === original) similarColors.add(c1);
+  });
 
   if (difficulty === 'easy') {
     // Pick maximally different — opposite end of palette
@@ -72,9 +72,15 @@ export function pickDifferentColor(original, difficulty = 'medium') {
     return STIMULUS_COLORS[opposite];
   }
 
-  // Medium: just any different color
-  const pool = STIMULUS_COLORS.filter(c => c !== original);
-  return pool[Math.floor(Math.random() * pool.length)];
+  // Medium / Hard: Pick a distinct color (excluding similar colors)
+  const pool = STIMULUS_COLORS.filter(c => !similarColors.has(c));
+  if (pool.length > 0) {
+    return pool[Math.floor(Math.random() * pool.length)];
+  }
+
+  // Fallback if distinct pool is empty
+  const fallbackPool = STIMULUS_COLORS.filter(c => c !== original);
+  return fallbackPool[Math.floor(Math.random() * fallbackPool.length)];
 }
 
 /**
