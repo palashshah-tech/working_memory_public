@@ -1,5 +1,5 @@
 /* ============================================================
-   Color Utilities — 12 highly discriminable colors
+   Color Utilities — 18 highly discriminable colors
    (based on Luck & Vogel 1997 / Cambridge Color Test palette)
    ============================================================ */
 
@@ -25,22 +25,6 @@ export const STIMULUS_COLORS = [
   '#006266',  // Mediterranean Blue
 ];
 
-// Groups of SIMILAR colors — used to make "different" trials harder
-// Each entry is a pair [original, similar-alternative]
-const SIMILAR_PAIRS = [
-  ['#e74c3c', '#c0392b'],  // Red → Dark Red
-  ['#e74c3c', '#e67e22'],  // Red → Orange
-  ['#27ae60', '#16a085'],  // Green → Dark Teal
-  ['#27ae60', '#1abc9c'],  // Green → Teal
-  ['#2980b9', '#1a6fa8'],  // Blue → Dark Blue
-  ['#2980b9', '#8e44ad'],  // Blue → Purple (medium)
-  ['#f39c12', '#e67e22'],  // Orange → Dark Orange
-  ['#f1c40f', '#f39c12'],  // Yellow → Orange (similar hue)
-  ['#9b59b6', '#8e44ad'],  // Purple → Dark Purple
-  ['#1abc9c', '#16a085'],  // Teal → Dark Teal
-  ['#e91e9a', '#9b59b6'],  // Magenta → Purple
-];
-
 /**
  * Pick N unique random colors
  */
@@ -50,21 +34,34 @@ export function pickRandomColors(n) {
 }
 
 /**
+ * Helper to convert hex to RGB
+ */
+function hexToRgb(hex) {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return { r, g, b };
+}
+
+/**
+ * Calculate Euclidean distance in RGB color space
+ */
+function getColorDistance(c1, c2) {
+  const rgb1 = hexToRgb(c1);
+  const rgb2 = hexToRgb(c2);
+  return Math.sqrt(
+    Math.pow(rgb1.r - rgb2.r, 2) +
+    Math.pow(rgb1.g - rgb2.g, 2) +
+    Math.pow(rgb1.b - rgb2.b, 2)
+  );
+}
+
+/**
  * Pick a replacement color.
- * difficulty: 'easy' → very different color
- *             'medium' → moderately different
- *             'hard' → similar color (perceptually close)
+ * difficulty: 'easy' → maximally different color
+ *             'medium' / 'hard' → distinct color (far away in RGB color space, distance >= 100)
  */
 export function pickDifferentColor(original, difficulty = 'medium') {
-  // To prevent the color from changing very slightly, we filter out all colors
-  // that are perceptually similar to the original color.
-  const similarColors = new Set();
-  similarColors.add(original);
-  SIMILAR_PAIRS.forEach(([c1, c2]) => {
-    if (c1 === original) similarColors.add(c2);
-    if (c2 === original) similarColors.add(c1);
-  });
-
   if (difficulty === 'easy') {
     // Pick maximally different — opposite end of palette
     const idx = STIMULUS_COLORS.indexOf(original);
@@ -72,13 +69,14 @@ export function pickDifferentColor(original, difficulty = 'medium') {
     return STIMULUS_COLORS[opposite];
   }
 
-  // Medium / Hard: Pick a distinct color (excluding similar colors)
-  const pool = STIMULUS_COLORS.filter(c => !similarColors.has(c));
+  // Pick a color that is "far away" (Euclidean distance >= 100 in RGB space)
+  // This filters out similar shades (like Red -> Dark Red or Green -> Emerald)
+  const pool = STIMULUS_COLORS.filter(c => getColorDistance(original, c) >= 100);
   if (pool.length > 0) {
     return pool[Math.floor(Math.random() * pool.length)];
   }
 
-  // Fallback if distinct pool is empty
+  // Fallback to any different color if pool is somehow empty
   const fallbackPool = STIMULUS_COLORS.filter(c => c !== original);
   return fallbackPool[Math.floor(Math.random() * fallbackPool.length)];
 }
