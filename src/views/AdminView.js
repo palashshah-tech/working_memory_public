@@ -517,12 +517,13 @@ export function AdminView() {
       margin-bottom: 6px;
     }
     
+@page {
+  margin: 20mm 14mm;
+}
+
 @media print {
-  /* Browsers strip background colors by default unless told otherwise — unavoidable !important */
   * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 
-  /* The app shell likely locks height/overflow for in-app scrolling.
-     Try without !important first — since this stylesheet loads last, it should win on the cascade. */
   html, body, #app, #root {
     height: auto;
     max-height: none;
@@ -538,14 +539,13 @@ export function AdminView() {
     display: none;
   }
 
-  /* Only the Overview tab prints — Raw Data tab is excluded regardless of which tab was active */
+  /* Only print the Overview tab */
   body.av-printing #av-tab-raw { display: none; }
   body.av-printing #av-tab-overview { display: block; }
 
   body.av-printing .av-modal-bg {
     position: static;
     inset: auto;
-    background: #fff;
     backdrop-filter: none;
     padding: 0;
     display: block;
@@ -556,32 +556,25 @@ export function AdminView() {
     max-height: none;
     overflow: visible;
     box-shadow: none;
-    border: none;
-    background: #fff;
-    color: #111;
   }
   body.av-printing .av-modal-header {
     position: static;
-    background: #fff;
-    border-bottom: 2px solid #ccc;
-  }
-  body.av-printing .av-modal-header h2,
-  body.av-printing .av-metric-val,
-  body.av-printing .av-chart-title {
-    color: #111;
-  }
-  body.av-printing .av-metric-label,
-  body.av-printing .av-modal-meta {
-    color: #555;
-  }
-  body.av-printing .av-metric,
-  body.av-printing .av-tab-content {
-    background: #fafafa;
-    border-color: #ddd;
   }
 
-  /* Keep individual metric cards intact when a page breaks mid-grid */
+  /* Kill glow/shadow effects that render badly in print */
+  body.av-printing .av-bar {
+    box-shadow: none;
+  }
+  body.av-printing .av-metric,
+  body.av-printing .av-kpi-card {
+    box-shadow: none;
+  }
+
+  /* Keep individual metric cards intact across page breaks */
   body.av-printing .av-metric {
+    break-inside: avoid;
+  }
+  body.av-printing .av-chart {
     break-inside: avoid;
   }
 }
