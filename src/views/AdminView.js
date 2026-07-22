@@ -516,6 +516,57 @@ export function AdminView() {
       letter-spacing: 0.12em; color: var(--text-tertiary);
       margin-bottom: 6px;
     }
+    
+@media print {
+  * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+
+  /* Hide the whole dashboard behind the modal */
+  .av-printing .av-body,
+  .av-printing .av-header,
+  .av-printing .av-tabs,
+  .av-printing #av-print-report,
+  .av-printing #av-close-modal,
+  .av-printing .av-metric-info-btn { display: none !important; }
+
+  /* Pull modal out of fixed/overlay positioning into normal flow */
+  .av-printing .av-modal-bg {
+    position: static !important;
+    inset: auto !important;
+    background: #fff;
+    backdrop-filter: none;
+    padding: 0;
+    display: block !important;
+  }
+  .av-printing .av-modal {
+    position: static !important;
+    max-width: 100%;
+    max-height: none;
+    overflow: visible;
+    box-shadow: none;
+    border: none;
+    background: #fff;
+    color: #111;
+  }
+  .av-printing .av-modal-header {
+    position: static;
+    background: #fff;
+    border-bottom: 2px solid #ccc;
+  }
+  .av-printing .av-modal-header h2,
+  .av-printing .av-metric-val,
+  .av-printing .av-chart-title { color: #111 !important; }
+  .av-printing .av-metric-label,
+  .av-printing .av-modal-meta { color: #555 !important; }
+
+  .av-printing .av-metric,
+  .av-printing .av-tab-content { background: #fafafa !important; border-color: #ddd !important; }
+
+  .av-printing .av-hidden { display: block !important; }
+
+  .av-printing .av-tab-content { page-break-inside: avoid; }
+  .av-printing .av-metrics { page-break-inside: avoid; }
+  .av-printing .raw-trial-table { font-size: 10px; }
+}
   `);
 
   if (!authed) { showGate(); } else { showDashboard(); }
@@ -647,9 +698,9 @@ function showGate() {
   `);
 
   const doAuth = async () => {
-    const pass  = document.getElementById('ap-pass').value;
+    const pass = document.getElementById('ap-pass').value;
     const errEl = document.getElementById('ap-err');
-    const btn   = document.getElementById('ap-auth');
+    const btn = document.getElementById('ap-auth');
     errEl.style.display = 'none';
     btn.querySelector('.agc-btn-text').textContent = 'Verifying...';
     btn.disabled = true;
@@ -699,8 +750,8 @@ async function showDashboard() {
   const tiers = getTierDistribution(candidates);
   const n = candidates.length;
 
-  const TIER_COLORS = { 'S+':'#ffd700','S':'#00f0ff','A':'#a855f7','B':'#34d399','C':'#fbbf24','D':'#f87171' };
-  const TIER_CLS    = { 'S+':'sp','S':'s','A':'a','B':'b','C':'c','D':'d' };
+  const TIER_COLORS = { 'S+': '#ffd700', 'S': '#00f0ff', 'A': '#a855f7', 'B': '#34d399', 'C': '#fbbf24', 'D': '#f87171' };
+  const TIER_CLS = { 'S+': 'sp', 'S': 's', 'A': 'a', 'B': 'b', 'C': 'c', 'D': 'd' };
 
   render(`
     <div class="av">
@@ -775,32 +826,32 @@ async function showDashboard() {
                 </thead>
                 <tbody>
                   ${candidates.slice(0, 10).map((c, i) => {
-                    const s = c.scores || {};
-                    const cs = s.compositeScore || 0;
-                    const tc = TIER_CLS[s.tier || 'D'] || 'd';
-                    const initials = (c.name || 'N A').split(' ').map(p => p[0]).slice(0,2).join('').toUpperCase();
-                    return `
+    const s = c.scores || {};
+    const cs = s.compositeScore || 0;
+    const tc = TIER_CLS[s.tier || 'D'] || 'd';
+    const initials = (c.name || 'N A').split(' ').map(p => p[0]).slice(0, 2).join('').toUpperCase();
+    return `
                       <tr>
-                        <td class="av-rank">${c.rank || i+1}</td>
+                        <td class="av-rank">${c.rank || i + 1}</td>
                         <td>
                           <div class="av-candidate">
                             <div class="av-avatar">${initials}</div>
                             <div class="av-name">
                               <strong>${c.name || '—'}</strong>
-                              <span class="av-handle">${c.handle||'—'}</span>
+                              <span class="av-handle">${c.handle || '—'}</span>
                             </div>
                           </div>
                         </td>
-                        <td><span class="tier-pip tier-${tc}">${s.tier||'—'}</span></td>
+                        <td><span class="tier-pip tier-${tc}">${s.tier || '—'}</span></td>
                         <td class="td-mono">${cs.toFixed(1)}</td>
-                        <td class="td-mono">${(s.kPure||0).toFixed(2)}</td>
-                        <td class="td-mono">${s.maxSetSize||0}</td>
-                        <td class="td-mono">${(s.meanRT||0).toFixed(0)}ms</td>
-                        <td class="td-mono">${((s.accuracyDistractor||0)*100).toFixed(0)}%</td>
-                        <td><button class="av-btn-view" data-email="${c.email||''}">${t('ad_btn_detail')}</button></td>
+                        <td class="td-mono">${(s.kPure || 0).toFixed(2)}</td>
+                        <td class="td-mono">${s.maxSetSize || 0}</td>
+                        <td class="td-mono">${(s.meanRT || 0).toFixed(0)}ms</td>
+                        <td class="td-mono">${((s.accuracyDistractor || 0) * 100).toFixed(0)}%</td>
+                        <td><button class="av-btn-view" data-email="${c.email || ''}">${t('ad_btn_detail')}</button></td>
                       </tr>
                     `;
-                  }).join('')}
+  }).join('')}
                 </tbody>
               </table>
             </div>
@@ -819,7 +870,7 @@ async function showDashboard() {
             </div>
             <div class="av-tier-bar">
               ${Object.entries(tiers).map(([t_name, c]) => `
-                <div class="av-tier-seg" style="width:${n>0?(c/n)*100:0}%;background:${TIER_COLORS[t_name]}"></div>
+                <div class="av-tier-seg" style="width:${n > 0 ? (c / n) * 100 : 0}%;background:${TIER_COLORS[t_name]}"></div>
               `).join('')}
             </div>
           </div>
@@ -861,33 +912,33 @@ async function showDashboard() {
                 </thead>
                 <tbody>
                   ${candidates.map((c, i) => {
-                    const s = c.scores || {};
-                    const cs = s.compositeScore || 0;
-                    const sc = cs >= 70 ? 'td-score-hi' : cs >= 40 ? 'td-score-md' : 'td-score-lo';
-                    const tc = TIER_CLS[s.tier || 'D'] || 'd';
-                    const date = c.completedAt ? new Date(c.completedAt).toLocaleDateString() : '—';
-                    return `
+    const s = c.scores || {};
+    const cs = s.compositeScore || 0;
+    const sc = cs >= 70 ? 'td-score-hi' : cs >= 40 ? 'td-score-md' : 'td-score-lo';
+    const tc = TIER_CLS[s.tier || 'D'] || 'd';
+    const date = c.completedAt ? new Date(c.completedAt).toLocaleDateString() : '—';
+    return `
                       <tr>
-                        <td class="td-mono">${c.rank || i+1}</td>
+                        <td class="td-mono">${c.rank || i + 1}</td>
                         <td class="td-name">${c.name || '—'}</td>
-                        <td><span style="font-family:var(--font-mono);font-size:11px;background:rgba(0,240,255,0.08);color:#00f0ff;padding:2px 8px;border-radius:99px">${c.handle||'—'}</span></td>
-                        <td class="td-mono">${c.age||'—'}</td>
-                        <td><span class="tier-pip tier-${tc}">${s.tier||'—'}</span></td>
+                        <td><span style="font-family:var(--font-mono);font-size:11px;background:rgba(0,240,255,0.08);color:#00f0ff;padding:2px 8px;border-radius:99px">${c.handle || '—'}</span></td>
+                        <td class="td-mono">${c.age || '—'}</td>
+                        <td><span class="tier-pip tier-${tc}">${s.tier || '—'}</span></td>
                         <td class="${sc}">${cs.toFixed(1)}</td>
-                        <td class="td-mono">${(s.kPure||0).toFixed(2)}</td>
-                        <td class="td-mono">${(s.kDistractor||0).toFixed(2)}</td>
-                        <td class="td-mono">${s.maxSetSize||0}</td>
-                        <td class="td-mono">${(s.meanRT||0).toFixed(0)}ms</td>
-                        <td class="td-mono">${((s.accuracyPure||0)*100).toFixed(0)}%</td>
-                        <td class="td-mono">${((s.accuracyDistractor||0)*100).toFixed(0)}%</td>
-                        <td class="td-mono">${(s.alerting||0).toFixed(0)}ms</td>
-                        <td class="td-mono">${(s.orienting||0).toFixed(0)}ms</td>
-                        <td class="td-mono">${(s.executive||0).toFixed(0)}ms</td>
+                        <td class="td-mono">${(s.kPure || 0).toFixed(2)}</td>
+                        <td class="td-mono">${(s.kDistractor || 0).toFixed(2)}</td>
+                        <td class="td-mono">${s.maxSetSize || 0}</td>
+                        <td class="td-mono">${(s.meanRT || 0).toFixed(0)}ms</td>
+                        <td class="td-mono">${((s.accuracyPure || 0) * 100).toFixed(0)}%</td>
+                        <td class="td-mono">${((s.accuracyDistractor || 0) * 100).toFixed(0)}%</td>
+                        <td class="td-mono">${(s.alerting || 0).toFixed(0)}ms</td>
+                        <td class="td-mono">${(s.orienting || 0).toFixed(0)}ms</td>
+                        <td class="td-mono">${(s.executive || 0).toFixed(0)}ms</td>
                         <td class="td-mono">${date}</td>
-                        <td><button class="av-btn-view" data-email="${c.email||''}">${t('ad_btn_detail')}</button></td>
+                        <td><button class="av-btn-view" data-email="${c.email || ''}">${t('ad_btn_detail')}</button></td>
                       </tr>
                     `;
-                  }).join('')}
+  }).join('')}
                 </tbody>
               </table>
             </div>
@@ -940,9 +991,9 @@ function showDetail(email, candidates) {
 
   const skipsHtml = c.metadata?.skips
     ? '<div style="margin-top:8px;display:flex;gap:6px;">' +
-      Object.keys(c.metadata.skips).map(t =>
-        '<span style="background:#fbbf2420;color:#fbbf24;border:1px solid #fbbf2440;padding:2px 8px;font-size:10px;font-family:var(--font-mono)">SKIPPED: ' + t.toUpperCase() + '</span>'
-      ).join('') + '</div>'
+    Object.keys(c.metadata.skips).map(t =>
+      '<span style="background:#fbbf2420;color:#fbbf24;border:1px solid #fbbf2440;padding:2px 8px;font-size:10px;font-family:var(--font-mono)">SKIPPED: ' + t.toUpperCase() + '</span>'
+    ).join('') + '</div>'
     : '';
 
   const mc = document.getElementById('av-modal-container');
@@ -953,11 +1004,12 @@ function showDetail(email, candidates) {
           <div>
             <div style="display:flex;align-items:center;gap:12px;">
               <h2>${c.name}</h2>
-              <span class="tier-pip tier-${(s.tier||'D').toLowerCase().replace('+','sp')}">${s.tier||'—'}</span>
+              <span class="tier-pip tier-${(s.tier || 'D').toLowerCase().replace('+', 'sp')}">${s.tier || '—'}</span>
             </div>
-            <p style="color:var(--text-tertiary);font-size:13px;margin-top:4px;">${c.email} · @${c.handle} · Age ${c.age} · ${c.gender||'—'}</p>
+            <p style="color:var(--text-tertiary);font-size:13px;margin-top:4px;">${c.email} · @${c.handle} · Age ${c.age} · ${c.gender || '—'}</p>
             ${skipsHtml}
           </div>
+          <button class="av-btn av-btn-ghost" id="av-print-report" style="font-size:0.85rem;padding:6px 14px;color:#d4ff00;border:1px solid rgba(212,255,0,0.2);background:rgba(212,255,0,0.04);">Download PDF Report</button>
           <button class="av-btn av-btn-ghost" id="av-close-modal" style="font-size:1.2rem;padding:6px 12px;color:#d4ff00;border:1px solid rgba(212,255,0,0.2);background:rgba(212,255,0,0.04);">✕</button>
         </div>
 
@@ -991,25 +1043,33 @@ function showDetail(email, candidates) {
 
   const close = () => { mc.innerHTML = ''; };
   document.getElementById('av-close-modal').addEventListener('click', close);
+  document.getElementById('av-print-report').addEventListener('click', () => {
+    document.body.classList.add('av-printing');
+    window.print();
+  });
+
+  window.addEventListener('afterprint', () => {
+    document.body.classList.remove('av-printing');
+  }, { once: true });
   document.getElementById('av-modal-bg').addEventListener('click', e => { if (e.target === e.currentTarget) close(); });
 }
 
 /* ---- Overview tab (existing metrics, K chart, ANT, component scores) ---- */
 function renderOverviewTab(c, s) {
-  const kData    = s.vwmPure?.kScores || {};
+  const kData = s.vwmPure?.kScores || {};
   const setSizes = [1, 2, 3, 4, 6, 8];
-  const maxKVal  = 6;
+  const maxKVal = 6;
 
   const metricsHtml = [
-    { key:'composite',  label:'Composite',    val:(s.compositeScore||0).toFixed(1) },
-    { key:'kpure',      label:"Cowan's K",   val:(s.kPure||0).toFixed(2) },
-    { key:'kdist',      label:'K (Distract)',val:(s.kDistractor||0).toFixed(2) },
-    { key:'exec-eff',   label:'Exec. Efficiency', val:(s.vwmExecEfficiency||0).toFixed(1)+'%' },
-    { key:'exec-speed', label:'Exec. Speed',  val:(s.vwmExecSpeed||0).toFixed(0)+'ms' },
-    { key:'maxn',       label:'Max N',        val:s.maxSetSize||0 },
-    { key:'meanrt',     label:'Avg RT',       val:(s.meanRT||0).toFixed(0)+'ms' },
-    { key:'acc-pure',   label:'Acc Pure',     val:((s.accuracyPure||0)*100).toFixed(0)+'%' },
-    { key:'acc-dist',   label:'Acc Dist.',    val:((s.accuracyDistractor||0)*100).toFixed(0)+'%' },
+    { key: 'composite', label: 'Composite', val: (s.compositeScore || 0).toFixed(1) },
+    { key: 'kpure', label: "Cowan's K", val: (s.kPure || 0).toFixed(2) },
+    { key: 'kdist', label: 'K (Distract)', val: (s.kDistractor || 0).toFixed(2) },
+    { key: 'exec-eff', label: 'Exec. Efficiency', val: (s.vwmExecEfficiency || 0).toFixed(1) + '%' },
+    { key: 'exec-speed', label: 'Exec. Speed', val: (s.vwmExecSpeed || 0).toFixed(0) + 'ms' },
+    { key: 'maxn', label: 'Max N', val: s.maxSetSize || 0 },
+    { key: 'meanrt', label: 'Avg RT', val: (s.meanRT || 0).toFixed(0) + 'ms' },
+    { key: 'acc-pure', label: 'Acc Pure', val: ((s.accuracyPure || 0) * 100).toFixed(0) + '%' },
+    { key: 'acc-dist', label: 'Acc Dist.', val: ((s.accuracyDistractor || 0) * 100).toFixed(0) + '%' },
   ].map(m =>
     '<div class="av-metric">' +
     '<div class="av-metric-label">' + m.label + '</div>' +
@@ -1019,7 +1079,7 @@ function renderOverviewTab(c, s) {
   ).join('');
 
   const kChartHtml = setSizes.map(n => {
-    const k   = kData[n]?.k || 0;
+    const k = kData[n]?.k || 0;
     const pct = Math.max(2, (k / maxKVal) * 100);
     return '<div class="av-bar-col"><div class="av-bar-val">' + k.toFixed(1) + '</div>' +
       '<div class="av-bar" style="height:' + pct + '%"></div>' +
@@ -1027,16 +1087,16 @@ function renderOverviewTab(c, s) {
   }).join('');
 
   const antHtml = [
-    { key:'alerting',        label:'Alerting RT',       val:(s.alerting||0).toFixed(0)+'ms' },
-    { key:'orienting',       label:'Orienting RT',      val:(s.orienting||0).toFixed(0)+'ms' },
-    { key:'executive',       label:'Executive RT',      val:(s.executive||0).toFixed(0)+'ms' },
-    { key:'ant-congruent',   label:'Congruent RT',      val:(s.ant?.rtByFlanker?.congruent||0).toFixed(0)+'ms' },
-    { key:'ant-incongruent', label:'Incongruent RT',    val:(s.ant?.rtByFlanker?.incongruent||0).toFixed(0)+'ms' },
-    { key:'eff-congruent',   label:'Congruent Eff.',    val:(s.antCongruentEfficiency||0).toFixed(2)+' r/s' },
-    { key:'eff-incongruent', label:'Incongruent Eff.',  val:(s.antIncongruentEfficiency||0).toFixed(2)+' r/s' },
-    { key:'eff-alerting',    label:'Alerting Eff.',     val:(s.antAlertingEfficiency||0).toFixed(2) },
-    { key:'eff-orienting',   label:'Orienting Eff.',    val:(s.antOrientingEfficiency||0).toFixed(2) },
-    { key:'eff-executive',   label:'Executive Eff.',    val:(s.antExecutiveEfficiency||0).toFixed(2) },
+    { key: 'alerting', label: 'Alerting RT', val: (s.alerting || 0).toFixed(0) + 'ms' },
+    { key: 'orienting', label: 'Orienting RT', val: (s.orienting || 0).toFixed(0) + 'ms' },
+    { key: 'executive', label: 'Executive RT', val: (s.executive || 0).toFixed(0) + 'ms' },
+    { key: 'ant-congruent', label: 'Congruent RT', val: (s.ant?.rtByFlanker?.congruent || 0).toFixed(0) + 'ms' },
+    { key: 'ant-incongruent', label: 'Incongruent RT', val: (s.ant?.rtByFlanker?.incongruent || 0).toFixed(0) + 'ms' },
+    { key: 'eff-congruent', label: 'Congruent Eff.', val: (s.antCongruentEfficiency || 0).toFixed(2) + ' r/s' },
+    { key: 'eff-incongruent', label: 'Incongruent Eff.', val: (s.antIncongruentEfficiency || 0).toFixed(2) + ' r/s' },
+    { key: 'eff-alerting', label: 'Alerting Eff.', val: (s.antAlertingEfficiency || 0).toFixed(2) },
+    { key: 'eff-orienting', label: 'Orienting Eff.', val: (s.antOrientingEfficiency || 0).toFixed(2) },
+    { key: 'eff-executive', label: 'Executive Eff.', val: (s.antExecutiveEfficiency || 0).toFixed(2) },
   ].map(m =>
     '<div class="av-metric">' +
     '<div class="av-metric-label">' + m.label + '</div>' +
@@ -1045,24 +1105,24 @@ function renderOverviewTab(c, s) {
     '</div>'
   ).join('');
 
-  const COMP_LABELS = { kPure:'CowanK', kDistractor:'CowanK(Dist)', maxSetSize:'MaxN', rtEfficiency:'RT Eff', alerting:'Alert', orienting:'Orient', executive:'Exec' };
+  const COMP_LABELS = { kPure: 'CowanK', kDistractor: 'CowanK(Dist)', maxSetSize: 'MaxN', rtEfficiency: 'RT Eff', alerting: 'Alert', orienting: 'Orient', executive: 'Exec' };
   const componentHtml = s.componentScores
     ? '<div class="av-chart-title">Component Scores (0–100)</div><div class="av-chart">' +
-      Object.entries(s.componentScores).map(([key, val]) => {
-        const color = val>=70?'#34d399':val>=40?'#fbbf24':'#f87171';
-        return '<div class="av-bar-col"><div class="av-bar-val">' + val.toFixed(0) + '</div>' +
-          '<div class="av-bar" style="height:' + Math.max(2,val) + '%;background:' + color + '"></div>' +
-          '<div class="av-bar-lbl">' + (COMP_LABELS[key]||key) + '</div></div>';
-      }).join('') + '</div>'
+    Object.entries(s.componentScores).map(([key, val]) => {
+      const color = val >= 70 ? '#34d399' : val >= 40 ? '#fbbf24' : '#f87171';
+      return '<div class="av-bar-col"><div class="av-bar-val">' + val.toFixed(0) + '</div>' +
+        '<div class="av-bar" style="height:' + Math.max(2, val) + '%;background:' + color + '"></div>' +
+        '<div class="av-bar-lbl">' + (COMP_LABELS[key] || key) + '</div></div>';
+    }).join('') + '</div>'
     : '';
 
-  const totalTrials = (s.vwmPure?.totalTrials||0) + (s.vwmDistractor?.totalTrials||0) + (s.ant?.totalTrials||0);
+  const totalTrials = (s.vwmPure?.totalTrials || 0) + (s.vwmDistractor?.totalTrials || 0) + (s.ant?.totalTrials || 0);
   const completedAt = c.completedAt ? new Date(c.completedAt).toLocaleString() : '—';
   const metaHtml = c.metadata
     ? '<div style="font-family:var(--font-mono);font-size:11px;color:var(--text-tertiary);background:rgba(255,255,255,0.03);padding:12px;border-radius:8px;border:1px solid rgba(255,255,255,0.05);margin-top:8px;">' +
-      '<div style="margin-bottom:4px;color:var(--text-secondary);font-weight:600;text-transform:uppercase;letter-spacing:0.05em;">Device Telemetry</div>' +
-      '<div>Resolution: ' + c.metadata.windowWidth + 'x' + c.metadata.windowHeight + '</div>' +
-      '<div style="margin-top:4px;opacity:0.7;line-height:1.4;word-break:break-all;">Agent: ' + c.metadata.userAgent + '</div></div>'
+    '<div style="margin-bottom:4px;color:var(--text-secondary);font-weight:600;text-transform:uppercase;letter-spacing:0.05em;">Device Telemetry</div>' +
+    '<div>Resolution: ' + c.metadata.windowWidth + 'x' + c.metadata.windowHeight + '</div>' +
+    '<div style="margin-top:4px;opacity:0.7;line-height:1.4;word-break:break-all;">Agent: ' + c.metadata.userAgent + '</div></div>'
     : '';
 
   return `
@@ -1092,17 +1152,17 @@ function renderRawTab(c) {
 
   const vwmPure = trials.filter(t => t.taskType === 'vwm-pure');
   const vwmDist = trials.filter(t => t.taskType === 'vwm-distractor');
-  const antT    = trials.filter(t => t.taskType === 'ant');
-  const allVwm  = [...vwmPure, ...vwmDist];
+  const antT = trials.filter(t => t.taskType === 'ant');
+  const allVwm = [...vwmPure, ...vwmDist];
 
   // At-a-glance
-  const correct  = trials.filter(t => t.isCorrect).length;
-  const acc      = trials.length ? (correct / trials.length * 100).toFixed(0) : 0;
-  const rtVals   = trials.filter(t => t.isCorrect && t.reactionTimeMs > 0).map(t => t.reactionTimeMs);
-  const avgRT    = rtVals.length ? Math.round(rtVals.reduce((a,b)=>a+b,0)/rtVals.length) : 0;
-  const fastRT   = rtVals.length ? Math.min(...rtVals) : 0;
-  const slowRT   = rtVals.length ? Math.max(...rtVals) : 0;
-  let maxStreak  = 0, streak = 0;
+  const correct = trials.filter(t => t.isCorrect).length;
+  const acc = trials.length ? (correct / trials.length * 100).toFixed(0) : 0;
+  const rtVals = trials.filter(t => t.isCorrect && t.reactionTimeMs > 0).map(t => t.reactionTimeMs);
+  const avgRT = rtVals.length ? Math.round(rtVals.reduce((a, b) => a + b, 0) / rtVals.length) : 0;
+  const fastRT = rtVals.length ? Math.min(...rtVals) : 0;
+  const slowRT = rtVals.length ? Math.max(...rtVals) : 0;
+  let maxStreak = 0, streak = 0;
   trials.forEach(t => { if (t.isCorrect) { streak++; maxStreak = Math.max(maxStreak, streak); } else streak = 0; });
 
   const accColor = acc >= 70 ? '#34d399' : acc >= 50 ? '#fbbf24' : '#f87171';
@@ -1116,11 +1176,11 @@ function renderRawTab(c) {
 
   const vwmSections = allVwm.length
     ? '<div class="raw-section"><div class="raw-section-title">Accuracy by Colour (VWM)</div>' + renderColorAccuracy(allVwm) + '</div>' +
-      '<div class="raw-section"><div class="raw-section-title">Response Time Trend (VWM)</div>' +
-      '<div style="font-size:11px;color:var(--text-tertiary);margin-bottom:8px;">Each bar = one trial. Green = correct, red = incorrect. Height = reaction time.</div>' +
-      renderSparkline(allVwm) + '</div>' +
-      (vwmPure.length ? '<div class="raw-section"><div class="raw-section-title">VWM Pure — Trial by Trial (' + vwmPure.length + ' trials)</div>' + renderVWMTrialTable(vwmPure) + '</div>' : '') +
-      (vwmDist.length ? '<div class="raw-section"><div class="raw-section-title">VWM Distractor — Trial by Trial (' + vwmDist.length + ' trials)</div>' + renderVWMTrialTable(vwmDist) + '</div>' : '')
+    '<div class="raw-section"><div class="raw-section-title">Response Time Trend (VWM)</div>' +
+    '<div style="font-size:11px;color:var(--text-tertiary);margin-bottom:8px;">Each bar = one trial. Green = correct, red = incorrect. Height = reaction time.</div>' +
+    renderSparkline(allVwm) + '</div>' +
+    (vwmPure.length ? '<div class="raw-section"><div class="raw-section-title">VWM Pure — Trial by Trial (' + vwmPure.length + ' trials)</div>' + renderVWMTrialTable(vwmPure) + '</div>' : '') +
+    (vwmDist.length ? '<div class="raw-section"><div class="raw-section-title">VWM Distractor — Trial by Trial (' + vwmDist.length + ' trials)</div>' + renderVWMTrialTable(vwmDist) + '</div>' : '')
     : '';
 
   const antSection = antT.length
@@ -1147,7 +1207,7 @@ function renderColorAccuracy(trials) {
 
   return '<div class="color-acc-grid">' +
     Object.entries(map).sort((a, b) => b[1].total - a[1].total).map(([col, d]) => {
-      const pct      = d.total ? Math.round(d.correct / d.total * 100) : 0;
+      const pct = d.total ? Math.round(d.correct / d.total * 100) : 0;
       const valColor = pct >= 70 ? '#34d399' : pct >= 50 ? '#fbbf24' : '#f87171';
       return '<div class="color-acc-card">' +
         '<div class="color-acc-swatch" style="background:' + col + '"></div>' +
@@ -1164,11 +1224,11 @@ function renderSparkline(trials) {
   // Cap the y-axis scaling at 1500ms so that occasional long responses or timeouts (e.g. 6000ms / 1200ms)
   // do not squash the rest of the graph. Any response time >= 1500ms will be drawn at full height.
   const maxRT = Math.min(1500, Math.max(...trials.map(t => t.reactionTimeMs || 0), 1));
-  const bars  = trials.map((t, i) => {
+  const bars = trials.map((t, i) => {
     const rt = t.reactionTimeMs || 0;
-    const h  = Math.max(5, (Math.min(rt, maxRT) / maxRT) * 100);
+    const h = Math.max(5, (Math.min(rt, maxRT) / maxRT) * 100);
     const bg = t.isCorrect ? 'rgba(52,211,153,0.75)' : 'rgba(248,113,113,0.65)';
-    return '<div class="spark-bar" style="height:' + h + '%;background:' + bg + ';" title="Trial ' + (i+1) + ': ' + (t.isCorrect?'✅':'❌') + ' ' + rt + 'ms"></div>';
+    return '<div class="spark-bar" style="height:' + h + '%;background:' + bg + ';" title="Trial ' + (i + 1) + ': ' + (t.isCorrect ? '✅' : '❌') + ' ' + rt + 'ms"></div>';
   }).join('');
   return '<div class="sparkline">' + bars + '</div>' +
     '<div class="spark-legend">' +
@@ -1184,13 +1244,13 @@ function renderVWMTrialTable(trials) {
       '<span class="color-swatch" style="background:' + col + '" title="' + col + '"></span>'
     ).join('');
     return '<tr>' +
-      '<td style="font-family:var(--font-mono);color:var(--text-tertiary)">' + (i+1) + '</td>' +
-      '<td style="font-family:var(--font-mono)">' + (t.setSize||'—') + '</td>' +
+      '<td style="font-family:var(--font-mono);color:var(--text-tertiary)">' + (i + 1) + '</td>' +
+      '<td style="font-family:var(--font-mono)">' + (t.setSize || '—') + '</td>' +
       '<td>' + swatches + '</td>' +
-      '<td style="font-size:11px;font-family:var(--font-mono)">' + (t.probeType||'—') + '</td>' +
-      '<td style="font-size:11px;font-family:var(--font-mono)">' + (t.userResponse||'—') + '</td>' +
-      '<td class="' + (t.isCorrect?'raw-correct':'raw-wrong') + '">' + (t.isCorrect?'✅':'❌') + '</td>' +
-      '<td style="font-family:var(--font-mono)">' + (t.reactionTimeMs||'—') + '</td>' +
+      '<td style="font-size:11px;font-family:var(--font-mono)">' + (t.probeType || '—') + '</td>' +
+      '<td style="font-size:11px;font-family:var(--font-mono)">' + (t.userResponse || '—') + '</td>' +
+      '<td class="' + (t.isCorrect ? 'raw-correct' : 'raw-wrong') + '">' + (t.isCorrect ? '✅' : '❌') + '</td>' +
+      '<td style="font-family:var(--font-mono)">' + (t.reactionTimeMs || '—') + '</td>' +
       '</tr>';
   }).join('');
   return '<div style="overflow-x:auto;"><table class="raw-trial-table">' +
@@ -1202,13 +1262,13 @@ function renderVWMTrialTable(trials) {
 function renderANTTrialTable(trials) {
   const rows = trials.map((t, i) =>
     '<tr>' +
-    '<td style="font-family:var(--font-mono);color:var(--text-tertiary)">' + (i+1) + '</td>' +
-    '<td style="font-size:11px;font-family:var(--font-mono)">' + (t.cueType||'—') + '</td>' +
-    '<td style="font-size:11px;font-family:var(--font-mono)">' + (t.flankerType||'—') + '</td>' +
-    '<td style="font-size:11px;font-family:var(--font-mono)">' + (t.targetDirection||'—') + '</td>' +
-    '<td style="font-size:11px;font-family:var(--font-mono)">' + (t.userResponse||'—') + '</td>' +
-    '<td class="' + (t.isCorrect?'raw-correct':'raw-wrong') + '">' + (t.isCorrect?'✅':'❌') + '</td>' +
-    '<td style="font-family:var(--font-mono)">' + (t.reactionTimeMs||'—') + '</td>' +
+    '<td style="font-family:var(--font-mono);color:var(--text-tertiary)">' + (i + 1) + '</td>' +
+    '<td style="font-size:11px;font-family:var(--font-mono)">' + (t.cueType || '—') + '</td>' +
+    '<td style="font-size:11px;font-family:var(--font-mono)">' + (t.flankerType || '—') + '</td>' +
+    '<td style="font-size:11px;font-family:var(--font-mono)">' + (t.targetDirection || '—') + '</td>' +
+    '<td style="font-size:11px;font-family:var(--font-mono)">' + (t.userResponse || '—') + '</td>' +
+    '<td class="' + (t.isCorrect ? 'raw-correct' : 'raw-wrong') + '">' + (t.isCorrect ? '✅' : '❌') + '</td>' +
+    '<td style="font-family:var(--font-mono)">' + (t.reactionTimeMs || '—') + '</td>' +
     '</tr>'
   ).join('');
   return '<div style="overflow-x:auto;"><table class="raw-trial-table">' +
