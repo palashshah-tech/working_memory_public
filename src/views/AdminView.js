@@ -518,27 +518,40 @@ export function AdminView() {
     }
     
 @media print {
-  * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+  /* Browsers strip background colors by default unless told otherwise — unavoidable !important */
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 
-  /* Hide the whole dashboard behind the modal */
-  .av-printing .av-body,
-  .av-printing .av-header,
-  .av-printing .av-tabs,
-  .av-printing #av-print-report,
-  .av-printing #av-close-modal,
-  .av-printing .av-metric-info-btn { display: none !important; }
+  /* The app shell likely locks height/overflow for in-app scrolling.
+     Try without !important first — since this stylesheet loads last, it should win on the cascade. */
+  html, body, #app, #root {
+    height: auto;
+    max-height: none;
+    overflow: visible;
+  }
 
-  /* Pull modal out of fixed/overlay positioning into normal flow */
-  .av-printing .av-modal-bg {
-    position: static !important;
-    inset: auto !important;
+  body.av-printing .av-body,
+  body.av-printing .av-header,
+  body.av-printing .av-tabs,
+  body.av-printing #av-print-report,
+  body.av-printing #av-close-modal,
+  body.av-printing .av-metric-info-btn {
+    display: none;
+  }
+
+  /* Only the Overview tab prints — Raw Data tab is excluded regardless of which tab was active */
+  body.av-printing #av-tab-raw { display: none; }
+  body.av-printing #av-tab-overview { display: block; }
+
+  body.av-printing .av-modal-bg {
+    position: static;
+    inset: auto;
     background: #fff;
     backdrop-filter: none;
     padding: 0;
-    display: block !important;
+    display: block;
   }
-  .av-printing .av-modal {
-    position: static !important;
+  body.av-printing .av-modal {
+    position: static;
     max-width: 100%;
     max-height: none;
     overflow: visible;
@@ -547,25 +560,30 @@ export function AdminView() {
     background: #fff;
     color: #111;
   }
-  .av-printing .av-modal-header {
+  body.av-printing .av-modal-header {
     position: static;
     background: #fff;
     border-bottom: 2px solid #ccc;
   }
-  .av-printing .av-modal-header h2,
-  .av-printing .av-metric-val,
-  .av-printing .av-chart-title { color: #111 !important; }
-  .av-printing .av-metric-label,
-  .av-printing .av-modal-meta { color: #555 !important; }
+  body.av-printing .av-modal-header h2,
+  body.av-printing .av-metric-val,
+  body.av-printing .av-chart-title {
+    color: #111;
+  }
+  body.av-printing .av-metric-label,
+  body.av-printing .av-modal-meta {
+    color: #555;
+  }
+  body.av-printing .av-metric,
+  body.av-printing .av-tab-content {
+    background: #fafafa;
+    border-color: #ddd;
+  }
 
-  .av-printing .av-metric,
-  .av-printing .av-tab-content { background: #fafafa !important; border-color: #ddd !important; }
-
-  .av-printing .av-hidden { display: block !important; }
-
-  .av-printing .av-tab-content { page-break-inside: avoid; }
-  .av-printing .av-metrics { page-break-inside: avoid; }
-  .av-printing .raw-trial-table { font-size: 10px; }
+  /* Keep individual metric cards intact when a page breaks mid-grid */
+  body.av-printing .av-metric {
+    break-inside: avoid;
+  }
 }
   `);
 
