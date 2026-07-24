@@ -1020,8 +1020,10 @@ function showDetail(email, candidates) {
             <p style="color:var(--text-tertiary);font-size:13px;margin-top:4px;">${c.email} · @${c.handle} · Age ${c.age} · ${c.gender || '—'}</p>
             ${skipsHtml}
           </div>
-          <button class="av-btn av-btn-ghost" id="av-print-report" style="font-size:0.85rem;padding:6px 14px;color:#d4ff00;border:1px solid rgba(212,255,0,0.2);background:rgba(212,255,0,0.04);">Download PDF Report</button>
-          <button class="av-btn av-btn-ghost" id="av-close-modal" style="font-size:1.2rem;padding:6px 12px;color:#d4ff00;border:1px solid rgba(212,255,0,0.2);background:rgba(212,255,0,0.04);">✕</button>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <button class="av-btn av-btn-ghost" id="av-print-report" style="font-family:var(--font-mono);font-size:0.85rem;padding:6px 14px;color:#d4ff00;border:1px solid rgba(212,255,0,0.2);background:rgba(212,255,0,0.04);white-space:nowrap;">Download PDF Report</button>
+            <button class="av-btn av-btn-ghost" id="av-close-modal" style="font-size:1.2rem;padding:6px 12px;color:#d4ff00;border:1px solid rgba(212,255,0,0.2);background:rgba(212,255,0,0.04);">✕</button>
+          </div>
         </div>
 
         <div class="av-tabs">
