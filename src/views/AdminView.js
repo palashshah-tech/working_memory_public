@@ -9,6 +9,7 @@ import { recalculateRanks, getTierDistribution, getStatsSummary } from '../scori
 import { injectStyle } from '../router.js';
 import { validateAdminAccess } from '../utils/access.js';
 import { t, getLang, setLang } from '../utils/i18n.js';
+import { buildReportHTML } from '../utils/reportBuilder.js';
 
 let authed = false;
 let adminCompanyId = null;
@@ -1057,14 +1058,13 @@ function showDetail(email, candidates) {
   const close = () => { mc.innerHTML = ''; };
   document.getElementById('av-close-modal').addEventListener('click', close);
   document.getElementById('av-print-report').addEventListener('click', () => {
-    document.body.classList.add('av-printing');
-    window.print();
+    const html = buildReportHTML(c);
+    const w = window.open('', '_blank', 'width=1000,height=1000,left=100,top=50,scrollbars=yes');
+    w.document.write(html);
+    w.document.close();
+    w.focus();
+    setTimeout(() => w.print(), 400);
   });
-
-  window.addEventListener('afterprint', () => {
-    document.body.classList.remove('av-printing');
-  }, { once: true });
-  document.getElementById('av-modal-bg').addEventListener('click', e => { if (e.target === e.currentTarget) close(); });
 }
 
 /* ---- Overview tab (existing metrics, K chart, ANT, component scores) ---- */
