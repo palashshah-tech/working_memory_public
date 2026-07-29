@@ -7,109 +7,118 @@
 
 import { t } from './i18n.js';
 
+const STANDARD_SET_SIZES = [1, 2, 3, 4, 6, 8];
+
+function padToStandardSizes(curve) {
+    return STANDARD_SET_SIZES.map(size => {
+        const pt = curve.find(c => c.setSize === size);
+        return pt || { setSize: size, k: 0, accuracy: 0, avgRT: 0, trials: 0 };
+    });
+}
+
 /* ---------------------------------------------------------------
    DATA COMPUTATION — proper Cowan's K from raw trials
 --------------------------------------------------------------- */
 function computeVWMStats(trials, taskType) {
-  const stage = trials.filter(t => t.taskType === taskType);
-  const bySetSize = {};
-  stage.forEach(tr => {
-    const key = tr.setSize;
-    if (!bySetSize[key]) bySetSize[key] = { hits: 0, misses: 0, fa: 0, cr: 0, rts: [], total: 0 };
-    const b = bySetSize[key];
-    b.total++;
-    if (tr.isChange && tr.isCorrect) b.hits++;
-    else if (tr.isChange && !tr.isCorrect) b.misses++;
-    else if (!tr.isChange && !tr.isCorrect) b.fa++;
-    else if (!tr.isChange && tr.isCorrect) b.cr++;
-    if (tr.isCorrect && tr.reactionTimeMs) b.rts.push(tr.reactionTimeMs);
-  });
+    const stage = trials.filter(t => t.taskType === taskType);
+    const bySetSize = {};
+    stage.forEach(tr => {
+        const key = tr.setSize;
+        if (!bySetSize[key]) bySetSize[key] = { hits: 0, misses: 0, fa: 0, cr: 0, rts: [], total: 0 };
+        const b = bySetSize[key];
+        b.total++;
+        if (tr.isChange && tr.isCorrect) b.hits++;
+        else if (tr.isChange && !tr.isCorrect) b.misses++;
+        else if (!tr.isChange && !tr.isCorrect) b.fa++;
+        else if (!tr.isChange && tr.isCorrect) b.cr++;
+        if (tr.isCorrect && tr.reactionTimeMs) b.rts.push(tr.reactionTimeMs);
+    });
 
-  const setSizes = Object.keys(bySetSize).map(Number).sort((a, b) => a - b);
-  const curve = setSizes.map(size => {
-    const b = bySetSize[size];
-    const hitRate = (b.hits + b.misses) ? b.hits / (b.hits + b.misses) : 0;
-    const faRate = (b.fa + b.cr) ? b.fa / (b.fa + b.cr) : 0;
-    const k = Math.max(0, size * (hitRate - faRate));
-    const acc = b.total ? (b.hits + b.cr) / b.total : 0;
-    const avgRT = b.rts.length ? b.rts.reduce((a, x) => a + x, 0) / b.rts.length : 0;
-    return { setSize: size, k, hitRate, faRate, accuracy: acc, avgRT, trials: b.total };
-  });
+    const setSizes = Object.keys(bySetSize).map(Number).sort((a, b) => a - b);
+    const curve = setSizes.map(size => {
+        const b = bySetSize[size];
+        const hitRate = (b.hits + b.misses) ? b.hits / (b.hits + b.misses) : 0;
+        const faRate = (b.fa + b.cr) ? b.fa / (b.fa + b.cr) : 0;
+        const k = Math.max(0, size * (hitRate - faRate));
+        const acc = b.total ? (b.hits + b.cr) / b.total : 0;
+        const avgRT = b.rts.length ? b.rts.reduce((a, x) => a + x, 0) / b.rts.length : 0;
+        return { setSize: size, k, hitRate, faRate, accuracy: acc, avgRT, trials: b.total };
+    });
 
-  const correctRts = stage.filter(tr => tr.isCorrect && tr.reactionTimeMs).map(tr => tr.reactionTimeMs);
-  const overallAcc = stage.length ? stage.filter(tr => tr.isCorrect).length / stage.length : 0;
-  const avgRT = correctRts.length ? correctRts.reduce((a, b) => a + b, 0) / correctRts.length : 0;
-  const fastest = correctRts.length ? Math.min(...correctRts) : 0;
-  const slowest = correctRts.length ? Math.max(...correctRts) : 0;
-  let maxStreak = 0, streak = 0;
-  stage.forEach(tr => { if (tr.isCorrect) { streak++; maxStreak = Math.max(maxStreak, streak); } else streak = 0; });
-  const maxSetSize = setSizes.length ? Math.max(...setSizes) : 0;
-  const maxK = curve.length ? Math.max(...curve.map(c => c.k)) : 0;
+    const correctRts = stage.filter(tr => tr.isCorrect && tr.reactionTimeMs).map(tr => tr.reactionTimeMs);
+    const overallAcc = stage.length ? stage.filter(tr => tr.isCorrect).length / stage.length : 0;
+    const avgRT = correctRts.length ? correctRts.reduce((a, b) => a + b, 0) / correctRts.length : 0;
+    const fastest = correctRts.length ? Math.min(...correctRts) : 0;
+    const slowest = correctRts.length ? Math.max(...correctRts) : 0;
+    let maxStreak = 0, streak = 0;
+    stage.forEach(tr => { if (tr.isCorrect) { streak++; maxStreak = Math.max(maxStreak, streak); } else streak = 0; });
+    const maxSetSize = setSizes.length ? Math.max(...setSizes) : 0;
+    const maxK = curve.length ? Math.max(...curve.map(c => c.k)) : 0;
 
-  return { curve, overallAcc, avgRT, fastest, slowest, maxStreak, maxSetSize, maxK, totalTrials: stage.length, trialsChrono: stage };
+    return { curve, overallAcc, avgRT, fastest, slowest, maxStreak, maxSetSize, maxK, totalTrials: stage.length, trialsChrono: stage };
 }
 
 function computeANTStats(trials) {
-  const ant = trials.filter(t => t.taskType === 'ant');
-  const byCue = {}, byFlanker = {};
-  ant.forEach(tr => {
-    if (!byCue[tr.cueType]) byCue[tr.cueType] = { rts: [], correct: 0, total: 0 };
-    byCue[tr.cueType].total++;
-    if (tr.isCorrect) { byCue[tr.cueType].correct++; if (tr.reactionTimeMs) byCue[tr.cueType].rts.push(tr.reactionTimeMs); }
-    if (!byFlanker[tr.flankerType]) byFlanker[tr.flankerType] = { rts: [], correct: 0, total: 0 };
-    byFlanker[tr.flankerType].total++;
-    if (tr.isCorrect) { byFlanker[tr.flankerType].correct++; if (tr.reactionTimeMs) byFlanker[tr.flankerType].rts.push(tr.reactionTimeMs); }
-  });
-  const avg = arr => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0;
-  const accOf = obj => obj && obj.total ? obj.correct / obj.total : 0;
+    const ant = trials.filter(t => t.taskType === 'ant');
+    const byCue = {}, byFlanker = {};
+    ant.forEach(tr => {
+        if (!byCue[tr.cueType]) byCue[tr.cueType] = { rts: [], correct: 0, total: 0 };
+        byCue[tr.cueType].total++;
+        if (tr.isCorrect) { byCue[tr.cueType].correct++; if (tr.reactionTimeMs) byCue[tr.cueType].rts.push(tr.reactionTimeMs); }
+        if (!byFlanker[tr.flankerType]) byFlanker[tr.flankerType] = { rts: [], correct: 0, total: 0 };
+        byFlanker[tr.flankerType].total++;
+        if (tr.isCorrect) { byFlanker[tr.flankerType].correct++; if (tr.reactionTimeMs) byFlanker[tr.flankerType].rts.push(tr.reactionTimeMs); }
+    });
+    const avg = arr => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0;
+    const accOf = obj => obj && obj.total ? obj.correct / obj.total : 0;
 
-  const rtNone = avg(byCue['none']?.rts || []);
-  const rtCenter = avg(byCue['center']?.rts || []);
-  const rtDouble = avg(byCue['double']?.rts || []);
-  const rtSpatial = avg(byCue['spatial']?.rts || []);
-  const rtCongruent = avg(byFlanker['congruent']?.rts || []);
-  const rtIncongruent = avg(byFlanker['incongruent']?.rts || []);
-  const accCongruent = accOf(byFlanker['congruent']);
-  const accIncongruent = accOf(byFlanker['incongruent']);
-  const accNone = accOf(byCue['none']);
-  const accCenter = accOf(byCue['center']);
-  const accSpatial = accOf(byCue['spatial']);
+    const rtNone = avg(byCue['none']?.rts || []);
+    const rtCenter = avg(byCue['center']?.rts || []);
+    const rtDouble = avg(byCue['double']?.rts || []);
+    const rtSpatial = avg(byCue['spatial']?.rts || []);
+    const rtCongruent = avg(byFlanker['congruent']?.rts || []);
+    const rtIncongruent = avg(byFlanker['incongruent']?.rts || []);
+    const accCongruent = accOf(byFlanker['congruent']);
+    const accIncongruent = accOf(byFlanker['incongruent']);
+    const accNone = accOf(byCue['none']);
+    const accCenter = accOf(byCue['center']);
+    const accSpatial = accOf(byCue['spatial']);
 
-  const alerting = rtNone - rtCenter;
-  const orienting = rtCenter - rtSpatial;
-  const executive = rtIncongruent - rtCongruent;
+    const alerting = rtNone - rtCenter;
+    const orienting = rtCenter - rtSpatial;
+    const executive = rtIncongruent - rtCongruent;
 
-  return {
-    alerting, orienting, executive,
-    rtByCue: [
-      { cue: 'None', rt: rtNone },
-      { cue: 'Center', rt: rtCenter },
-      { cue: 'Double', rt: rtDouble },
-      { cue: 'Spatial', rt: rtSpatial },
-    ],
-    rtCongruent, rtIncongruent, accCongruent, accIncongruent,
-    effCongruent: rtCongruent ? accCongruent / (rtCongruent / 1000) : 0,
-    effIncongruent: rtIncongruent ? accIncongruent / (rtIncongruent / 1000) : 0,
-    effAlerting: alerting ? ((accCenter - accNone) / (alerting / 1000)) : 0,
-    effOrienting: orienting ? ((accSpatial - accCenter) / (orienting / 1000)) : 0,
-    effExecutive: executive ? ((accCongruent - accIncongruent) / (executive / 1000)) : 0,
-    totalTrials: ant.length,
-    overallAcc: ant.length ? ant.filter(tr => tr.isCorrect).length / ant.length : 0,
-    trialsChrono: ant,
-  };
+    return {
+        alerting, orienting, executive,
+        rtByCue: [
+            { cue: 'None', rt: rtNone },
+            { cue: 'Center', rt: rtCenter },
+            { cue: 'Double', rt: rtDouble },
+            { cue: 'Spatial', rt: rtSpatial },
+        ],
+        rtCongruent, rtIncongruent, accCongruent, accIncongruent,
+        effCongruent: rtCongruent ? accCongruent / (rtCongruent / 1000) : 0,
+        effIncongruent: rtIncongruent ? accIncongruent / (rtIncongruent / 1000) : 0,
+        effAlerting: alerting ? ((accCenter - accNone) / (alerting / 1000)) : 0,
+        effOrienting: orienting ? ((accSpatial - accCenter) / (orienting / 1000)) : 0,
+        effExecutive: executive ? ((accCongruent - accIncongruent) / (executive / 1000)) : 0,
+        totalTrials: ant.length,
+        overallAcc: ant.length ? ant.filter(tr => tr.isCorrect).length / ant.length : 0,
+        trialsChrono: ant,
+    };
 }
 
 function scoreColor(score) {
-  if (score >= 70) return '#50A87F';
-  if (score >= 40) return '#D4A030';
-  return '#D44040';
+    if (score >= 70) return '#50A87F';
+    if (score >= 40) return '#D4A030';
+    return '#D44040';
 }
 function scoreLabel(score) {
-  if (score >= 90) return t('rpt_band_exceptional');
-  if (score >= 70) return t('rpt_band_strong');
-  if (score >= 50) return t('rpt_band_aboveavg');
-  if (score >= 30) return t('rpt_band_average');
-  return t('rpt_band_developing');
+    if (score >= 90) return t('rpt_band_exceptional');
+    if (score >= 70) return t('rpt_band_strong');
+    if (score >= 50) return t('rpt_band_aboveavg');
+    if (score >= 30) return t('rpt_band_average');
+    return t('rpt_band_developing');
 }
 function pseudoPercentile(score) { return Math.round(score); }
 function stripTags(html) { return (html || '').replace(/<[^>]*>/g, ''); }
@@ -118,7 +127,7 @@ function stripTags(html) { return (html || '').replace(/<[^>]*>/g, ''); }
    HTML FRAGMENT BUILDERS
 --------------------------------------------------------------- */
 function metricCardHTML({ label, value, unit = '', accent = '#E95295', sub = '', highlight = false }) {
-  return `
+    return `
     <div class="mc ${highlight ? 'mc-hl' : ''}" style="${highlight ? `border-color:${accent}55;box-shadow:0 2px 12px ${accent}18;` : ''}">
       <div class="mc-label">${label}</div>
       <div class="mc-val-row">
@@ -131,7 +140,7 @@ function metricCardHTML({ label, value, unit = '', accent = '#E95295', sub = '',
 }
 
 function whatYouDidBoxHTML(accent, bgTint, bodyHtml) {
-  return `
+    return `
     <div class="wyd-box" style="background:${bgTint}; border-color:${accent}22;">
       <div class="wyd-title" style="color:${accent};">${t('rpt_wyd_title')}</div>
       <div class="wyd-body">${bodyHtml}</div>
@@ -140,7 +149,7 @@ function whatYouDidBoxHTML(accent, bgTint, bodyHtml) {
 }
 
 function interpretBoxHTML(accent, bodyHtml) {
-  return `
+    return `
     <div class="ibox" style="border-left-color:${accent};">
       <div class="ibox-title" style="color:${accent};">${t('rpt_results_mean_title')}</div>
       <div class="ibox-body">${bodyHtml}</div>
@@ -149,7 +158,7 @@ function interpretBoxHTML(accent, bodyHtml) {
 }
 
 function glossaryHTML(accent, items) {
-  return `
+    return `
     <div class="glossary-title">${t('rpt_glossary_title')}</div>
     <div class="glossary-grid">
       ${items.map(it => `
@@ -163,7 +172,7 @@ function glossaryHTML(accent, items) {
 }
 
 function sectionHeaderHTML(number, label, title, accent, description) {
-  return `
+    return `
     <div class="sec-header">
       <div class="sec-rule" style="background:linear-gradient(90deg, ${accent} 0%, ${accent}00 100%);"></div>
       <div class="sec-header-row">
@@ -179,13 +188,12 @@ function sectionHeaderHTML(number, label, title, accent, description) {
 }
 
 function barChartHTML(title, sub, items, accent, valueFmt, refLine) {
-  const max = Math.max(...items.map(i => i.val), refLine || 0, 1) * 1.05;
-  return `
+    const max = Math.max(...items.map(i => i.val), refLine || 0, 1) * 1.05;
+    return `
     <div class="chart-panel">
       <div class="chart-title">${title}</div>
       <div class="chart-sub">${sub}</div>
       <div class="chart-area">
-        ${refLine != null ? `<div class="ref-line" style="bottom:${(refLine / max) * 100}%; border-color:${accent};"><span class="ref-line-label" style="color:${accent};">${valueFmt(refLine)}</span></div>` : ''}
         <div class="chart">
           ${items.map(i => `
             <div class="chart-col">
@@ -195,14 +203,15 @@ function barChartHTML(title, sub, items, accent, valueFmt, refLine) {
             </div>
           `).join('')}
         </div>
+        ${refLine != null ? `<div class="ref-line" style="bottom:${(refLine / max) * 100}%;"><span class="ref-line-label">${valueFmt(refLine)}</span></div>` : ''}
       </div>
     </div>
   `;
 }
 
 function comparisonBarChartHTML(title, sub, labels, seriesA, seriesB, colorA, colorB, nameA, nameB, valueFmt) {
-  const max = Math.max(...seriesA, ...seriesB, 1) * 1.05;
-  return `
+    const max = Math.max(...seriesA, ...seriesB, 1) * 1.05;
+    return `
     <div class="chart-panel">
       <div class="chart-title">${title}</div>
       <div class="chart-sub">${sub}</div>
@@ -226,18 +235,18 @@ function comparisonBarChartHTML(title, sub, labels, seriesA, seriesB, colorA, co
 }
 
 function sparklineHTML(trialsChrono, totalLabel, labelEvery = 5) {
-  if (!trialsChrono.length) return '';
-  const maxRT = Math.min(2000, Math.max(...trialsChrono.map(tr => tr.reactionTimeMs || 0), 1));
-  return `
+    if (!trialsChrono.length) return '';
+    const maxRT = Math.min(2000, Math.max(...trialsChrono.map(tr => tr.reactionTimeMs || 0), 1));
+    return `
     <div class="chart-panel">
       <div class="chart-title">${t('rpt_spark_title')} — ${totalLabel}</div>
       <div class="chart-sub">${t('rpt_spark_desc')}</div>
       <div class="spark">
         ${trialsChrono.map((tr, i) => {
-          const rt = tr.reactionTimeMs || 0;
-          const h = Math.max(3, (Math.min(rt, maxRT) / maxRT) * 100);
-          return `<div class="spark-bar" style="height:${h}%; background:${tr.isCorrect ? '#50A87F' : '#D44040'};" title="${i + 1}: ${rt.toFixed(0)}ms"></div>`;
-        }).join('')}
+        const rt = tr.reactionTimeMs || 0;
+        const h = Math.max(3, (Math.min(rt, maxRT) / maxRT) * 100);
+        return `<div class="spark-bar" style="height:${h}%; background:${tr.isCorrect ? '#50A87F' : '#D44040'};" title="${i + 1}: ${rt.toFixed(0)}ms"></div>`;
+    }).join('')}
       </div>
       <div class="spark-axis">
         ${trialsChrono.map((_, i) => (i === 0 || (i + 1) % labelEvery === 0) ? `<span style="left:${(i / (trialsChrono.length - 1)) * 100}%;">#${i + 1}</span>` : '').join('')}
@@ -247,17 +256,17 @@ function sparklineHTML(trialsChrono, totalLabel, labelEvery = 5) {
 }
 
 function compositeGaugeHTML(score) {
-  const size = 180, sw = 14, r = (size - sw) / 2;
-  const circumference = 2 * Math.PI * r;
-  const arc = 0.75;
-  const dashArray = circumference * arc;
-  const offset = circumference * (1 - arc * (Math.min(100, score) / 100));
-  return `
+    const size = 180, sw = 14, r = (size - sw) / 2;
+    const circumference = 2 * Math.PI * r;
+    const arc = 0.75;
+    const dashArray = circumference * arc;
+    const offset = circumference * (1 - arc * (Math.min(100, score) / 100));
+    return `
     <div class="gauge-wrap">
       <svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" style="transform:rotate(135deg);">
-        <circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="#EBEBEB" stroke-width="${sw}"
+        <circle cx="${size / 2}" cy="${size / 2}" r="${r}" fill="none" stroke="#EBEBEB" stroke-width="${sw}"
           stroke-dasharray="${dashArray} ${circumference}" stroke-linecap="round" />
-        <circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="url(#gaugeGrad)" stroke-width="${sw}"
+        <circle cx="${size / 2}" cy="${size / 2}" r="${r}" fill="none" stroke="url(#gaugeGrad)" stroke-width="${sw}"
           stroke-dasharray="${dashArray - offset} ${circumference}" stroke-linecap="round" />
         <defs>
           <linearGradient id="gaugeGrad" x1="0%" y1="0%" x2="100%" y2="0%">
@@ -274,7 +283,7 @@ function compositeGaugeHTML(score) {
 }
 
 function footerHTML(sectionLabel, reportId) {
-  return `
+    return `
     <div class="page-footer">
       <div>${t('rpt_footer_line')}</div>
       <div>${sectionLabel} · ${reportId}</div>
@@ -286,39 +295,39 @@ function footerHTML(sectionLabel, reportId) {
    MAIN BUILDER
 --------------------------------------------------------------- */
 function buildReportHTML(c) {
-  const trials = c.trials || [];
-  const s = c.scores || {};
-  const pure = computeVWMStats(trials, 'vwm-pure');
-  const dist = computeVWMStats(trials, 'vwm-distractor');
-  const ant = computeANTStats(trials);
+    const trials = c.trials || [];
+    const s = c.scores || {};
+    const pure = computeVWMStats(trials, 'vwm-pure');
+    const dist = computeVWMStats(trials, 'vwm-distractor');
+    const ant = computeANTStats(trials);
 
-  const composite = s.compositeScore || 0;
-  const reportId = 'XBL-' + (c.completedAt ? new Date(c.completedAt).toISOString().slice(0, 10).replace(/-/g, '') : '00000000') +
-    '-' + (c.name || 'CAND').split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 3);
-  const assessDate = c.completedAt ? new Date(c.completedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : '—';
-  const completedTime = c.completedAt ? new Date(c.completedAt).toLocaleTimeString('en-US') : '—';
-  const candFirst = (c.name || 'The candidate').split(' ')[0];
+    const composite = s.compositeScore || 0;
+    const reportId = 'XBL-' + (c.completedAt ? new Date(c.completedAt).toISOString().slice(0, 10).replace(/-/g, '') : '00000000') +
+        '-' + (c.name || 'CAND').split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 3);
+    const assessDate = c.completedAt ? new Date(c.completedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : '—';
+    const completedTime = c.completedAt ? new Date(c.completedAt).toLocaleTimeString('en-US') : '—';
+    const candFirst = (c.name || 'The candidate').split(' ')[0];
 
-  const componentScores = s.componentScores ? [
-    { name: t('rpt_cs_cowansk'), short: 'CowanK', score: s.componentScores.kPure || 0 },
-    { name: t('rpt_cs_cowansk_dist'), short: 'CowanK(D)', score: s.componentScores.kDistractor || 0 },
-    { name: t('rpt_cs_maxn'), short: 'MaxN', score: s.componentScores.maxSetSize || 0 },
-    { name: t('rpt_cs_rteff'), short: 'RT Eff', score: s.componentScores.rtEfficiency || 0 },
-    { name: t('rpt_cs_alerting'), short: 'Alert', score: s.componentScores.alerting || 0 },
-    { name: t('rpt_cs_orienting'), short: 'Orient', score: s.componentScores.orienting || 0 },
-    { name: t('rpt_cs_executive'), short: 'Exec', score: s.componentScores.executive || 0 },
-  ] : [];
+    const componentScores = s.componentScores ? [
+        { name: t('rpt_cs_cowansk'), short: 'CowanK', score: s.componentScores.kPure || 0 },
+        { name: t('rpt_cs_cowansk_dist'), short: 'CowanK(D)', score: s.componentScores.kDistractor || 0 },
+        { name: t('rpt_cs_maxn'), short: 'MaxN', score: s.componentScores.maxSetSize || 0 },
+        { name: t('rpt_cs_rteff'), short: 'RT Eff', score: s.componentScores.rtEfficiency || 0 },
+        { name: t('rpt_cs_alerting'), short: 'Alert', score: s.componentScores.alerting || 0 },
+        { name: t('rpt_cs_orienting'), short: 'Orient', score: s.componentScores.orienting || 0 },
+        { name: t('rpt_cs_executive'), short: 'Exec', score: s.componentScores.executive || 0 },
+    ] : [];
 
-  const execEfficiency = pure.maxK ? ((dist.maxK - pure.maxK) / pure.maxK) * 100 : 0;
-  const execSpeed = pure.avgRT - dist.avgRT;
-  const distDrop = (pure.overallAcc - dist.overallAcc) * 100;
+    const execEfficiency = pure.maxK ? ((dist.maxK - pure.maxK) / pure.maxK) * 100 : 0;
+    const execSpeed = pure.avgRT - dist.avgRT;
+    const distDrop = (pure.overallAcc - dist.overallAcc) * 100;
 
-  const sortedScores = [...componentScores].sort((a, b) => b.score - a.score);
-  const strengths = sortedScores.slice(0, Math.min(4, sortedScores.length));
-  const developing = sortedScores.slice(-Math.min(3, sortedScores.length)).reverse();
+    const sortedScores = [...componentScores].sort((a, b) => b.score - a.score);
+    const strengths = sortedScores.slice(0, Math.min(4, sortedScores.length));
+    const developing = sortedScores.slice(-Math.min(3, sortedScores.length)).reverse();
 
-  /* ---------------- SECTION 1 ---------------- */
-  const sec1 = `
+    /* ---------------- SECTION 1 ---------------- */
+    const sec1 = `
   <div class="section">
     ${sectionHeaderHTML('01', t('rpt_sec1_label'), t('rpt_sec1_title'), '#E95295', t('rpt_sec1_desc'))}
 
@@ -337,27 +346,27 @@ function buildReportHTML(c) {
     </div>
 
     <div class="chart-grid-2">
-      ${barChartHTML(t('rpt_chart_k_title'), t('rpt_chart_k_sub'),
-        pure.curve.map(pt => ({ label: 'N=' + pt.setSize, val: pt.k, color: pt.k >= pure.maxK * 0.9 ? '#E95295' : '#F3B8CE' })),
+        ${barChartHTML(t('rpt_chart_k_title'), t('rpt_chart_k_sub'),
+        padToStandardSizes(pure.curve).map(pt => ({ label: 'N=' + pt.setSize, val: pt.k, color: pt.k >= pure.maxK * 0.9 ? '#E95295' : '#F3B8CE' })),
         '#E95295', v => v.toFixed(1), pure.maxK)}
-      ${barChartHTML(t('rpt_chart_acc_title'), t('rpt_chart_acc_sub'),
-        pure.curve.map(pt => ({ label: 'N=' + pt.setSize, val: pt.accuracy * 100, color: pt.accuracy >= 0.7 ? '#E95295' : pt.accuracy >= 0.5 ? '#F3B8CE' : '#DDD' })),
-        '#E95295', v => Math.round(v) + '%', 50)}
+        ${barChartHTML(t('rpt_chart_acc_title'), t('rpt_chart_acc_sub'),
+            padToStandardSizes(pure.curve).map(pt => ({ label: 'N=' + pt.setSize, val: pt.accuracy * 100, color: pt.accuracy >= 0.7 ? '#E95295' : pt.accuracy >= 0.5 ? '#F3B8CE' : '#DDD' })),
+            '#E95295', v => Math.round(v) + '%', 50)}
     </div>
 
     ${sparklineHTML(pure.trialsChrono, `TRIAL BY TRIAL (${pure.trialsChrono.length})`)}
 
     ${glossaryHTML('#E95295', [
-      { term: t('rpt_gloss_cowansk_term'), def: t('rpt_gloss_cowansk_def') },
-      { term: t('rpt_gloss_setsize_term'), def: t('rpt_gloss_setsize_def') },
-    ])}
+                { term: t('rpt_gloss_cowansk_term'), def: t('rpt_gloss_cowansk_def') },
+                { term: t('rpt_gloss_setsize_term'), def: t('rpt_gloss_setsize_def') },
+            ])}
 
     ${interpretBoxHTML('#E95295', `
       ${t('rpt_interp1', {
-        name: candFirst, k: pure.maxK.toFixed(1),
-        peakSize: pure.curve.find(c => c.k === pure.maxK)?.setSize || pure.maxSetSize,
-        trials: pure.totalTrials, acc: (pure.overallAcc * 100).toFixed(0), streak: pure.maxStreak,
-      })}
+                name: candFirst, k: pure.maxK.toFixed(1),
+                peakSize: pure.curve.find(c => c.k === pure.maxK)?.setSize || pure.maxSetSize,
+                trials: pure.totalTrials, acc: (pure.overallAcc * 100).toFixed(0), streak: pure.maxStreak,
+            })}
       <em>${t('rpt_interp1_placeholder')}</em>
     `)}
 
@@ -365,9 +374,9 @@ function buildReportHTML(c) {
   </div>
   `;
 
-  /* ---------------- SECTION 2 ---------------- */
-  const kDelta = dist.maxK - pure.maxK;
-  const sec2 = `
+    /* ---------------- SECTION 2 ---------------- */
+    const kDelta = dist.maxK - pure.maxK;
+    const sec2 = `
   <div class="section">
     ${sectionHeaderHTML('02', t('rpt_sec2_label'), t('rpt_sec2_title'), '#50A87F', t('rpt_sec2_desc'))}
 
@@ -385,9 +394,9 @@ function buildReportHTML(c) {
       <div class="change-label">${t('rpt_change_label')}</div>
       <div class="change-text">
         ${t('rpt_change_text', {
-          name: candFirst, direction: kDelta >= 0 ? t('rpt_change_increased') : t('rpt_change_decreased'),
-          delta: Math.abs(kDelta).toFixed(1), k1: pure.maxK.toFixed(1), k2: dist.maxK.toFixed(1),
-        })}
+        name: candFirst, direction: kDelta >= 0 ? t('rpt_change_increased') : t('rpt_change_decreased'),
+        delta: Math.abs(kDelta).toFixed(1), k1: pure.maxK.toFixed(1), k2: dist.maxK.toFixed(1),
+    })}
         <em>${t('rpt_change_placeholder')}</em>
       </div>
       <div class="change-boxes">
@@ -398,34 +407,34 @@ function buildReportHTML(c) {
     </div>
 
     <div class="chart-grid-2">
-      ${comparisonBarChartHTML(t('rpt_chart_kcompare_title'), t('rpt_chart_kcompare_sub'),
-        Array.from(new Set([...pure.curve.map(c => c.setSize), ...dist.curve.map(c => c.setSize)])).sort((a, b) => a - b).map(n => 'N=' + n),
-        Array.from(new Set([...pure.curve.map(c => c.setSize), ...dist.curve.map(c => c.setSize)])).sort((a, b) => a - b).map(n => pure.curve.find(c => c.setSize === n)?.k || 0),
-        Array.from(new Set([...pure.curve.map(c => c.setSize), ...dist.curve.map(c => c.setSize)])).sort((a, b) => a - b).map(n => dist.curve.find(c => c.setSize === n)?.k || 0),
+        ${comparisonBarChartHTML(t('rpt_chart_kcompare_title'), t('rpt_chart_kcompare_sub'),
+        STANDARD_SET_SIZES.map(n => 'N=' + n),
+        padToStandardSizes(pure.curve).map(c => c.k),
+        padToStandardSizes(dist.curve).map(c => c.k),
         '#E95295', '#50A87F', t('rpt_task1_pure'), t('rpt_task2_distractor'), v => v.toFixed(1))}
-      ${comparisonBarChartHTML(t('rpt_chart_acccompare_title'), t('rpt_chart_acccompare_sub'),
-        Array.from(new Set([...pure.curve.map(c => c.setSize), ...dist.curve.map(c => c.setSize)])).sort((a, b) => a - b).map(n => 'N=' + n),
-        Array.from(new Set([...pure.curve.map(c => c.setSize), ...dist.curve.map(c => c.setSize)])).sort((a, b) => a - b).map(n => (pure.curve.find(c => c.setSize === n)?.accuracy || 0) * 100),
-        Array.from(new Set([...pure.curve.map(c => c.setSize), ...dist.curve.map(c => c.setSize)])).sort((a, b) => a - b).map(n => (dist.curve.find(c => c.setSize === n)?.accuracy || 0) * 100),
-        '#E95295', '#50A87F', t('rpt_task1_pure'), t('rpt_task2_distractor'), v => Math.round(v) + '%')}
+        ${comparisonBarChartHTML(t('rpt_chart_acccompare_title'), t('rpt_chart_acccompare_sub'),
+            STANDARD_SET_SIZES.map(n => 'N=' + n),
+            padToStandardSizes(pure.curve).map(c => c.accuracy * 100),
+            padToStandardSizes(dist.curve).map(c => c.accuracy * 100),
+            '#E95295', '#50A87F', t('rpt_task1_pure'), t('rpt_task2_distractor'), v => Math.round(v) + '%')}
     </div>
 
     ${sparklineHTML(dist.trialsChrono, `TRIAL BY TRIAL (${dist.trialsChrono.length})`, 5)}
 
     ${glossaryHTML('#50A87F', [
-      { term: t('rpt_gloss_cowanskdist_term'), def: t('rpt_gloss_cowanskdist_def') },
-      { term: t('rpt_gloss_execeff_term'), def: t('rpt_gloss_execeff_def') },
-      { term: t('rpt_gloss_execspeed_term'), def: t('rpt_gloss_execspeed_def') },
-      { term: t('rpt_gloss_distractoreffect_term'), def: t('rpt_gloss_distractoreffect_def') },
-    ])}
+                { term: t('rpt_gloss_cowanskdist_term'), def: t('rpt_gloss_cowanskdist_def') },
+                { term: t('rpt_gloss_execeff_term'), def: t('rpt_gloss_execeff_def') },
+                { term: t('rpt_gloss_execspeed_term'), def: t('rpt_gloss_execspeed_def') },
+                { term: t('rpt_gloss_distractoreffect_term'), def: t('rpt_gloss_distractoreffect_def') },
+            ])}
 
     ${interpretBoxHTML('#50A87F', `
       ${t('rpt_interp2', {
-        acc: (dist.overallAcc * 100).toFixed(0), trials: dist.totalTrials,
-        change: distDrop >= 0 ? t('rpt_interp2_change_lower', { n: distDrop.toFixed(0) }) : t('rpt_interp2_change_higher', { n: Math.abs(distDrop).toFixed(0) }),
-        k1: pure.maxK.toFixed(1), k2: dist.maxK.toFixed(1), execEff: execEfficiency.toFixed(1),
-        resilience: Math.abs(distDrop) < 5 ? t('rpt_interp2_resilience_high') : Math.abs(distDrop) < 20 ? t('rpt_interp2_resilience_mod') : t('rpt_interp2_resilience_low'),
-      })}
+                acc: (dist.overallAcc * 100).toFixed(0), trials: dist.totalTrials,
+                change: distDrop >= 0 ? t('rpt_interp2_change_lower', { n: distDrop.toFixed(0) }) : t('rpt_interp2_change_higher', { n: Math.abs(distDrop).toFixed(0) }),
+                k1: pure.maxK.toFixed(1), k2: dist.maxK.toFixed(1), execEff: execEfficiency.toFixed(1),
+                resilience: Math.abs(distDrop) < 5 ? t('rpt_interp2_resilience_high') : Math.abs(distDrop) < 20 ? t('rpt_interp2_resilience_mod') : t('rpt_interp2_resilience_low'),
+            })}
       <em>${t('rpt_interp2_placeholder')}</em>
     `)}
 
@@ -433,8 +442,8 @@ function buildReportHTML(c) {
   </div>
   `;
 
-  /* ---------------- SECTION 3 ---------------- */
-  const networkCard = (labelKey, val, accent, bodyKey, pct) => `
+    /* ---------------- SECTION 3 ---------------- */
+    const networkCard = (labelKey, val, accent, bodyKey, pct) => `
     <div class="net-card" style="border-color:${accent}33;">
       <div class="net-label" style="color:${accent};">${t(labelKey)}</div>
       <div class="net-val">${val >= 0 ? '+' : ''}${val.toFixed(0)}<span class="net-unit">ms</span></div>
@@ -447,11 +456,11 @@ function buildReportHTML(c) {
     </div>
   `;
 
-  const alertPct = pseudoPercentile(s.componentScores?.alerting || 0);
-  const orientPct = pseudoPercentile(s.componentScores?.orienting || 0);
-  const execPct = pseudoPercentile(s.componentScores?.executive || 0);
+    const alertPct = pseudoPercentile(s.componentScores?.alerting || 0);
+    const orientPct = pseudoPercentile(s.componentScores?.orienting || 0);
+    const execPct = pseudoPercentile(s.componentScores?.executive || 0);
 
-  const sec3 = `
+    const sec3 = `
   <div class="section">
     ${sectionHeaderHTML('03', t('rpt_sec3_label'), t('rpt_sec3_title'), '#1BA8D8', t('rpt_sec3_desc'))}
 
@@ -474,7 +483,7 @@ function buildReportHTML(c) {
       ${barChartHTML(t('rpt_chart_cuespeed_title'), t('rpt_chart_cuespeed_sub'),
         ant.rtByCue.map(r => ({ label: r.cue, val: r.rt })), '#1BA8D8', v => Math.round(v) + 'ms')}
       ${barChartHTML(t('rpt_chart_congr_title'), t('rpt_chart_congr_sub', { gap: Math.abs(ant.executive).toFixed(0) }),
-        [{ label: 'Congruent', val: ant.rtCongruent, color: '#1BA8D8' }, { label: 'Incongruent', val: ant.rtIncongruent, color: '#E95295' }], '#1BA8D8', v => Math.round(v) + 'ms')}
+            [{ label: 'Congruent', val: ant.rtCongruent, color: '#1BA8D8' }, { label: 'Incongruent', val: ant.rtIncongruent, color: '#E95295' }], '#1BA8D8', v => Math.round(v) + 'ms')}
     </div>
 
     ${sparklineHTML(ant.trialsChrono, `TRIAL BY TRIAL (${ant.trialsChrono.length})`, 4)}
@@ -486,19 +495,19 @@ function buildReportHTML(c) {
     </div>
 
     ${glossaryHTML('#1BA8D8', [
-      { term: t('rpt_gloss_alerting_term'), def: t('rpt_gloss_alerting_def') },
-      { term: t('rpt_gloss_orienting_term'), def: t('rpt_gloss_orienting_def') },
-      { term: t('rpt_gloss_executive_term'), def: t('rpt_gloss_executive_def') },
-      { term: t('rpt_gloss_congr_term'), def: t('rpt_gloss_congr_def') },
-      { term: t('rpt_gloss_flanker_term'), def: t('rpt_gloss_flanker_def') },
-      { term: t('rpt_gloss_cuetypes_term'), def: t('rpt_gloss_cuetypes_def') },
-    ])}
+                { term: t('rpt_gloss_alerting_term'), def: t('rpt_gloss_alerting_def') },
+                { term: t('rpt_gloss_orienting_term'), def: t('rpt_gloss_orienting_def') },
+                { term: t('rpt_gloss_executive_term'), def: t('rpt_gloss_executive_def') },
+                { term: t('rpt_gloss_congr_term'), def: t('rpt_gloss_congr_def') },
+                { term: t('rpt_gloss_flanker_term'), def: t('rpt_gloss_flanker_def') },
+                { term: t('rpt_gloss_cuetypes_term'), def: t('rpt_gloss_cuetypes_def') },
+            ])}
 
     ${interpretBoxHTML('#1BA8D8', `
       ${t('rpt_interp3', {
-        alerting: ant.alerting.toFixed(0), orienting: ant.orienting.toFixed(0), executive: ant.executive.toFixed(0),
-        rtC: ant.rtCongruent.toFixed(0), rtI: ant.rtIncongruent.toFixed(0), trials: ant.totalTrials, acc: (ant.overallAcc * 100).toFixed(0),
-      })}
+                alerting: ant.alerting.toFixed(0), orienting: ant.orienting.toFixed(0), executive: ant.executive.toFixed(0),
+                rtC: ant.rtCongruent.toFixed(0), rtI: ant.rtIncongruent.toFixed(0), trials: ant.totalTrials, acc: (ant.overallAcc * 100).toFixed(0),
+            })}
       <em>${t('rpt_interp3_placeholder')}</em>
     `)}
 
@@ -506,16 +515,16 @@ function buildReportHTML(c) {
   </div>
   `;
 
-  /* ---------------- SUMMARY ---------------- */
-  const bands = [
-    { label: t('rpt_band_developing'), range: '0–29', lo: 0, hi: 29 },
-    { label: t('rpt_band_average'), range: '30–49', lo: 30, hi: 49 },
-    { label: t('rpt_band_aboveavg'), range: '50–69', lo: 50, hi: 69 },
-    { label: t('rpt_band_strong'), range: '70–89', lo: 70, hi: 89 },
-    { label: t('rpt_band_exceptional'), range: '90+', lo: 90, hi: 999 },
-  ];
+    /* ---------------- SUMMARY ---------------- */
+    const bands = [
+        { label: t('rpt_band_developing'), range: '0–29', lo: 0, hi: 29 },
+        { label: t('rpt_band_average'), range: '30–49', lo: 30, hi: 49 },
+        { label: t('rpt_band_aboveavg'), range: '50–69', lo: 50, hi: 69 },
+        { label: t('rpt_band_strong'), range: '70–89', lo: 70, hi: 89 },
+        { label: t('rpt_band_exceptional'), range: '90+', lo: 90, hi: 999 },
+    ];
 
-  const summary = `
+    const summary = `
   <div class="section" style="border-bottom:none;">
     <div class="summary-eyebrow">${t('rpt_summary_eyebrow')}</div>
     <h2 class="summary-title">${t('rpt_summary_title')}</h2>
@@ -589,8 +598,8 @@ function buildReportHTML(c) {
   </div>
   `;
 
-  /* ---------------- COVER ---------------- */
-  const cover = `
+    /* ---------------- COVER ---------------- */
+    const cover = `
   <div class="cover">
     <div class="cover-stripe"></div>
     <div class="cover-head">
@@ -641,7 +650,7 @@ function buildReportHTML(c) {
   </div>
   `;
 
-  return `
+    return `
 <!DOCTYPE html>
 <html>
 <head>
@@ -724,11 +733,11 @@ function buildReportHTML(c) {
   .chart-title { font-size:10.5px; font-weight:700; color:#888; letter-spacing:0.08em; text-transform:uppercase; margin-bottom:4px; }
   .chart-sub { font-size:10.5px; color:#AAA; margin-bottom:14px; line-height:1.5; }
   .chart-area { position:relative; }
-  .ref-line { position:absolute; left:0; right:0; border-top:1.5px dashed; z-index:1; }
-  .ref-line-label { position:absolute; right:0; top:-16px; font-size:9px; font-family:'Roboto Mono',monospace; background:#FAFAFA; padding:0 4px; }
+    .ref-line { position:absolute; left:0; right:0; border-top:2px dashed #333; pointer-events:none; }
+    .ref-line-label { position:absolute; right:4px; top:-8px; font-size:9px; font-family:'Roboto Mono',monospace; font-weight:700; color:#fff; background:#333; padding:1px 5px; border-radius:3px; }
   .chart { display:flex; gap:6px; height:130px; align-items:flex-end; position:relative; z-index:2; }
   .chart-col { flex:1; display:flex; flex-direction:column; align-items:center; gap:4px; height:100%; justify-content:flex-end; }
-  .chart-val { font-family:'Roboto Mono',monospace; font-size:9px; color:#888; }
+    .chart-val { font-family:'Roboto Mono',monospace; font-size:9px; color:#888; background:#FAFAFA; position:relative; z-index:2; padding:0 2px; }
   .chart-fill { width:100%; border-radius:2px 2px 0 0; min-height:3px; }
   .chart-lbl { font-family:'Roboto Mono',monospace; font-size:9px; color:#AAA; }
   .chart-col-pair .pair-bars { display:flex; gap:2px; width:100%; height:100%; align-items:flex-end; }
