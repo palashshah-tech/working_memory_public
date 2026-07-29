@@ -799,11 +799,11 @@ function buildReportHTML(c) {
   .chart-plot .spark { position:absolute; inset:0; height:100%; }
   .gridlines { position:absolute; inset:0; }
   .gridline { position:absolute; left:0; right:0; border-top:1px dashed #EEE; }
-  .ref-line { position:absolute; left:0; right:0; border-top:2px dashed #333; pointer-events:none; z-index:3; }
+    .ref-line { position:absolute; left:0; right:0; border-top:1.5px dashed #CCC; pointer-events:none; z-index:1; }
   .ref-line-label { position:absolute; right:4px; top:-8px; font-size:9px; font-family:'Roboto Mono',monospace; font-weight:700; color:#fff; background:#333; padding:1px 5px; border-radius:3px; }
   .chart { display:flex; gap:6px; height:130px; align-items:flex-end; position:relative; z-index:2; }
   .chart-col { flex:1; display:flex; flex-direction:column; align-items:center; gap:4px; height:100%; justify-content:flex-end; }
-  .chart-val { font-family:'Roboto Mono',monospace; font-size:9px; color:#888; background:#FAFAFA; position:relative; z-index:2; padding:0 2px; }
+    .chart-val { font-family:'Roboto Mono',monospace; font-size:9px; color:#888; position:relative; z-index:5; }
   .chart-fill { width:100%; border-radius:2px 2px 0 0; min-height:3px; }
   .chart-lbl { font-family:'Roboto Mono',monospace; font-size:9px; color:#AAA; }
   .chart-col-pair .pair-bars { display:flex; gap:2px; width:100%; height:100%; align-items:flex-end; }
