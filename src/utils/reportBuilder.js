@@ -420,7 +420,6 @@ function buildReportHTML(c) {
                 peakSize: pure.curve.find(c => c.k === pure.maxK)?.setSize || pure.maxSetSize,
                 trials: pure.totalTrials, acc: (pure.overallAcc * 100).toFixed(0), streak: pure.maxStreak,
             })}
-      <em>${t('rpt_interp1_placeholder')}</em>
     `)}
 
     ${footerHTML('Section 01 / 03', reportId)}
@@ -450,7 +449,6 @@ function buildReportHTML(c) {
         name: candFirst, direction: kDelta >= 0 ? t('rpt_change_increased') : t('rpt_change_decreased'),
         delta: Math.abs(kDelta).toFixed(1), k1: pure.maxK.toFixed(1), k2: dist.maxK.toFixed(1),
     })}
-        <em>${t('rpt_change_placeholder')}</em>
       </div>
       <div class="change-boxes">
         <div class="change-box">${pure.maxK.toFixed(1)}<span>${t('rpt_task1_label')}</span></div>
@@ -488,7 +486,6 @@ function buildReportHTML(c) {
                 k1: pure.maxK.toFixed(1), k2: dist.maxK.toFixed(1), execEff: execEfficiency.toFixed(1),
                 resilience: Math.abs(distDrop) < 5 ? t('rpt_interp2_resilience_high') : Math.abs(distDrop) < 20 ? t('rpt_interp2_resilience_mod') : t('rpt_interp2_resilience_low'),
             })}
-      <em>${t('rpt_interp2_placeholder')}</em>
     `)}
 
     ${footerHTML('Section 02 / 03', reportId)}
@@ -559,7 +556,6 @@ function buildReportHTML(c) {
                 alerting: ant.alerting.toFixed(0), orienting: ant.orienting.toFixed(0), executive: ant.executive.toFixed(0),
                 rtC: ant.rtCongruent.toFixed(0), rtI: ant.rtIncongruent.toFixed(0), trials: ant.totalTrials, acc: (ant.overallAcc * 100).toFixed(0),
             })}
-      <em>${t('rpt_interp3_placeholder')}</em>
     `)}
 
     ${footerHTML('Section 03 / 03', reportId)}
@@ -629,13 +625,13 @@ function buildReportHTML(c) {
       <div class="strength-box strength-good">
         <div class="strength-title" style="color:#50A87F;">${t('rpt_strengths_title')}</div>
         <ul>
-          ${strengths.map(st => `<li>${t('rpt_strength_item', { name: st.name, score: st.score.toFixed(0) })} <em>${t('rpt_strength_placeholder')}</em></li>`).join('')}
+          ${strengths.map(st => `<li>${t('rpt_strength_item', { name: st.name, score: st.score.toFixed(0) })}</li>`).join('')}
         </ul>
       </div>
       <div class="strength-box strength-dev">
         <div class="strength-title" style="color:#D4A030;">${t('rpt_dev_title')}</div>
         <ul>
-          ${developing.map(dv => `<li>${t('rpt_strength_item', { name: dv.name, score: dv.score.toFixed(0) })} <em>${t('rpt_dev_placeholder')}</em></li>`).join('')}
+          ${developing.map(dv => `<li>${t('rpt_strength_item', { name: dv.name, score: dv.score.toFixed(0) })}</li>`).join('')}
         </ul>
       </div>
     </div>
