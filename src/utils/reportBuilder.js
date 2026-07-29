@@ -596,18 +596,24 @@ function buildReportHTML(c) {
     </div>
 
     <div class="chart-panel" style="margin-top:24px;">
-      <div class="chart-title">${t('rpt_allscores_title')}</div>
-      <div class="chart-sub"><span style="color:#50A87F;font-weight:700;">${t('rpt_allscores_legend_green')}</span> · <span style="color:#D4A030;font-weight:700;">${t('rpt_allscores_legend_amber')}</span> · <span style="color:#D44040;font-weight:700;">${t('rpt_allscores_legend_red')}</span></div>
-      <div class="chart" style="height:180px;">
-        ${componentScores.map(cs => `
-          <div class="chart-col">
-            <div class="chart-val">${cs.score.toFixed(0)}</div>
-            <div class="chart-fill" style="height:${Math.max(3, cs.score)}%; background:${scoreColor(cs.score)};"></div>
-            <div class="chart-lbl">${cs.short}</div>
-          </div>
-        `).join('')}
-      </div>
-      <div class="comp-legend-row">
+    <div class="chart-title">${t('rpt_allscores_title')}</div>
+    <div class="chart-sub"><span style="color:#50A87F;font-weight:700;">${t('rpt_allscores_legend_green')}</span> · <span style="color:#D4A030;font-weight:700;">${t('rpt_allscores_legend_amber')}</span> · <span style="color:#D44040;font-weight:700;">${t('rpt_allscores_legend_red')}</span></div>
+    <div class="chart-with-axis">
+        ${axisLabelsHTML({ min: 0, max: 100, ticks: [0, 25, 50, 75, 100] }, v => v)}
+        <div class="chart-plot" style="height:180px;">
+        ${gridlinesHTML({ min: 0, max: 100, ticks: [0, 25, 50, 75, 100] })}
+        <div class="chart">
+            ${componentScores.map(cs => `
+            <div class="chart-col">
+                <div class="chart-val">${cs.score.toFixed(0)}</div>
+                <div class="chart-fill" style="height:${Math.max(3, cs.score)}%; background:${scoreColor(cs.score)};"></div>
+                <div class="chart-lbl">${cs.short}</div>
+            </div>
+            `).join('')}
+        </div>
+        </div>
+    </div>
+    <div class="comp-legend-row">
         ${componentScores.map(cs => `
           <div class="comp-legend-item">
             <div class="comp-legend-val" style="color:${scoreColor(cs.score)};">${cs.score.toFixed(0)}</div>
