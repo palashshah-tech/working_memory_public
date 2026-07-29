@@ -121,6 +121,31 @@ function scoreLabel(score) {
     return t('rpt_band_developing');
 }
 function pseudoPercentile(score) { return Math.round(score); }
+function computeNiceAxis(values, targetTicks = 5) {
+  const dataMin = Math.min(...values);
+  const dataMax = Math.max(...values);
+  if (dataMin === dataMax) return { min: 0, max: (dataMax || 1) * 1.2, ticks: [0, dataMax || 1] };
+  const range = dataMax - dataMin;
+  const rawStep = range / (targetTicks - 1);
+  const mag = Math.pow(10, Math.floor(Math.log10(rawStep)));
+  const norm = rawStep / mag;
+  const niceStep = norm < 1.5 ? mag : norm < 3 ? 2 * mag : norm < 7 ? 5 * mag : 10 * mag;
+  const min = Math.floor(dataMin / niceStep) * niceStep;
+  let max = Math.ceil(dataMax / niceStep) * niceStep;
+  if (max === min) max = min + niceStep;
+  const ticks = [];
+  for (let v = min; v <= max + 1e-9; v += niceStep) ticks.push(Math.round(v));
+  return { min, max, ticks };
+}
+
+function axisLabelsHTML(axis, valueFmt) {
+  return `<div class="axis-labels">${axis.ticks.slice().reverse().map(tick => `<div class="axis-label">${valueFmt(tick)}</div>`).join('')}</div>`;
+}
+
+function gridlinesHTML(axis) {
+  const range = axis.max - axis.min || 1;
+  return `<div class="gridlines">${axis.ticks.map(tick => `<div class="gridline" style="bottom:${((tick - axis.min) / range) * 100}%;"></div>`).join('')}</div>`;
+}
 function stripTags(html) { return (html || '').replace(/<[^>]*>/g, ''); }
 
 /* ---------------------------------------------------------------
@@ -187,31 +212,43 @@ function sectionHeaderHTML(number, label, title, accent, description) {
   `;
 }
 
-function barChartHTML(title, sub, items, accent, valueFmt, refLine) {
-    const max = Math.max(...items.map(i => i.val), refLine || 0, 1) * 1.05;
-    return `
+function barChartHTML(title, sub, items, accent, valueFmt, refLine, useAxis) {
+  const axis = useAxis ? computeNiceAxis(items.map(i => i.val).concat(refLine != null ? [refLine] : [])) : null;
+  const min = axis ? axis.min : 0;
+  const max = axis ? axis.max : Math.max(...items.map(i => i.val), refLine || 0, 1) * 1.05;
+  const range = max - min || 1;
+
+  return `
     <div class="chart-panel">
       <div class="chart-title">${title}</div>
       <div class="chart-sub">${sub}</div>
-      <div class="chart-area">
-        <div class="chart">
-          ${items.map(i => `
-            <div class="chart-col">
-              <div class="chart-val">${valueFmt(i.val)}</div>
-              <div class="chart-fill" style="height:${Math.max(3, (i.val / max) * 100)}%; background:${i.color || accent};"></div>
-              <div class="chart-lbl">${i.label}</div>
-            </div>
-          `).join('')}
+      <div class="chart-with-axis">
+        ${axis ? axisLabelsHTML(axis, valueFmt) : ''}
+        <div class="chart-plot">
+          ${axis ? gridlinesHTML(axis) : ''}
+          <div class="chart">
+            ${items.map(i => `
+              <div class="chart-col">
+                <div class="chart-val">${valueFmt(i.val)}</div>
+                <div class="chart-fill" style="height:${Math.max(3, ((i.val - min) / range) * 100)}%; background:${i.color || accent};"></div>
+                <div class="chart-lbl">${i.label}</div>
+              </div>
+            `).join('')}
+          </div>
+          ${refLine != null ? `<div class="ref-line" style="bottom:${((refLine - min) / range) * 100}%;"><span class="ref-line-label">${valueFmt(refLine)}</span></div>` : ''}
         </div>
-        ${refLine != null ? `<div class="ref-line" style="bottom:${(refLine / max) * 100}%;"><span class="ref-line-label">${valueFmt(refLine)}</span></div>` : ''}
       </div>
     </div>
   `;
 }
 
-function comparisonBarChartHTML(title, sub, labels, seriesA, seriesB, colorA, colorB, nameA, nameB, valueFmt) {
-    const max = Math.max(...seriesA, ...seriesB, 1) * 1.05;
-    return `
+function comparisonBarChartHTML(title, sub, labels, seriesA, seriesB, colorA, colorB, nameA, nameB, valueFmt, useAxis) {
+  const axis = useAxis ? computeNiceAxis([...seriesA, ...seriesB]) : null;
+  const min = axis ? axis.min : 0;
+  const max = axis ? axis.max : Math.max(...seriesA, ...seriesB, 1) * 1.05;
+  const range = max - min || 1;
+
+  return `
     <div class="chart-panel">
       <div class="chart-title">${title}</div>
       <div class="chart-sub">${sub}</div>
@@ -219,36 +256,51 @@ function comparisonBarChartHTML(title, sub, labels, seriesA, seriesB, colorA, co
         <span class="legend-item"><span class="legend-dot" style="background:${colorA};"></span>${nameA}</span>
         <span class="legend-item"><span class="legend-dot" style="background:${colorB};"></span>${nameB}</span>
       </div>
-      <div class="chart">
-        ${labels.map((lbl, i) => `
-          <div class="chart-col chart-col-pair">
-            <div class="pair-bars">
-              <div class="pair-bar" style="height:${Math.max(3, (seriesA[i] / max) * 100)}%; background:${colorA};" title="${valueFmt(seriesA[i])}"></div>
-              <div class="pair-bar" style="height:${Math.max(3, (seriesB[i] / max) * 100)}%; background:${colorB};" title="${valueFmt(seriesB[i])}"></div>
-            </div>
-            <div class="chart-lbl">${lbl}</div>
+      <div class="chart-with-axis">
+        ${axis ? axisLabelsHTML(axis, valueFmt) : ''}
+        <div class="chart-plot">
+          ${axis ? gridlinesHTML(axis) : ''}
+          <div class="chart">
+            ${labels.map((lbl, i) => `
+              <div class="chart-col chart-col-pair">
+                <div class="pair-bars">
+                  <div class="pair-bar" style="height:${Math.max(3, ((seriesA[i] - min) / range) * 100)}%; background:${colorA};" title="${valueFmt(seriesA[i])}"></div>
+                  <div class="pair-bar" style="height:${Math.max(3, ((seriesB[i] - min) / range) * 100)}%; background:${colorB};" title="${valueFmt(seriesB[i])}"></div>
+                </div>
+                <div class="chart-lbl">${lbl}</div>
+              </div>
+            `).join('')}
           </div>
-        `).join('')}
+        </div>
       </div>
     </div>
   `;
 }
 
 function sparklineHTML(trialsChrono, totalLabel, labelEvery = 5) {
-    if (!trialsChrono.length) return '';
-    const maxRT = Math.min(2000, Math.max(...trialsChrono.map(tr => tr.reactionTimeMs || 0), 1));
-    return `
+  if (!trialsChrono.length) return '';
+  const rts = trialsChrono.map(tr => tr.reactionTimeMs || 0).filter(v => v > 0);
+  const axis = computeNiceAxis(rts.length ? rts : [0, 1000]);
+  const min = axis.min, range = (axis.max - axis.min) || 1;
+
+  return `
     <div class="chart-panel">
       <div class="chart-title">${t('rpt_spark_title')} — ${totalLabel}</div>
       <div class="chart-sub">${t('rpt_spark_desc')}</div>
-      <div class="spark">
-        ${trialsChrono.map((tr, i) => {
-        const rt = tr.reactionTimeMs || 0;
-        const h = Math.max(3, (Math.min(rt, maxRT) / maxRT) * 100);
-        return `<div class="spark-bar" style="height:${h}%; background:${tr.isCorrect ? '#50A87F' : '#D44040'};" title="${i + 1}: ${rt.toFixed(0)}ms"></div>`;
-    }).join('')}
+      <div class="chart-with-axis">
+        ${axisLabelsHTML(axis, v => Math.round(v) + 'ms')}
+        <div class="chart-plot chart-plot-spark">
+          ${gridlinesHTML(axis)}
+          <div class="spark">
+            ${trialsChrono.map((tr, i) => {
+              const rt = tr.reactionTimeMs || 0;
+              const h = Math.max(3, ((rt - min) / range) * 100);
+              return `<div class="spark-bar" style="height:${h}%; background:${tr.isCorrect ? '#50A87F' : '#D44040'};" title="${i + 1}: ${rt.toFixed(0)}ms"></div>`;
+            }).join('')}
+          </div>
+        </div>
       </div>
-      <div class="spark-axis">
+      <div class="spark-axis" style="margin-left:46px;">
         ${trialsChrono.map((_, i) => (i === 0 || (i + 1) % labelEvery === 0) ? `<span style="left:${(i / (trialsChrono.length - 1)) * 100}%;">#${i + 1}</span>` : '').join('')}
       </div>
     </div>
@@ -472,18 +524,16 @@ function buildReportHTML(c) {
       ${networkCard('rpt_net_executive_label', ant.executive, '#1BA8D8', 'rpt_net_executive_body', execPct)}
     </div>
 
-    <div class="mc-grid">
-      ${metricCardHTML({ label: t('rpt_m_congruentrt'), value: ant.rtCongruent.toFixed(0), unit: 'ms', accent: '#1BA8D8', sub: t('rpt_m_congruentrt_sub') })}
-      ${metricCardHTML({ label: t('rpt_m_incongruentrt'), value: ant.rtIncongruent.toFixed(0), unit: 'ms', accent: '#1BA8D8', sub: t('rpt_m_incongruentrt_sub') })}
-      ${metricCardHTML({ label: t('rpt_m_alerteff'), value: ant.effAlerting.toFixed(2), unit: 'r/s', accent: '#1BA8D8', sub: t('rpt_m_alerteff_sub') })}
-      ${metricCardHTML({ label: t('rpt_m_orienteff'), value: ant.effOrienting.toFixed(2), unit: 'r/s', accent: '#1BA8D8', sub: t('rpt_m_orienteff_sub') })}
+    <div class="mc-grid mc-grid-2">
+    ${metricCardHTML({ label: t('rpt_m_congruentrt'), value: ant.rtCongruent.toFixed(0), unit: 'ms', accent: '#1BA8D8', sub: t('rpt_m_congruentrt_sub') })}
+    ${metricCardHTML({ label: t('rpt_m_incongruentrt'), value: ant.rtIncongruent.toFixed(0), unit: 'ms', accent: '#1BA8D8', sub: t('rpt_m_incongruentrt_sub') })}
     </div>
 
     <div class="chart-grid-2">
-      ${barChartHTML(t('rpt_chart_cuespeed_title'), t('rpt_chart_cuespeed_sub'),
-        ant.rtByCue.map(r => ({ label: r.cue, val: r.rt })), '#1BA8D8', v => Math.round(v) + 'ms')}
-      ${barChartHTML(t('rpt_chart_congr_title'), t('rpt_chart_congr_sub', { gap: Math.abs(ant.executive).toFixed(0) }),
-            [{ label: 'Congruent', val: ant.rtCongruent, color: '#1BA8D8' }, { label: 'Incongruent', val: ant.rtIncongruent, color: '#E95295' }], '#1BA8D8', v => Math.round(v) + 'ms')}
+        ${barChartHTML(t('rpt_chart_cuespeed_title'), t('rpt_chart_cuespeed_sub'),
+        ant.rtByCue.map(r => ({ label: r.cue, val: r.rt })), '#1BA8D8', v => Math.round(v) + 'ms', null, true)}
+        ${barChartHTML(t('rpt_chart_congr_title'), t('rpt_chart_congr_sub', { gap: Math.abs(ant.executive).toFixed(0) }),
+        [{ label: 'Congruent', val: ant.rtCongruent, color: '#1BA8D8' }, { label: 'Incongruent', val: ant.rtIncongruent, color: '#E95295' }], '#1BA8D8', v => Math.round(v) + 'ms', null, true)}
     </div>
 
     ${sparklineHTML(ant.trialsChrono, `TRIAL BY TRIAL (${ant.trialsChrono.length})`, 4)}
@@ -732,12 +782,22 @@ function buildReportHTML(c) {
   .chart-panel { background:#FAFAFA; border:1px solid #EBEBEB; border-radius:10px; padding:16px 18px; margin-bottom:20px; }
   .chart-title { font-size:10.5px; font-weight:700; color:#888; letter-spacing:0.08em; text-transform:uppercase; margin-bottom:4px; }
   .chart-sub { font-size:10.5px; color:#AAA; margin-bottom:14px; line-height:1.5; }
-  .chart-area { position:relative; }
-    .ref-line { position:absolute; left:0; right:0; border-top:2px dashed #333; pointer-events:none; }
-    .ref-line-label { position:absolute; right:4px; top:-8px; font-size:9px; font-family:'Roboto Mono',monospace; font-weight:700; color:#fff; background:#333; padding:1px 5px; border-radius:3px; }
+  .mc-grid-2 { grid-template-columns:repeat(2,1fr); margin-bottom:24px; }
+
+  .chart-with-axis { display:flex; gap:8px; }
+  .axis-labels { display:flex; flex-direction:column; justify-content:space-between; text-align:right; flex-shrink:0; width:40px; }
+  .axis-label { font-size:8.5px; font-family:'Roboto Mono',monospace; color:#BBB; line-height:1; }
+  .chart-plot { flex:1; position:relative; height:130px; }
+  .chart-plot-spark { height:80px; }
+  .chart-plot .chart { position:absolute; inset:0; height:100%; }
+  .chart-plot .spark { position:absolute; inset:0; height:100%; }
+  .gridlines { position:absolute; inset:0; }
+  .gridline { position:absolute; left:0; right:0; border-top:1px dashed #EEE; }
+  .ref-line { position:absolute; left:0; right:0; border-top:2px dashed #333; pointer-events:none; z-index:3; }
+  .ref-line-label { position:absolute; right:4px; top:-8px; font-size:9px; font-family:'Roboto Mono',monospace; font-weight:700; color:#fff; background:#333; padding:1px 5px; border-radius:3px; }
   .chart { display:flex; gap:6px; height:130px; align-items:flex-end; position:relative; z-index:2; }
   .chart-col { flex:1; display:flex; flex-direction:column; align-items:center; gap:4px; height:100%; justify-content:flex-end; }
-    .chart-val { font-family:'Roboto Mono',monospace; font-size:9px; color:#888; background:#FAFAFA; position:relative; z-index:2; padding:0 2px; }
+  .chart-val { font-family:'Roboto Mono',monospace; font-size:9px; color:#888; background:#FAFAFA; position:relative; z-index:2; padding:0 2px; }
   .chart-fill { width:100%; border-radius:2px 2px 0 0; min-height:3px; }
   .chart-lbl { font-family:'Roboto Mono',monospace; font-size:9px; color:#AAA; }
   .chart-col-pair .pair-bars { display:flex; gap:2px; width:100%; height:100%; align-items:flex-end; }
