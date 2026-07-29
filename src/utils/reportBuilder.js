@@ -8,6 +8,7 @@
 import { t } from './i18n.js';
 
 const STANDARD_SET_SIZES = [1, 2, 3, 4, 6, 8];
+const logoUrl = window.location.origin + '/xiberlinc_logo_transparent.png';
 
 function padToStandardSizes(curve) {
     return STANDARD_SET_SIZES.map(size => {
@@ -645,7 +646,7 @@ function buildReportHTML(c) {
     </div>
 
     <div class="final-footer">
-      <div class="final-footer-logo">XIBERLINC</div>
+    <img src="${logoUrl}" alt="Xiberlinc" class="final-footer-logo-img" />
       <div class="final-footer-meta">
         <div>${reportId} · ${assessDate}</div>
         <div>${t('rpt_footer_copyright', { year: new Date().getFullYear() })}</div>
@@ -659,7 +660,7 @@ function buildReportHTML(c) {
   <div class="cover">
     <div class="cover-stripe"></div>
     <div class="cover-head">
-      <div class="cover-logo">XIBERLINC</div>
+    <img src="${logoUrl}" alt="Xiberlinc" class="cover-logo-img" />
       <div>
         <div class="report-id-label">${t('rpt_report_id')}</div>
         <div class="report-id">${reportId}</div>
@@ -722,7 +723,7 @@ function buildReportHTML(c) {
   .cover { padding:56px 64px 64px; border-bottom:1px solid #EBEBEB; position:relative; overflow:hidden; }
   .cover-stripe { position:absolute; top:0; left:0; right:0; height:4px; background:linear-gradient(90deg,#E95295,#D4A030,#50A87F,#1BA8D8); }
   .cover-head { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:56px; }
-  .cover-logo { font-size:20px; font-weight:800; letter-spacing:-0.02em; }
+    .cover-logo-img { height:28px; width:auto; display:block; }
   .report-id-label { font-size:9px; font-weight:700; color:#CCC; letter-spacing:0.14em; text-transform:uppercase; margin-bottom:4px; text-align:right; }
   .report-id { font-family:'Roboto Mono',monospace; font-size:11px; color:#AAA; text-align:right; }
   .cover-grid { display:grid; grid-template-columns:1fr auto; gap:48px; align-items:center; }
@@ -879,7 +880,7 @@ function buildReportHTML(c) {
   .about-box p { font-size:11px; color:#888; line-height:1.7; }
 
   .final-footer { display:flex; justify-content:space-between; align-items:center; padding-top:20px; border-top:1px solid #EBEBEB; }
-  .final-footer-logo { font-size:14px; font-weight:800; }
+    .final-footer-logo-img { height:20px; width:auto; display:block; }
   .final-footer-meta { text-align:right; font-family:'Roboto Mono',monospace; font-size:9.5px; color:#BBB; line-height:1.6; }
 </style>
 </head>
