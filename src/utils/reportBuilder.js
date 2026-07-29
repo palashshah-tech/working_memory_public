@@ -1,17 +1,14 @@
 /* ============================================================
    PDF Report Builder — matches Xiberlinc "Cognitive Performance
    Profile" reference design. All numbers are computed live from
-   candidate.trials (raw data), not from pre-computed c.scores,
-   except where noted as illustrative/placeholder.
+   candidate.trials (raw data). All static/translatable copy is
+   sourced from the i18n dictionary via t().
    ============================================================ */
 
 import { t } from './i18n.js';
 
 /* ---------------------------------------------------------------
    DATA COMPUTATION — proper Cowan's K from raw trials
-   K = N * (hitRate - falseAlarmRate)
-   hit = isChange true & correct | miss = isChange true & incorrect
-   falseAlarm = isChange false & incorrect | correctRejection = isChange false & correct
 --------------------------------------------------------------- */
 function computeVWMStats(trials, taskType) {
   const stage = trials.filter(t => t.taskType === taskType);
@@ -91,7 +88,6 @@ function computeANTStats(trials) {
       { cue: 'Spatial', rt: rtSpatial },
     ],
     rtCongruent, rtIncongruent, accCongruent, accIncongruent,
-    // efficiency = accuracy / RT(seconds), classic r/s throughput measure
     effCongruent: rtCongruent ? accCongruent / (rtCongruent / 1000) : 0,
     effIncongruent: rtIncongruent ? accIncongruent / (rtIncongruent / 1000) : 0,
     effAlerting: alerting ? ((accCenter - accNone) / (alerting / 1000)) : 0,
@@ -109,14 +105,12 @@ function scoreColor(score) {
   return '#D44040';
 }
 function scoreLabel(score) {
-  if (score >= 90) return 'Exceptional';
-  if (score >= 70) return 'Strong';
-  if (score >= 50) return 'Above Average';
-  if (score >= 30) return 'Average';
-  return 'Developing';
+  if (score >= 90) return t('rpt_band_exceptional');
+  if (score >= 70) return t('rpt_band_strong');
+  if (score >= 50) return t('rpt_band_aboveavg');
+  if (score >= 30) return t('rpt_band_average');
+  return t('rpt_band_developing');
 }
-// Component scores (0-100) don't have a true norm-referenced percentile without
-// a population sample, so the score itself is shown as an illustrative percentile.
 function pseudoPercentile(score) { return Math.round(score); }
 function stripTags(html) { return (html || '').replace(/<[^>]*>/g, ''); }
 
@@ -139,16 +133,16 @@ function metricCardHTML({ label, value, unit = '', accent = '#E95295', sub = '',
 function whatYouDidBoxHTML(accent, bgTint, bodyHtml) {
   return `
     <div class="wyd-box" style="background:${bgTint}; border-color:${accent}22;">
-      <div class="wyd-title" style="color:${accent};">WHAT YOU DID IN THIS TASK</div>
+      <div class="wyd-title" style="color:${accent};">${t('rpt_wyd_title')}</div>
       <div class="wyd-body">${bodyHtml}</div>
     </div>
   `;
 }
 
-function interpretBoxHTML(accent, title, bodyHtml) {
+function interpretBoxHTML(accent, bodyHtml) {
   return `
     <div class="ibox" style="border-left-color:${accent};">
-      <div class="ibox-title" style="color:${accent};">${title}</div>
+      <div class="ibox-title" style="color:${accent};">${t('rpt_results_mean_title')}</div>
       <div class="ibox-body">${bodyHtml}</div>
     </div>
   `;
@@ -156,7 +150,7 @@ function interpretBoxHTML(accent, title, bodyHtml) {
 
 function glossaryHTML(accent, items) {
   return `
-    <div class="glossary-title">PLAIN-LANGUAGE GLOSSARY</div>
+    <div class="glossary-title">${t('rpt_glossary_title')}</div>
     <div class="glossary-grid">
       ${items.map(it => `
         <div class="glossary-card">
@@ -231,18 +225,18 @@ function comparisonBarChartHTML(title, sub, labels, seriesA, seriesB, colorA, co
   `;
 }
 
-function sparklineHTML(title, trialsChrono, labelEvery = 5) {
+function sparklineHTML(trialsChrono, totalLabel, labelEvery = 5) {
   if (!trialsChrono.length) return '';
-  const maxRT = Math.min(2000, Math.max(...trialsChrono.map(t => t.reactionTimeMs || 0), 1));
+  const maxRT = Math.min(2000, Math.max(...trialsChrono.map(tr => tr.reactionTimeMs || 0), 1));
   return `
     <div class="chart-panel">
-      <div class="chart-title">${title} — TRIAL BY TRIAL (${trialsChrono.length} TRIALS)</div>
-      <div class="chart-sub"><span style="color:#50A87F;font-weight:700;">Green = correct</span>, <span style="color:#D44040;font-weight:700;">red = incorrect</span>. Taller bars = slower response.</div>
+      <div class="chart-title">${t('rpt_spark_title')} — ${totalLabel}</div>
+      <div class="chart-sub">${t('rpt_spark_desc')}</div>
       <div class="spark">
         ${trialsChrono.map((tr, i) => {
           const rt = tr.reactionTimeMs || 0;
           const h = Math.max(3, (Math.min(rt, maxRT) / maxRT) * 100);
-          return `<div class="spark-bar" style="height:${h}%; background:${tr.isCorrect ? '#50A87F' : '#D44040'};" title="Trial ${i + 1}: ${tr.isCorrect ? 'correct' : 'incorrect'}, ${rt.toFixed(0)}ms"></div>`;
+          return `<div class="spark-bar" style="height:${h}%; background:${tr.isCorrect ? '#50A87F' : '#D44040'};" title="${i + 1}: ${rt.toFixed(0)}ms"></div>`;
         }).join('')}
       </div>
       <div class="spark-axis">
@@ -273,7 +267,7 @@ function compositeGaugeHTML(score) {
       </svg>
       <div class="gauge-center">
         <span class="gauge-score">${score.toFixed(1)}</span>
-        <span class="gauge-label">COMPOSITE</span>
+        <span class="gauge-label">${t('rpt_composite_label')}</span>
       </div>
     </div>
   `;
@@ -282,7 +276,7 @@ function compositeGaugeHTML(score) {
 function footerHTML(sectionLabel, reportId) {
   return `
     <div class="page-footer">
-      <div>Xiberlinc · Cognitive Performance Profile</div>
+      <div>${t('rpt_footer_line')}</div>
       <div>${sectionLabel} · ${reportId}</div>
     </div>
   `;
@@ -306,20 +300,19 @@ function buildReportHTML(c) {
   const candFirst = (c.name || 'The candidate').split(' ')[0];
 
   const componentScores = s.componentScores ? [
-    { name: "Cowan's K", short: 'CowanK', score: s.componentScores.kPure || 0 },
-    { name: "Cowan's K (Dist.)", short: 'CowanK(D)', score: s.componentScores.kDistractor || 0 },
-    { name: 'Max N', short: 'MaxN', score: s.componentScores.maxSetSize || 0 },
-    { name: 'RT Efficiency', short: 'RT Eff', score: s.componentScores.rtEfficiency || 0 },
-    { name: 'Alerting', short: 'Alert', score: s.componentScores.alerting || 0 },
-    { name: 'Orienting', short: 'Orient', score: s.componentScores.orienting || 0 },
-    { name: 'Executive', short: 'Exec', score: s.componentScores.executive || 0 },
+    { name: t('rpt_cs_cowansk'), short: 'CowanK', score: s.componentScores.kPure || 0 },
+    { name: t('rpt_cs_cowansk_dist'), short: 'CowanK(D)', score: s.componentScores.kDistractor || 0 },
+    { name: t('rpt_cs_maxn'), short: 'MaxN', score: s.componentScores.maxSetSize || 0 },
+    { name: t('rpt_cs_rteff'), short: 'RT Eff', score: s.componentScores.rtEfficiency || 0 },
+    { name: t('rpt_cs_alerting'), short: 'Alert', score: s.componentScores.alerting || 0 },
+    { name: t('rpt_cs_orienting'), short: 'Orient', score: s.componentScores.orienting || 0 },
+    { name: t('rpt_cs_executive'), short: 'Exec', score: s.componentScores.executive || 0 },
   ] : [];
 
   const execEfficiency = pure.maxK ? ((dist.maxK - pure.maxK) / pure.maxK) * 100 : 0;
-  const execSpeed = pure.avgRT - dist.avgRT; // positive = faster with distractors
+  const execSpeed = pure.avgRT - dist.avgRT;
   const distDrop = (pure.overallAcc - dist.overallAcc) * 100;
 
-  // Sort component scores to pick strengths / development areas (top 4 / bottom 3)
   const sortedScores = [...componentScores].sort((a, b) => b.score - a.score);
   const strengths = sortedScores.slice(0, Math.min(4, sortedScores.length));
   const developing = sortedScores.slice(-Math.min(3, sortedScores.length)).reverse();
@@ -327,44 +320,45 @@ function buildReportHTML(c) {
   /* ---------------- SECTION 1 ---------------- */
   const sec1 = `
   <div class="section">
-    ${sectionHeaderHTML('01', 'SECTION ONE', 'Working Memory Capacity', '#E95295',
-      'How many things can you hold in your visual memory at once? This section measures the raw size of your visual short-term memory — without any extra distractions.')}
+    ${sectionHeaderHTML('01', t('rpt_sec1_label'), t('rpt_sec1_title'), '#E95295', t('rpt_sec1_desc'))}
 
     ${whatYouDidBoxHTML('#E95295', '#FDF3F7', stripTags(t('t1_sum')) + ' ' + stripTags(t('t1_s2')) + ' ' + stripTags(t('t1_s3')))}
 
     <div class="mc-grid">
-      ${metricCardHTML({ label: "Cowan's K", value: pure.maxK.toFixed(1), accent: '#E95295', sub: 'Memory capacity estimate', highlight: true })}
-      ${metricCardHTML({ label: 'Max Set Size', value: 'N=' + pure.maxSetSize, accent: '#E95295', sub: 'Largest array tested' })}
-      ${metricCardHTML({ label: 'Avg. Reaction Time', value: pure.avgRT.toFixed(0), unit: 'ms', accent: '#E95295', sub: 'Mean across correct trials' })}
-      ${metricCardHTML({ label: 'Overall Accuracy', value: (pure.overallAcc * 100).toFixed(0), unit: '%', accent: '#E95295', sub: pure.totalTrials + ' trials total' })}
+      ${metricCardHTML({ label: t('rpt_m_cowansk'), value: pure.maxK.toFixed(1), accent: '#E95295', sub: t('rpt_m_cowansk_sub'), highlight: true })}
+      ${metricCardHTML({ label: t('rpt_m_maxsetsize'), value: 'N=' + pure.maxSetSize, accent: '#E95295', sub: t('rpt_m_maxsetsize_sub') })}
+      ${metricCardHTML({ label: t('rpt_m_avgrt'), value: pure.avgRT.toFixed(0), unit: 'ms', accent: '#E95295', sub: t('rpt_m_avgrt_sub') })}
+      ${metricCardHTML({ label: t('rpt_m_overallacc'), value: (pure.overallAcc * 100).toFixed(0), unit: '%', accent: '#E95295', sub: t('rpt_m_overallacc_sub', { count: pure.totalTrials }) })}
     </div>
     <div class="mc-grid mc-grid-3">
-      ${metricCardHTML({ label: 'Fastest Correct', value: pure.fastest.toFixed(0), unit: 'ms', accent: '#E95295', sub: 'Quickest correct response' })}
-      ${metricCardHTML({ label: 'Slowest Correct', value: pure.slowest.toFixed(0), unit: 'ms', accent: '#E95295', sub: 'Most deliberate correct response' })}
-      ${metricCardHTML({ label: 'Best Streak', value: pure.maxStreak, unit: 'in a row', accent: '#E95295', sub: 'Consecutive correct trials' })}
+      ${metricCardHTML({ label: t('rpt_m_fastest'), value: pure.fastest.toFixed(0), unit: 'ms', accent: '#E95295', sub: t('rpt_m_fastest_sub') })}
+      ${metricCardHTML({ label: t('rpt_m_slowest'), value: pure.slowest.toFixed(0), unit: 'ms', accent: '#E95295', sub: t('rpt_m_slowest_sub') })}
+      ${metricCardHTML({ label: t('rpt_m_beststreak'), value: pure.maxStreak, unit: t('rpt_m_beststreak_unit'), accent: '#E95295', sub: t('rpt_m_beststreak_sub') })}
     </div>
 
     <div class="chart-grid-2">
-      ${barChartHTML('MEMORY CAPACITY (COWAN\'S K) BY NUMBER OF SQUARES', 'Higher bars = more items held in memory.',
+      ${barChartHTML(t('rpt_chart_k_title'), t('rpt_chart_k_sub'),
         pure.curve.map(pt => ({ label: 'N=' + pt.setSize, val: pt.k, color: pt.k >= pure.maxK * 0.9 ? '#E95295' : '#F3B8CE' })),
         '#E95295', v => v.toFixed(1), pure.maxK)}
-      ${barChartHTML('ACCURACY BY NUMBER OF SQUARES', 'The dashed line (50%) = random guessing. Above it = genuine memory.',
+      ${barChartHTML(t('rpt_chart_acc_title'), t('rpt_chart_acc_sub'),
         pure.curve.map(pt => ({ label: 'N=' + pt.setSize, val: pt.accuracy * 100, color: pt.accuracy >= 0.7 ? '#E95295' : pt.accuracy >= 0.5 ? '#F3B8CE' : '#DDD' })),
         '#E95295', v => Math.round(v) + '%', 50)}
     </div>
 
-    ${sparklineHTML('RESPONSE SPEED', pure.trialsChrono)}
+    ${sparklineHTML(pure.trialsChrono, `TRIAL BY TRIAL (${pure.trialsChrono.length})`)}
 
     ${glossaryHTML('#E95295', [
-      { term: "Cowan's K", def: "Your memory 'size' — how many items your brain can hold in mind at once. Think of it as the number of slots on your mental whiteboard. Most people have 3–4 slots." },
-      { term: 'Set Size (N)', def: 'The number of coloured squares shown in a single trial. N=1 is one square; N=8 is eight squares at once.' },
+      { term: t('rpt_gloss_cowansk_term'), def: t('rpt_gloss_cowansk_def') },
+      { term: t('rpt_gloss_setsize_term'), def: t('rpt_gloss_setsize_def') },
     ])}
 
-    ${interpretBoxHTML('#E95295', 'WHAT THESE RESULTS MEAN', `
-      ${candFirst}'s visual memory capacity — measured as <strong>Cowan's K = ${pure.maxK.toFixed(1)}</strong> — reached its peak around set size ${pure.curve.find(c => c.k === pure.maxK)?.setSize || pure.maxSetSize}.
-      Accuracy stayed strongest at lower set sizes and declined as more items were added, which is the expected pattern for visual working memory: a hard capacity limit rather than a gradual one.
-      Overall accuracy across all ${pure.totalTrials} trials in this stage was <strong>${(pure.overallAcc * 100).toFixed(0)}%</strong>, with a best streak of ${pure.maxStreak} consecutive correct trials.
-      <em>[Placeholder: deeper narrative synthesis of this candidate's memory profile would be generated here.]</em>
+    ${interpretBoxHTML('#E95295', `
+      ${t('rpt_interp1', {
+        name: candFirst, k: pure.maxK.toFixed(1),
+        peakSize: pure.curve.find(c => c.k === pure.maxK)?.setSize || pure.maxSetSize,
+        trials: pure.totalTrials, acc: (pure.overallAcc * 100).toFixed(0), streak: pure.maxStreak,
+      })}
+      <em>${t('rpt_interp1_placeholder')}</em>
     `)}
 
     ${footerHTML('Section 01 / 03', reportId)}
@@ -372,63 +366,67 @@ function buildReportHTML(c) {
   `;
 
   /* ---------------- SECTION 2 ---------------- */
+  const kDelta = dist.maxK - pure.maxK;
   const sec2 = `
   <div class="section">
-    ${sectionHeaderHTML('02', 'SECTION TWO', 'Working Memory Filtering', '#50A87F',
-      "Can your brain hold onto important information while surrounded by irrelevant distractions? This section adds 'decoy' squares to the memory test — and measures how well you filtered them out.")}
+    ${sectionHeaderHTML('02', t('rpt_sec2_label'), t('rpt_sec2_title'), '#50A87F', t('rpt_sec2_desc'))}
 
     ${whatYouDidBoxHTML('#50A87F', '#F2FAF6', stripTags(t('t2_sum')) + ' ' + stripTags(t('t2_s2')) + ' ' + stripTags(t('t2_s5')))}
 
     <div class="mc-grid">
-      ${metricCardHTML({ label: "Cowan's K (Distractor)", value: dist.maxK.toFixed(1), accent: '#50A87F', sub: 'Memory capacity under load', highlight: true })}
-      ${metricCardHTML({ label: 'Overall Accuracy', value: (dist.overallAcc * 100).toFixed(0), unit: '%', accent: '#50A87F', sub: dist.totalTrials + ' trials total' })}
-      ${metricCardHTML({ label: 'Executive Efficiency', value: execEfficiency.toFixed(1), unit: '%', accent: '#50A87F', sub: 'Distractor filtering ability' })}
-      ${metricCardHTML({ label: 'Executive Speed', value: (execSpeed >= 0 ? '−' : '+') + Math.abs(execSpeed).toFixed(0), unit: 'ms', accent: '#50A87F', sub: execSpeed >= 0 ? 'Faster with distractors' : 'Slower with distractors' })}
+      ${metricCardHTML({ label: t('rpt_m_cowansk_dist'), value: dist.maxK.toFixed(1), accent: '#50A87F', sub: t('rpt_m_cowansk_dist_sub'), highlight: true })}
+      ${metricCardHTML({ label: t('rpt_m_overallacc'), value: (dist.overallAcc * 100).toFixed(0), unit: '%', accent: '#50A87F', sub: t('rpt_m_overallacc_sub', { count: dist.totalTrials }) })}
+      ${metricCardHTML({ label: t('rpt_m_execeff'), value: execEfficiency.toFixed(1), unit: '%', accent: '#50A87F', sub: t('rpt_m_execeff_sub') })}
+      ${metricCardHTML({ label: t('rpt_m_execspeed'), value: (execSpeed >= 0 ? '−' : '+') + Math.abs(execSpeed).toFixed(0), unit: 'ms', accent: '#50A87F', sub: execSpeed >= 0 ? t('rpt_m_execspeed_sub_faster') : t('rpt_m_execspeed_sub_slower') })}
     </div>
 
     <div class="change-panel">
-      <div class="change-val" style="color:${(dist.maxK - pure.maxK) >= 0 ? '#50A87F' : '#D44040'};">${(dist.maxK - pure.maxK) >= 0 ? '+' : ''}${(dist.maxK - pure.maxK).toFixed(1)}</div>
-      <div class="change-label">CHANGE IN MEMORY CAPACITY</div>
+      <div class="change-val" style="color:${kDelta >= 0 ? '#50A87F' : '#D44040'};">${kDelta >= 0 ? '+' : ''}${kDelta.toFixed(1)}</div>
+      <div class="change-label">${t('rpt_change_label')}</div>
       <div class="change-text">
-        ${candFirst}'s memory capacity ${(dist.maxK - pure.maxK) >= 0 ? 'increased' : 'decreased'} by ${Math.abs(dist.maxK - pure.maxK).toFixed(1)} points when decoy squares were added
-        (K=${pure.maxK.toFixed(1)} → K=${dist.maxK.toFixed(1)}).
-        <em>[Placeholder: additional interpretive context on this pattern would be generated here.]</em>
+        ${t('rpt_change_text', {
+          name: candFirst, direction: kDelta >= 0 ? t('rpt_change_increased') : t('rpt_change_decreased'),
+          delta: Math.abs(kDelta).toFixed(1), k1: pure.maxK.toFixed(1), k2: dist.maxK.toFixed(1),
+        })}
+        <em>${t('rpt_change_placeholder')}</em>
       </div>
       <div class="change-boxes">
-        <div class="change-box">${pure.maxK.toFixed(1)}<span>TASK 1</span></div>
+        <div class="change-box">${pure.maxK.toFixed(1)}<span>${t('rpt_task1_label')}</span></div>
         <div class="change-arrow">→</div>
-        <div class="change-box" style="border-color:#50A87F55;color:#50A87F;">${dist.maxK.toFixed(1)}<span>TASK 2</span></div>
+        <div class="change-box" style="border-color:#50A87F55;color:#50A87F;">${dist.maxK.toFixed(1)}<span>${t('rpt_task2_label')}</span></div>
       </div>
     </div>
 
     <div class="chart-grid-2">
-      ${comparisonBarChartHTML('MEMORY CAPACITY: TASK 1 VS TASK 2', 'Pink = Task 1 (no distractors) · Green = Task 2 (with distractors)',
+      ${comparisonBarChartHTML(t('rpt_chart_kcompare_title'), t('rpt_chart_kcompare_sub'),
         Array.from(new Set([...pure.curve.map(c => c.setSize), ...dist.curve.map(c => c.setSize)])).sort((a, b) => a - b).map(n => 'N=' + n),
         Array.from(new Set([...pure.curve.map(c => c.setSize), ...dist.curve.map(c => c.setSize)])).sort((a, b) => a - b).map(n => pure.curve.find(c => c.setSize === n)?.k || 0),
         Array.from(new Set([...pure.curve.map(c => c.setSize), ...dist.curve.map(c => c.setSize)])).sort((a, b) => a - b).map(n => dist.curve.find(c => c.setSize === n)?.k || 0),
-        '#E95295', '#50A87F', 'Task 1 (Pure)', 'Task 2 (Distractor)', v => v.toFixed(1))}
-      ${comparisonBarChartHTML('ACCURACY COMPARISON: TASK 1 VS TASK 2', 'How accuracy held up with distractors present.',
+        '#E95295', '#50A87F', t('rpt_task1_pure'), t('rpt_task2_distractor'), v => v.toFixed(1))}
+      ${comparisonBarChartHTML(t('rpt_chart_acccompare_title'), t('rpt_chart_acccompare_sub'),
         Array.from(new Set([...pure.curve.map(c => c.setSize), ...dist.curve.map(c => c.setSize)])).sort((a, b) => a - b).map(n => 'N=' + n),
         Array.from(new Set([...pure.curve.map(c => c.setSize), ...dist.curve.map(c => c.setSize)])).sort((a, b) => a - b).map(n => (pure.curve.find(c => c.setSize === n)?.accuracy || 0) * 100),
         Array.from(new Set([...pure.curve.map(c => c.setSize), ...dist.curve.map(c => c.setSize)])).sort((a, b) => a - b).map(n => (dist.curve.find(c => c.setSize === n)?.accuracy || 0) * 100),
-        '#E95295', '#50A87F', 'Task 1 (Pure)', 'Task 2 (Distractor)', v => Math.round(v) + '%')}
+        '#E95295', '#50A87F', t('rpt_task1_pure'), t('rpt_task2_distractor'), v => Math.round(v) + '%')}
     </div>
 
-    ${sparklineHTML('RESPONSE SPEED', dist.trialsChrono, 5)}
+    ${sparklineHTML(dist.trialsChrono, `TRIAL BY TRIAL (${dist.trialsChrono.length})`, 5)}
 
     ${glossaryHTML('#50A87F', [
-      { term: "Cowan's K (Distractor)", def: 'Your memory capacity when white decoy squares were also on screen. A higher score than Task 1 means your brain focused better under extra visual noise.' },
-      { term: 'Executive Efficiency', def: 'How effectively your brain blocked out distractor squares, expressed as a percentage change in capacity relative to the distraction-free baseline.' },
-      { term: 'Executive Speed', def: 'The response-time difference between the pure and distractor tasks. A negative number means you responded faster with distractors present.' },
-      { term: 'Distractor Effect', def: 'The overall difference in memory performance between Task 1 (no decoys) and Task 2. A positive change means distractors actually helped — which is unusual and interesting.' },
+      { term: t('rpt_gloss_cowanskdist_term'), def: t('rpt_gloss_cowanskdist_def') },
+      { term: t('rpt_gloss_execeff_term'), def: t('rpt_gloss_execeff_def') },
+      { term: t('rpt_gloss_execspeed_term'), def: t('rpt_gloss_execspeed_def') },
+      { term: t('rpt_gloss_distractoreffect_term'), def: t('rpt_gloss_distractoreffect_def') },
     ])}
 
-    ${interpretBoxHTML('#50A87F', 'WHAT THESE RESULTS MEAN', `
-      With distraction present, accuracy was <strong>${(dist.overallAcc * 100).toFixed(0)}%</strong> across ${dist.totalTrials} trials —
-      a change of <strong>${distDrop >= 0 ? distDrop.toFixed(0) + ' points lower' : Math.abs(distDrop).toFixed(0) + ' points higher'}</strong> than the distraction-free baseline.
-      Memory capacity moved from K=${pure.maxK.toFixed(1)} to K=${dist.maxK.toFixed(1)}, and executive filtering efficiency measured at ${execEfficiency.toFixed(1)}%.
-      This reflects ${Math.abs(distDrop) < 5 ? 'high resilience to interference' : Math.abs(distDrop) < 20 ? 'moderate resilience to interference' : 'notable sensitivity to interference'}.
-      <em>[Placeholder: deeper narrative synthesis of this candidate's filtering profile would be generated here.]</em>
+    ${interpretBoxHTML('#50A87F', `
+      ${t('rpt_interp2', {
+        acc: (dist.overallAcc * 100).toFixed(0), trials: dist.totalTrials,
+        change: distDrop >= 0 ? t('rpt_interp2_change_lower', { n: distDrop.toFixed(0) }) : t('rpt_interp2_change_higher', { n: Math.abs(distDrop).toFixed(0) }),
+        k1: pure.maxK.toFixed(1), k2: dist.maxK.toFixed(1), execEff: execEfficiency.toFixed(1),
+        resilience: Math.abs(distDrop) < 5 ? t('rpt_interp2_resilience_high') : Math.abs(distDrop) < 20 ? t('rpt_interp2_resilience_mod') : t('rpt_interp2_resilience_low'),
+      })}
+      <em>${t('rpt_interp2_placeholder')}</em>
     `)}
 
     ${footerHTML('Section 02 / 03', reportId)}
@@ -436,13 +434,13 @@ function buildReportHTML(c) {
   `;
 
   /* ---------------- SECTION 3 ---------------- */
-  const networkCard = (label, val, accent, body, pct) => `
+  const networkCard = (labelKey, val, accent, bodyKey, pct) => `
     <div class="net-card" style="border-color:${accent}33;">
-      <div class="net-label" style="color:${accent};">${label}</div>
+      <div class="net-label" style="color:${accent};">${t(labelKey)}</div>
       <div class="net-val">${val >= 0 ? '+' : ''}${val.toFixed(0)}<span class="net-unit">ms</span></div>
-      <div class="net-body">${body}</div>
+      <div class="net-body">${t(bodyKey, { val: val.toFixed(0) })}</div>
       <div class="net-pct-row">
-        <span class="net-pct-label">SCORE PERCENTILE (illustrative)</span>
+        <span class="net-pct-label">${t('rpt_net_percentile_label')}</span>
         <span class="net-pct-val" style="color:${accent};">${pct}th</span>
       </div>
       <div class="net-pct-track"><div class="net-pct-fill" style="width:${pct}%; background:${accent};"></div></div>
@@ -455,54 +453,53 @@ function buildReportHTML(c) {
 
   const sec3 = `
   <div class="section">
-    ${sectionHeaderHTML('03', 'SECTION THREE', 'Attention Network Task', '#1BA8D8',
-      'Your attention system is actually three separate brain networks working together. This task teases them apart — measuring how well you use time-based cues, spatial cues, and how well you handle conflicting information.')}
+    ${sectionHeaderHTML('03', t('rpt_sec3_label'), t('rpt_sec3_title'), '#1BA8D8', t('rpt_sec3_desc'))}
 
     ${whatYouDidBoxHTML('#1BA8D8', '#F1F8FB', stripTags(t('t3_sum')) + ' ' + stripTags(t('t3_s2')) + ' ' + stripTags(t('t3_s4')))}
 
     <div class="net-grid">
-      ${networkCard('ALERTING NETWORK', ant.alerting, '#D4A030', `A time-warning flash changed response speed by ${ant.alerting.toFixed(0)}ms. This reflects how well the brain picks up on 'something is coming soon' signals.`, alertPct)}
-      ${networkCard('ORIENTING NETWORK', ant.orienting, '#E95295', `A location flash changed response speed by ${ant.orienting.toFixed(0)}ms. This reflects the benefit gained from knowing exactly where the target will appear.`, orientPct)}
-      ${networkCard('EXECUTIVE NETWORK', ant.executive, '#1BA8D8', `Conflicting arrows changed response time by ${ant.executive.toFixed(0)}ms. This measures the ability to resolve conflicting visual information.`, execPct)}
+      ${networkCard('rpt_net_alerting_label', ant.alerting, '#D4A030', 'rpt_net_alerting_body', alertPct)}
+      ${networkCard('rpt_net_orienting_label', ant.orienting, '#E95295', 'rpt_net_orienting_body', orientPct)}
+      ${networkCard('rpt_net_executive_label', ant.executive, '#1BA8D8', 'rpt_net_executive_body', execPct)}
     </div>
 
     <div class="mc-grid">
-      ${metricCardHTML({ label: 'Congruent RT', value: ant.rtCongruent.toFixed(0), unit: 'ms', accent: '#1BA8D8', sub: 'Easy trials (arrows agree)' })}
-      ${metricCardHTML({ label: 'Incongruent RT', value: ant.rtIncongruent.toFixed(0), unit: 'ms', accent: '#1BA8D8', sub: 'Hard trials (arrows conflict)' })}
-      ${metricCardHTML({ label: 'Alerting Efficiency', value: ant.effAlerting.toFixed(2), unit: 'r/s', accent: '#1BA8D8', sub: 'Speed-corrected score' })}
-      ${metricCardHTML({ label: 'Orienting Efficiency', value: ant.effOrienting.toFixed(2), unit: 'r/s', accent: '#1BA8D8', sub: 'Speed-corrected score' })}
+      ${metricCardHTML({ label: t('rpt_m_congruentrt'), value: ant.rtCongruent.toFixed(0), unit: 'ms', accent: '#1BA8D8', sub: t('rpt_m_congruentrt_sub') })}
+      ${metricCardHTML({ label: t('rpt_m_incongruentrt'), value: ant.rtIncongruent.toFixed(0), unit: 'ms', accent: '#1BA8D8', sub: t('rpt_m_incongruentrt_sub') })}
+      ${metricCardHTML({ label: t('rpt_m_alerteff'), value: ant.effAlerting.toFixed(2), unit: 'r/s', accent: '#1BA8D8', sub: t('rpt_m_alerteff_sub') })}
+      ${metricCardHTML({ label: t('rpt_m_orienteff'), value: ant.effOrienting.toFixed(2), unit: 'r/s', accent: '#1BA8D8', sub: t('rpt_m_orienteff_sub') })}
     </div>
 
     <div class="chart-grid-2">
-      ${barChartHTML('RESPONSE SPEED BY CUE TYPE', 'Lower bars = faster responses.',
+      ${barChartHTML(t('rpt_chart_cuespeed_title'), t('rpt_chart_cuespeed_sub'),
         ant.rtByCue.map(r => ({ label: r.cue, val: r.rt })), '#1BA8D8', v => Math.round(v) + 'ms')}
-      ${barChartHTML('CONGRUENT VS INCONGRUENT ARROWS', `The ${Math.abs(ant.executive).toFixed(0)}ms gap between these bars = Executive Control score.`,
+      ${barChartHTML(t('rpt_chart_congr_title'), t('rpt_chart_congr_sub', { gap: Math.abs(ant.executive).toFixed(0) }),
         [{ label: 'Congruent', val: ant.rtCongruent, color: '#1BA8D8' }, { label: 'Incongruent', val: ant.rtIncongruent, color: '#E95295' }], '#1BA8D8', v => Math.round(v) + 'ms')}
     </div>
 
-    ${sparklineHTML('RESPONSE SPEED', ant.trialsChrono, 4)}
+    ${sparklineHTML(ant.trialsChrono, `TRIAL BY TRIAL (${ant.trialsChrono.length})`, 4)}
 
     <div class="mc-grid mc-grid-3">
-      ${metricCardHTML({ label: 'Alerting Efficiency', value: ant.effAlerting.toFixed(2), unit: 'r/s', accent: '#D4A030', sub: 'Normal range ≈ 0.3–0.5 r/s' })}
-      ${metricCardHTML({ label: 'Orienting Efficiency', value: ant.effOrienting.toFixed(2), unit: 'r/s', accent: '#E95295', sub: 'Negative = no spatial benefit' })}
-      ${metricCardHTML({ label: 'Executive Efficiency', value: ant.effExecutive.toFixed(2), unit: 'r/s', accent: '#1BA8D8', sub: 'Higher = better conflict handling' })}
+      ${metricCardHTML({ label: t('rpt_m_alerteff'), value: ant.effAlerting.toFixed(2), unit: 'r/s', accent: '#D4A030', sub: t('rpt_m_alerteff_sub2') })}
+      ${metricCardHTML({ label: t('rpt_m_orienteff'), value: ant.effOrienting.toFixed(2), unit: 'r/s', accent: '#E95295', sub: t('rpt_m_orienteff_sub2') })}
+      ${metricCardHTML({ label: t('rpt_cs_executive') + ' Efficiency', value: ant.effExecutive.toFixed(2), unit: 'r/s', accent: '#1BA8D8', sub: t('rpt_m_execeff2_sub') })}
     </div>
 
     ${glossaryHTML('#1BA8D8', [
-      { term: 'Alerting Network', def: "Your brain's general 'heads-up' system. When you see a warning signal, does your brain get ready faster?" },
-      { term: 'Orienting Network', def: "Your brain's ability to point attention at a specific location before something appears there." },
-      { term: 'Executive Control', def: "Your brain's ability to override an automatic response when surrounding arrows point the wrong way." },
-      { term: 'Congruent vs Incongruent', def: 'Congruent = surrounding arrows point the same direction as the target (easy). Incongruent = they point the opposite direction (hard).' },
-      { term: 'Flanker Arrows', def: 'The arrows that surround the target centre arrow. They may match or oppose the target direction.' },
-      { term: 'Cue Types', def: 'None = no warning. Center = a flash in the middle. Spatial = a flash exactly where the target will appear. Double = flashes in two places.' },
+      { term: t('rpt_gloss_alerting_term'), def: t('rpt_gloss_alerting_def') },
+      { term: t('rpt_gloss_orienting_term'), def: t('rpt_gloss_orienting_def') },
+      { term: t('rpt_gloss_executive_term'), def: t('rpt_gloss_executive_def') },
+      { term: t('rpt_gloss_congr_term'), def: t('rpt_gloss_congr_def') },
+      { term: t('rpt_gloss_flanker_term'), def: t('rpt_gloss_flanker_def') },
+      { term: t('rpt_gloss_cuetypes_term'), def: t('rpt_gloss_cuetypes_def') },
     ])}
 
-    ${interpretBoxHTML('#1BA8D8', 'WHAT THESE RESULTS MEAN', `
-      The Attention Network Task revealed a profile across three brain systems: alerting (${ant.alerting.toFixed(0)}ms benefit),
-      orienting (${ant.orienting.toFixed(0)}ms benefit), and executive control (${ant.executive.toFixed(0)}ms cost when resolving conflict).
-      Congruent trials averaged ${ant.rtCongruent.toFixed(0)}ms versus ${ant.rtIncongruent.toFixed(0)}ms on incongruent trials, across ${ant.totalTrials} total trials
-      at ${(ant.overallAcc * 100).toFixed(0)}% overall accuracy.
-      <em>[Placeholder: deeper narrative synthesis of this candidate's attention profile would be generated here.]</em>
+    ${interpretBoxHTML('#1BA8D8', `
+      ${t('rpt_interp3', {
+        alerting: ant.alerting.toFixed(0), orienting: ant.orienting.toFixed(0), executive: ant.executive.toFixed(0),
+        rtC: ant.rtCongruent.toFixed(0), rtI: ant.rtIncongruent.toFixed(0), trials: ant.totalTrials, acc: (ant.overallAcc * 100).toFixed(0),
+      })}
+      <em>${t('rpt_interp3_placeholder')}</em>
     `)}
 
     ${footerHTML('Section 03 / 03', reportId)}
@@ -511,28 +508,28 @@ function buildReportHTML(c) {
 
   /* ---------------- SUMMARY ---------------- */
   const bands = [
-    { label: 'Developing', range: '0–29', lo: 0, hi: 29 },
-    { label: 'Average', range: '30–49', lo: 30, hi: 49 },
-    { label: 'Above Avg', range: '50–69', lo: 50, hi: 69 },
-    { label: 'Strong', range: '70–89', lo: 70, hi: 89 },
-    { label: 'Exceptional', range: '90+', lo: 90, hi: 999 },
+    { label: t('rpt_band_developing'), range: '0–29', lo: 0, hi: 29 },
+    { label: t('rpt_band_average'), range: '30–49', lo: 30, hi: 49 },
+    { label: t('rpt_band_aboveavg'), range: '50–69', lo: 50, hi: 69 },
+    { label: t('rpt_band_strong'), range: '70–89', lo: 70, hi: 89 },
+    { label: t('rpt_band_exceptional'), range: '90+', lo: 90, hi: 999 },
   ];
 
   const summary = `
   <div class="section" style="border-bottom:none;">
-    <div class="summary-eyebrow">OVERALL SUMMARY</div>
-    <h2 class="summary-title">Cognitive Profile Summary</h2>
-    <p class="summary-sub">Integrated performance across all three assessment modules</p>
+    <div class="summary-eyebrow">${t('rpt_summary_eyebrow')}</div>
+    <h2 class="summary-title">${t('rpt_summary_title')}</h2>
+    <p class="summary-sub">${t('rpt_summary_sub')}</p>
 
     <div class="composite-panel">
       <div>
-        <div class="composite-panel-label">COMPOSITE SCORE</div>
+        <div class="composite-panel-label">${t('rpt_composite_label')}</div>
         <div class="composite-panel-val">${composite.toFixed(1)}<span>/100</span></div>
         <div class="composite-panel-band">${scoreLabel(composite)}</div>
-        <p class="composite-panel-text">A combined score across all 7 component metrics. ${composite.toFixed(1)} places ${candFirst} in the '${scoreLabel(composite)}' band.</p>
+        <p class="composite-panel-text">${t('rpt_composite_text', { score: composite.toFixed(1), name: candFirst, band: scoreLabel(composite) })}</p>
       </div>
       <div class="bands-row">
-        <div class="bands-title">PERFORMANCE BANDS</div>
+        <div class="bands-title">${t('rpt_bands_title')}</div>
         <div class="bands-list">
           ${bands.map(b => `<div class="band-box ${composite >= b.lo && composite <= b.hi ? 'band-active' : ''}"><div>${b.label}</div><span>${b.range}</span></div>`).join('')}
         </div>
@@ -540,8 +537,8 @@ function buildReportHTML(c) {
     </div>
 
     <div class="chart-panel" style="margin-top:24px;">
-      <div class="chart-title">ALL COMPONENT SCORES (0–100)</div>
-      <div class="chart-sub"><span style="color:#50A87F;font-weight:700;">Green ≥ 70 (Strong)</span> · <span style="color:#D4A030;font-weight:700;">Amber 40–69 (Moderate)</span> · <span style="color:#D44040;font-weight:700;">Red &lt; 40 (Developing)</span></div>
+      <div class="chart-title">${t('rpt_allscores_title')}</div>
+      <div class="chart-sub"><span style="color:#50A87F;font-weight:700;">${t('rpt_allscores_legend_green')}</span> · <span style="color:#D4A030;font-weight:700;">${t('rpt_allscores_legend_amber')}</span> · <span style="color:#D44040;font-weight:700;">${t('rpt_allscores_legend_red')}</span></div>
       <div class="chart" style="height:180px;">
         ${componentScores.map(cs => `
           <div class="chart-col">
@@ -564,34 +561,29 @@ function buildReportHTML(c) {
 
     <div class="strength-grid">
       <div class="strength-box strength-good">
-        <div class="strength-title" style="color:#50A87F;">↑ COGNITIVE STRENGTHS</div>
+        <div class="strength-title" style="color:#50A87F;">${t('rpt_strengths_title')}</div>
         <ul>
-          ${strengths.map(st => `<li><strong>${st.name}:</strong> ${st.score.toFixed(0)}th percentile (illustrative). <em>[Placeholder: candidate-specific strength narrative.]</em></li>`).join('')}
+          ${strengths.map(st => `<li>${t('rpt_strength_item', { name: st.name, score: st.score.toFixed(0) })} <em>${t('rpt_strength_placeholder')}</em></li>`).join('')}
         </ul>
       </div>
       <div class="strength-box strength-dev">
-        <div class="strength-title" style="color:#D4A030;">◇ AREAS FOR DEVELOPMENT</div>
+        <div class="strength-title" style="color:#D4A030;">${t('rpt_dev_title')}</div>
         <ul>
-          ${developing.map(dv => `<li><strong>${dv.name}:</strong> ${dv.score.toFixed(0)}th percentile (illustrative). <em>[Placeholder: candidate-specific development narrative.]</em></li>`).join('')}
+          ${developing.map(dv => `<li>${t('rpt_strength_item', { name: dv.name, score: dv.score.toFixed(0) })} <em>${t('rpt_dev_placeholder')}</em></li>`).join('')}
         </ul>
       </div>
     </div>
 
     <div class="about-box">
-      <div class="about-title">ABOUT THIS ASSESSMENT</div>
-      <p>This report is generated from behavioural data collected via the Xiberlinc neurocognitive assessment platform.
-      Task paradigms are based on validated scientific protocols: the Visual Working Memory change-detection task (Luck &amp; Vogel, 1997; Cowan, 2001)
-      and the Attention Network Task (Fan et al., 2002). Composite and component scores are derived from candidate performance data.
-      Percentile estimates are illustrative and should not be taken as clinical benchmarks. This report is intended for screening and
-      performance purposes only and does not constitute a clinical diagnosis. Results should be interpreted alongside a qualified evaluator
-      where clinical decisions are involved.</p>
+      <div class="about-title">${t('rpt_about_title')}</div>
+      <p>${t('rpt_about_text')}</p>
     </div>
 
     <div class="final-footer">
       <div class="final-footer-logo">XIBERLINC</div>
       <div class="final-footer-meta">
         <div>${reportId} · ${assessDate}</div>
-        <div>© ${new Date().getFullYear()} Xiberlinc Inc. · All rights reserved · Confidential</div>
+        <div>${t('rpt_footer_copyright', { year: new Date().getFullYear() })}</div>
       </div>
     </div>
   </div>
@@ -604,30 +596,30 @@ function buildReportHTML(c) {
     <div class="cover-head">
       <div class="cover-logo">XIBERLINC</div>
       <div>
-        <div class="report-id-label">Report ID</div>
+        <div class="report-id-label">${t('rpt_report_id')}</div>
         <div class="report-id">${reportId}</div>
       </div>
     </div>
     <div class="cover-grid">
       <div>
-        <div class="eyebrow">Neurocognitive Assessment · Full Report</div>
-        <div class="cover-title">Cognitive<br>Performance<br><span class="accent">Profile</span></div>
-        <div class="cover-sub">An evidence-based analysis of visual working memory capacity, attentional filtering, and executive control — across three validated cognitive science tests.</div>
+        <div class="eyebrow">${t('rpt_eyebrow')}</div>
+        <div class="cover-title">${t('rpt_cover_title_1')}<br>${t('rpt_cover_title_2')}<br><span class="accent">${t('rpt_cover_title_3')}</span></div>
+        <div class="cover-sub">${t('rpt_cover_sub')}</div>
         <div class="cand-box">
           <div class="cand-grid">
-            <div><div class="cand-label">Participant</div><div class="cand-val">${c.name || '—'}</div></div>
-            <div><div class="cand-label">Handle</div><div class="cand-val">@${c.handle || '—'}</div></div>
-            <div><div class="cand-label">Assessment Date</div><div class="cand-val">${assessDate}</div></div>
-            <div><div class="cand-label">Completed At</div><div class="cand-val">${completedTime}</div></div>
-            <div><div class="cand-label">Total Trials</div><div class="cand-val">${trials.length}</div></div>
-            <div><div class="cand-label">Age</div><div class="cand-val">${c.age || '—'}</div></div>
+            <div><div class="cand-label">${t('rpt_cand_participant')}</div><div class="cand-val">${c.name || '—'}</div></div>
+            <div><div class="cand-label">${t('rpt_cand_handle')}</div><div class="cand-val">@${c.handle || '—'}</div></div>
+            <div><div class="cand-label">${t('rpt_cand_assessdate')}</div><div class="cand-val">${assessDate}</div></div>
+            <div><div class="cand-label">${t('rpt_cand_completedat')}</div><div class="cand-val">${completedTime}</div></div>
+            <div><div class="cand-label">${t('rpt_cand_totaltrials')}</div><div class="cand-val">${trials.length}</div></div>
+            <div><div class="cand-label">${t('rpt_cand_age')}</div><div class="cand-val">${c.age || '—'}</div></div>
           </div>
         </div>
       </div>
       <div class="gauge-side">
         ${compositeGaugeHTML(composite)}
         <div style="width:100%;">
-          <div class="comp-scores-title">Component Scores</div>
+          <div class="comp-scores-title">${t('rpt_component_scores')}</div>
           ${componentScores.map(cs => `
             <div class="cs-row">
               <span class="cs-name">${cs.short}</span>
@@ -640,11 +632,11 @@ function buildReportHTML(c) {
     </div>
     <div class="cover-footer">
       <div class="idx-group">
-        <div class="idx-item"><div class="idx-bar" style="background:#E95295;"></div><div><div class="idx-label" style="color:#E95295;">Section 01</div><div class="idx-desc">Working Memory Capacity</div></div></div>
-        <div class="idx-item"><div class="idx-bar" style="background:#50A87F;"></div><div><div class="idx-label" style="color:#50A87F;">Section 02</div><div class="idx-desc">Working Memory Filtering</div></div></div>
-        <div class="idx-item"><div class="idx-bar" style="background:#1BA8D8;"></div><div><div class="idx-label" style="color:#1BA8D8;">Section 03</div><div class="idx-desc">Attention Network Task</div></div></div>
+        <div class="idx-item"><div class="idx-bar" style="background:#E95295;"></div><div><div class="idx-label" style="color:#E95295;">${t('rpt_sec1_label').replace('SECTION ', 'Section ')}</div><div class="idx-desc">${t('rpt_sec1_title')}</div></div></div>
+        <div class="idx-item"><div class="idx-bar" style="background:#50A87F;"></div><div><div class="idx-label" style="color:#50A87F;">${t('rpt_sec2_label').replace('SECTION ', 'Section ')}</div><div class="idx-desc">${t('rpt_sec2_title')}</div></div></div>
+        <div class="idx-item"><div class="idx-bar" style="background:#1BA8D8;"></div><div><div class="idx-label" style="color:#1BA8D8;">${t('rpt_sec3_label').replace('SECTION ', 'Section ')}</div><div class="idx-desc">${t('rpt_sec3_title')}</div></div></div>
       </div>
-      <div class="confidential">CONFIDENTIAL · ${assessDate}</div>
+      <div class="confidential">${t('rpt_confidential')} · ${assessDate}</div>
     </div>
   </div>
   `;
@@ -654,7 +646,7 @@ function buildReportHTML(c) {
 <html>
 <head>
 <meta charset="utf-8">
-<title>${c.name || 'Candidate'} — Cognitive Performance Profile</title>
+<title>${c.name || 'Candidate'} — ${t('rpt_summary_title')}</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Raleway:wght@400;600;700;800&family=Roboto+Mono:wght@400;500&display=swap');
   @page { margin: 0; size: A4; }
