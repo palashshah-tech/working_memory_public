@@ -612,7 +612,7 @@ function showGate() {
         <div class="agc-fields">
           <div class="agc-field-wrap">
             <div class="agc-field-icon">⬤</div>
-            <input class="agc-input" type="password" id="ap-pass" placeholder="${t('ad_gate_placeholder_pass')}" autocomplete="on" />
+            <input class="agc-input" type="password" id="ap-pass" placeholder="${t('ad_gate_placeholder_pass')}" autocomplete="off" />
           </div>
         </div>
 
