@@ -176,11 +176,6 @@ export function WelcomeView(params = {}) {
           <form id="reg-form" class="wv-form">
             <h2 class="form-title">${t('intake_title')}</h2>
             <div class="input-grid">
-              <div class="field" style="grid-column: 1 / -1;">
-                <label>${t('label_access_code')} (Optional)</label>
-                <input type="text" id="r-access" placeholder="Optional Access Code (Leave blank for Public Session)" />
-                <div id="access-error" style="margin-top:6px; font-size:12px; color:#f87171; display:none;"></div>
-              </div>
               <div class="field">
                 <label>${t('label_name')}</label>
                 <input type="text" id="r-name" placeholder="${t('placeholder_name')}" required />
@@ -670,9 +665,6 @@ export function WelcomeView(params = {}) {
   document.getElementById('reg-form').addEventListener('submit', async (e) => {
     e.preventDefault();
 
-    accessError.style.display = 'none';
-
-    const accessCode = document.getElementById('r-access').value.trim();
     const name   = document.getElementById('r-name').value.trim();
     const email  = document.getElementById('r-email').value.trim();
     const ageRaw = document.getElementById('r-age').value.trim();
@@ -684,7 +676,6 @@ export function WelcomeView(params = {}) {
 
     const errors = [];
 
-    // In public version, access code is optional
     if (name.length < 2) errors.push({ id: 'r-name', msg: 'Name must be at least 2 characters' });
 
     const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -712,96 +703,13 @@ export function WelcomeView(params = {}) {
       return;
     }
 
-    let codeInfo = { ok: true, type: 'public', companyId: 'public', code: accessCode || 'PUBLIC' };
-    if (accessCode) {
-      const validateRes = await validateAccessCode(accessCode);
-      if (validateRes.ok) {
-        codeInfo = validateRes;
-      }
-    }
-
-    if (codeInfo.type !== 'public') {
-      const sessionInfo = await ensureAccessAndSession(codeInfo);
-      if (!sessionInfo.ok) {
-        if (sessionInfo.waitlist) {
-          showWaitlist(sessionInfo.position, sessionInfo.etaMin);
-        } else {
-          if (sessionInfo.reason === 'limit_reached') {
-            accessError.textContent = t('access_limit_reached');
-          } else {
-            accessError.textContent = t('access_invalid');
-          }
-          accessError.style.display = 'block';
-        }
-        return;
-      }
-      startHeartbeat();
-    }
-
     const metadata = {
       windowWidth: window.innerWidth,
       windowHeight: window.innerHeight,
       userAgent: navigator.userAgent
     };
 
-    Storage.saveCurrentSession({ name, email, age, gender, handle, startedAt: new Date().toISOString(), trials: [], metadata });
+    Storage.saveCurrentSession({ name, email, age, gender, handle, companyId: 'public', startedAt: new Date().toISOString(), trials: [], metadata });
     navigate('instructions', { task: 'vwm-pure' });
   });
-
-  // Live pre-fill profile data on Access Code entry
-  const accessInput = document.getElementById('r-access');
-  if (accessInput) {
-    let lastCheckedCode = '';
-    const checkAndAutoFill = async () => {
-      const code = accessInput.value.trim();
-      if (!code || code === lastCheckedCode || code.length < 3) return;
-      lastCheckedCode = code;
-      try {
-        const info = await validateAccessCode(code);
-        if (info.ok && info.type === 'secondary') {
-          const nameEl = document.getElementById('r-name');
-          const emailEl = document.getElementById('r-email');
-          const ageEl = document.getElementById('r-age');
-          const genderEl = document.getElementById('r-gender');
-          const handleEl = document.getElementById('r-handle');
-
-          if (info.playerName && nameEl && !nameEl.value) {
-            nameEl.value = info.playerName;
-            nameEl.style.borderColor = 'var(--accent-volt)';
-          }
-          if (info.email && emailEl && !emailEl.value) {
-            emailEl.value = info.email;
-            emailEl.style.borderColor = 'var(--accent-volt)';
-          }
-          if (info.age && ageEl && !ageEl.value) {
-            ageEl.value = info.age;
-            ageEl.style.borderColor = 'var(--accent-volt)';
-          }
-          if (info.gender && genderEl) {
-            const targetGender = info.gender.trim().toLowerCase();
-            for (const opt of genderEl.options) {
-              if (opt.value && opt.value.toLowerCase() === targetGender) {
-                genderEl.value = opt.value;
-                genderEl.style.borderColor = 'var(--accent-volt)';
-                break;
-              }
-            }
-          }
-          if (info.handle && handleEl && !handleEl.value) {
-            handleEl.value = info.handle;
-            handleEl.style.borderColor = 'var(--accent-volt)';
-          }
-        }
-      } catch (e) {
-        // silent fallback
-      }
-    };
-
-    accessInput.addEventListener('blur', checkAndAutoFill);
-    accessInput.addEventListener('input', () => {
-      if (accessInput.value.trim().length >= 4) {
-        checkAndAutoFill();
-      }
-    });
-  }
 }
