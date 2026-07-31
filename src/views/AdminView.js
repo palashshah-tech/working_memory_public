@@ -660,11 +660,8 @@ function showGate() {
     btn.querySelector('.agc-btn-text').textContent = 'Verifying...';
     btn.disabled = true;
 
-    // Validate as Primary Admin Password
-    let res = await validateAdminAccess('xiberlinc', pass);
-    if (!res.ok) {
-      res = await validateAdminAccess('INSOMNIA', pass);
-    }
+    // Validate as Admin Password (public database uses admin@cogscreen.public)
+    const res = await validateAdminAccess(pass);
 
     btn.querySelector('.agc-btn-text').textContent = t('ad_gate_btn');
     btn.disabled = false;
@@ -679,7 +676,7 @@ function showGate() {
       if (res.reason === 'auth_failed') {
         errEl.textContent = `Admin account not found. Create a Firebase Auth user: ${res.email}`;
       } else {
-        errEl.textContent = 'Invalid admin password.';
+        errEl.textContent = 'Invalid password.';
       }
       errEl.style.display = 'block';
       document.getElementById('ap-pass').value = '';
