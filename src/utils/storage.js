@@ -69,23 +69,33 @@ export const Storage = {
   },
 
   /**
-   * FETCH ALL CANDIDATES FROM FIREBASE (Cloud)
+   * FETCH ALL CANDIDATES FROM FIREBASE (Public Data Collector)
    */
-  async getCandidates(companyId) {
+  async getCandidates() {
     await authReady;
     try {
       const baseRef = collection(db, COLLECTION_NAME);
-      const q = companyId && companyId !== 'xiberlinc'
-        ? query(baseRef, where('companyId', '==', companyId), orderBy("createdAt", "desc"))
-        : query(baseRef, orderBy("createdAt", "desc"));
-      const querySnapshot = await getDocs(q);
+      let querySnapshot;
+      try {
+        const q = query(baseRef, orderBy("createdAt", "desc"));
+        querySnapshot = await getDocs(q);
+      } catch (err) {
+        console.warn("[Public Storage] Firestore unindexed query fallback:", err);
+        querySnapshot = await getDocs(baseRef);
+      }
+
       const candidates = [];
       querySnapshot.forEach((doc) => {
         candidates.push({ id: doc.id, ...doc.data() });
       });
-      if (companyId === 'xiberlinc') {
-        return candidates.map(c => ({ ...c, companyId: c.companyId || 'xiberlinc' }));
-      }
+
+      // Client-side sort by completion / creation timestamp
+      candidates.sort((a, b) => {
+        const tA = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(a.createdAt || a.completedAt || 0);
+        const tB = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(b.createdAt || b.completedAt || 0);
+        return tB - tA;
+      });
+
       return candidates;
     } catch (e) {
       console.error("Error fetching from Firebase: ", e);

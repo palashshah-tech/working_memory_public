@@ -726,7 +726,6 @@ async function showDashboard() {
           <span>${t('ad_admin')}</span>
         </div>
         <div class="av-actions">
-          <button class="av-btn av-btn-ghost" id="av-keys" style="color:#d4ff00; font-family:var(--font-mono); font-size:12px; border:1px solid rgba(212,255,0,0.25); background:rgba(212,255,0,0.08);">🔑 Player Keys</button>
           <button class="av-btn av-btn-ghost" id="av-lang-toggle" style="color:#d4ff00; font-family:var(--font-mono); font-size:12px; border:1px solid rgba(212,255,0,0.25); background:rgba(212,255,0,0.08);">${t('lang_toggle')}</button>
           <button class="av-btn av-btn-ghost" id="av-refresh">↻ ${t('ad_refresh')}</button>
           <button class="av-btn av-btn-ghost" id="av-logout">🚪 ${t('ad_logout')}</button>
