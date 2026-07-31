@@ -599,7 +599,7 @@ const DICTIONARY = {
   }
 };
 
-let currentLang = localStorage.getItem('vwm_lang') || 'en';
+let currentLang = localStorage.getItem('vwm_lang') || 'ja';
 
 export function getLang() {
   return currentLang;
