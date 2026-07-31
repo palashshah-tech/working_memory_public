@@ -554,11 +554,7 @@ function showGate() {
 
         <div class="agc-fields">
           <div class="agc-field-wrap">
-            <div class="agc-field-icon">#</div>
-            <input class="agc-input" type="text" id="ap-code" placeholder="${t('ad_gate_placeholder_code')}" autocomplete="off" spellcheck="false" />
-          </div>
-          <div class="agc-field-wrap">
-            <div class="agc-field-icon">⬤</div>
+            <div class="agc-field-icon">🔒</div>
             <input class="agc-input" type="password" id="ap-pass" placeholder="${t('ad_gate_placeholder_pass')}" autocomplete="off" />
           </div>
         </div>
@@ -657,7 +653,6 @@ function showGate() {
   `);
 
   const doAuth = async () => {
-    const code  = document.getElementById('ap-code').value.trim();
     const pass  = document.getElementById('ap-pass').value;
     const errEl = document.getElementById('ap-err');
     const btn   = document.getElementById('ap-auth');
@@ -665,37 +660,18 @@ function showGate() {
     btn.querySelector('.agc-btn-text').textContent = 'Verifying...';
     btn.disabled = true;
 
-    // Try player access (secondary key)
-    const playerRes = await validatePlayerAccess(code);
-    if (playerRes.ok) {
-      btn.querySelector('.agc-btn-text').textContent = 'Access Dashboard';
-      btn.disabled = false;
-      authed = true;
-      playerMode = true;
-      playerCode = code;
-      playerName = playerRes.playerName || code;
-      adminCompanyId = playerRes.companyId;
-      adminCompanyName = playerRes.companyName || playerRes.companyId;
-      showPlayerDashboard();
-      return;
+    // Validate as Primary Admin Password
+    let res = await validateAdminAccess('xiberlinc', pass);
+    if (!res.ok) {
+      res = await validateAdminAccess('INSOMNIA', pass);
     }
 
-    if (playerRes.reason === 'inactive' || playerRes.reason === 'parent_inactive') {
-      btn.querySelector('.agc-btn-text').textContent = 'Access Dashboard';
-      btn.disabled = false;
-      errEl.textContent = 'This player key or parent organisation key is inactive.';
-      errEl.style.display = 'block';
-      return;
-    }
-
-    // Validate as Primary Admin Key
-    const res = await validateAdminAccess(code, pass);
-    btn.querySelector('.agc-btn-text').textContent = 'Access Dashboard';
+    btn.querySelector('.agc-btn-text').textContent = t('ad_gate_btn');
     btn.disabled = false;
     if (res.ok) {
       authed = true;
       playerMode = false;
-      adminCode = code;
+      adminCode = res.code;
       adminCompanyId = res.companyId;
       adminCompanyName = res.companyName || res.companyId;
       showDashboard();
@@ -703,7 +679,7 @@ function showGate() {
       if (res.reason === 'auth_failed') {
         errEl.textContent = `Admin account not found. Create a Firebase Auth user: ${res.email}`;
       } else {
-        errEl.textContent = 'Invalid access code or password.';
+        errEl.textContent = 'Invalid admin password.';
       }
       errEl.style.display = 'block';
       document.getElementById('ap-pass').value = '';
@@ -712,7 +688,6 @@ function showGate() {
   };
   document.getElementById('ap-auth').addEventListener('click', doAuth);
   document.getElementById('ap-pass').addEventListener('keydown', e => { if (e.key === 'Enter') doAuth(); });
-  document.getElementById('ap-code').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('ap-pass').focus(); });
   document.getElementById('av-lang-toggle-gate').addEventListener('click', () => {
     const newLang = getLang() === 'en' ? 'ja' : 'en';
     setLang(newLang);
