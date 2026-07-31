@@ -189,7 +189,8 @@ export class ANTEngine {
       cueType: cond.cueType, flankerType: cond.flankerType,
       isCorrect: answer === cond.targetDirection,
       reactionTimeMs: now() - this.responseStartTime,
-      timestamp: Date.now()
+      timestamp: Date.now(),
+      isPractice: Boolean(this.isPractice)
     };
     this.trialData.push(record);
     if (this.onTrialComplete) this.onTrialComplete(record);

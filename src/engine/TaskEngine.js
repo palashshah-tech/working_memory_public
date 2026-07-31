@@ -25,7 +25,7 @@ export class TaskEngine {
     this.shape        = shape;
     this.isPractice   = isPractice;
 
-    // Define condition blocks
+    // Define condition blocks (up to N=12 for high-performer headroom)
     if (isPractice) {
       this.blocks = taskType === 'vwm-pure'
         ? [{t:1, d:0}, {t:2, d:0}, {t:3, d:0}]
@@ -33,18 +33,19 @@ export class TaskEngine {
       this.trialsPerBlock = 1;
     } else {
       this.blocks = taskType === 'vwm-pure'
-        ? [{t:1, d:0}, {t:2, d:0}, {t:3, d:0}, {t:4, d:0}, {t:6, d:0}, {t:8, d:0}]
-        : [{t:1, d:1}, {t:2, d:2}, {t:3, d:3}, {t:4, d:4}, {t:6, d:6}, {t:8, d:8}];
+        ? [{t:1, d:0}, {t:2, d:0}, {t:3, d:0}, {t:4, d:0}, {t:6, d:0}, {t:8, d:0}, {t:10, d:0}, {t:12, d:0}]
+        : [{t:1, d:1}, {t:2, d:2}, {t:3, d:3}, {t:4, d:4}, {t:6, d:6}, {t:8, d:8}, {t:10, d:10}, {t:12, d:12}];
       this.trialsPerBlock = 10;
     }
 
     this.blockIdx = 0;
     
-    // Track stats per block
+    // Track stats per block & set size history to filter out lucky guessing
     this.streak = 0;
     this.mistakesInBlock = 0;
     this.trialsInBlock = 0;
     this.consecutiveMistakes = 0;
+    this.setSizeHistory = {};
 
     this.trialNum = 0;
     this.running  = false;
@@ -57,7 +58,7 @@ export class TaskEngine {
     this._timerResolve = null;
 
     this.trialData = [];
-    this.maxTrials = this.blocks.length * this.trialsPerBlock;
+    this.maxTrials = 50; // Crisp evaluation limit
     this._finished = false;  // guard: onDone fires exactly once
 
     this.onCountdown = null;
@@ -197,6 +198,11 @@ export class TaskEngine {
 
     const isCorrect = answer === (isChange ? 'different' : 'same');
 
+    if (!this.setSizeHistory[setSize]) {
+      this.setSizeHistory[setSize] = [];
+    }
+    this.setSizeHistory[setSize].push(isCorrect);
+
     this.trialsInBlock++;
 
     if (this.isPractice) {
@@ -229,15 +235,29 @@ export class TaskEngine {
       setSize, isChange, isCorrect,
       reactionTimeMs: Math.round(rt),
       timestamp: Date.now(),
+      isPractice: Boolean(this.isPractice),
+      stimulusColors: trial.studyItems.filter(item => item.type === 'target').map(item => item.color),
     };
     this.trialData.push(record);
     // Fire onTrial FIRST so the view can show the overlay
     if (this.onTrial) this.onTrial(record);
 
-    // After trial processing, check termination
-    // Keep it going until the person gets three wrong in a row (consecutively)
-    if (!this.isPractice && this.consecutiveMistakes >= 3) {
-      this.running = false; // Terminate task
+    // Anti-Luck Chance Termination Filter:
+    // Prevents lucky guessers from playing indefinitely while allowing high-performers to reach N=12
+    if (!this.isPractice) {
+      const history = this.setSizeHistory[setSize] || [];
+      const recentWindow = history.slice(-5);
+      const recentErrors = recentWindow.filter(c => !c).length;
+
+      // Terminate if:
+      // 1. 3 consecutive errors occur anywhere, OR
+      // 2. 3 errors occur in the last 4-5 trials at current set size (chance/guessing performance), OR
+      // 3. 4 total mistakes accumulate at set size N >= 3
+      if (this.consecutiveMistakes >= 3 || 
+         (recentWindow.length >= 4 && recentErrors >= 3) ||
+         (setSize >= 3 && this.mistakesInBlock >= 4)) {
+        this.running = false; // Clean, high-precision task conclusion
+      }
     }
 
     // Clear canvas during feedback pause — overlay handles the tick/cross

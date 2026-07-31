@@ -26,8 +26,8 @@ export function computeVWMScores(trials) {
     return { kScores: {}, maxK: 0, accuracy: 0, meanRT: 0, maxSetSize: 0, accuracyBySetSize: {}, rtBySetSize: {}, correctRtBySetSize: {}, totalTrials: 0 };
   }
 
-  // Remove trials where response is too fast (< 200ms)
-  const filteredTrials = trials.filter(t => t.reactionTimeMs === undefined || t.reactionTimeMs === null || t.reactionTimeMs >= 200);
+  // Remove practice trials and trials where response is too fast (< 200ms)
+  const filteredTrials = trials.filter(t => !t.isPractice && (t.reactionTimeMs === undefined || t.reactionTimeMs === null || t.reactionTimeMs >= 200));
 
   if (filteredTrials.length === 0) {
     return { kScores: {}, maxK: 0, accuracy: 0, meanRT: 0, maxSetSize: 0, accuracyBySetSize: {}, rtBySetSize: {}, correctRtBySetSize: {}, totalTrials: trials.length };
@@ -78,8 +78,6 @@ export function computeVWMScores(trials) {
       trials: sizeTrials.length,
     };
 
-    if (k > maxK) maxK = k;
-
     // Accuracy
     const correct = sizeTrials.filter(t => t.isCorrect).length;
     accuracyBySetSize[n] = sizeTrials.length > 0 ? correct / sizeTrials.length : 0;
@@ -95,6 +93,16 @@ export function computeVWMScores(trials) {
       ? median(sizeCorrectTrials.map(t => t.reactionTimeMs))
       : 0;
   }
+
+  // Trial-weighted Cowan's K across set sizes to prevent 2-trial ramp-up noise from overriding main trial blocks
+  let sumWeightedK = 0;
+  let totalKTrials = 0;
+  for (const [nStr, data] of Object.entries(kScores)) {
+    sumWeightedK += data.k * data.trials;
+    totalKTrials += data.trials;
+  }
+  const weightedK = totalKTrials > 0 ? sumWeightedK / totalKTrials : 0;
+  maxK = weightedK;
 
   // Overall accuracy
   const totalCorrect = filteredTrials.filter(t => t.isCorrect).length;
@@ -146,8 +154,8 @@ export function computeANTScores(trials) {
     };
   }
 
-  // Remove trials where response is too fast (< 200ms)
-  const filteredTrials = trials.filter(t => t.reactionTimeMs === undefined || t.reactionTimeMs === null || t.reactionTimeMs >= 200);
+  // Remove practice trials and trials where response is too fast (< 200ms)
+  const filteredTrials = trials.filter(t => !t.isPractice && (t.reactionTimeMs === undefined || t.reactionTimeMs === null || t.reactionTimeMs >= 200));
 
   if (filteredTrials.length === 0) {
     return {
@@ -181,7 +189,7 @@ export function computeANTScores(trials) {
       : 0;
   }
 
-  // Compute network scores
+  // Compute network scores (raw subtraction)
   const alerting = rtByCue.none - rtByCue.center;
   const orienting = rtByCue.center - rtByCue.spatial;
   const executive = rtByFlanker.incongruent - rtByFlanker.congruent;
@@ -216,30 +224,17 @@ export function computeANTScores(trials) {
     ? spatialCueTrials.filter(t => t.isCorrect).length / spatialCueTrials.length
     : 0;
 
-  const accuracyAlerting = accuracyCenter - accuracyNone;
-  const accuracyOrienting = accuracySpatial - accuracyCenter;
-  const accuracyExecutive = accuracyCongruent - accuracyIncongruent;
+  // Throughput (correct responses per second) for each condition
+  const tpNone = rtByCue.none > 0 ? (accuracyNone / rtByCue.none) * 1000 : 0;
+  const tpCenter = rtByCue.center > 0 ? (accuracyCenter / rtByCue.center) * 1000 : 0;
+  const tpSpatial = rtByCue.spatial > 0 ? (accuracySpatial / rtByCue.spatial) * 1000 : 0;
+  const efficiencyCongruent = rtByFlanker.congruent > 0 ? (accuracyCongruent / rtByFlanker.congruent) * 1000 : 0;
+  const efficiencyIncongruent = rtByFlanker.incongruent > 0 ? (accuracyIncongruent / rtByFlanker.incongruent) * 1000 : 0;
 
-  // Efficiency calculations: (Accuracy / RT_ms) * 1000 to express in "Correct Responses per Second" (throughput)
-  const efficiencyCongruent = rtByFlanker.congruent > 0
-    ? (accuracyCongruent / rtByFlanker.congruent) * 1000
-    : 0;
-
-  const efficiencyIncongruent = rtByFlanker.incongruent > 0
-    ? (accuracyIncongruent / rtByFlanker.incongruent) * 1000
-    : 0;
-
-  const efficiencyAlerting = alerting !== 0
-    ? (accuracyAlerting / alerting) * 1000
-    : 0;
-
-  const efficiencyOrienting = orienting !== 0
-    ? (accuracyOrienting / orienting) * 1000
-    : 0;
-
-  const efficiencyExecutive = executive !== 0
-    ? (accuracyExecutive / executive) * 1000
-    : 0;
+  // Sub-network throughput differences (raw r/s gain/loss)
+  const efficiencyAlerting = tpCenter - tpNone;
+  const efficiencyOrienting = tpSpatial - tpCenter;
+  const efficiencyExecutive = efficiencyCongruent - efficiencyIncongruent;
 
   // Overall median RT
   const medianRT = validTrials.length > 0
@@ -292,9 +287,9 @@ function normalize(value, min, max, invert = false) {
  * These are approximate ranges for healthy adults
  */
 const BENCHMARKS = {
-  kPure: { min: 0, max: 6 },         // K score typically 1-5
-  kDistractor: { min: 0, max: 5 },    // Usually slightly lower
-  maxSetSize: { min: 1, max: 8 },     // Max tested
+  kPure: { min: 0, max: 8 },         // K capacity up to 8+
+  kDistractor: { min: 0, max: 8 },    // Distractor capacity up to 8+
+  maxSetSize: { min: 1, max: 12 },    // Max tested up to 12
   meanRT: { min: 200, max: 1500 },    // ms
   alerting: { min: -20, max: 100 },   // ms (typically 20-60ms)
   orienting: { min: -20, max: 80 },   // ms (typically 20-50ms)
@@ -380,11 +375,11 @@ export function computeFullScores(allTrials) {
   // VWM Executive efficiency & speed calculations
   const wmcK = vwmPure.maxK;
   const fwmcK = vwmDistractor.maxK;
-  const execEfficiency = wmcK > 0 ? ((fwmcK - wmcK) / wmcK) * 100 : 0;
+  const execEfficiency = wmcK > 0 ? (fwmcK / wmcK) * 100 : 0;
 
   const wmcCorrRT = vwmPure.medianRT;
   const fwmcCorrRT = vwmDistractor.medianRT;
-  const execSpeed = wmcCorrRT - fwmcCorrRT;
+  const execSpeed = fwmcCorrRT - wmcCorrRT;
 
   return {
     vwmPure,

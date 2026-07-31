@@ -8,6 +8,7 @@ import { computeFullScores } from '../scoring/ScoringEngine.js';
 import { injectStyle } from '../router.js';
 import { t } from '../utils/i18n.js';
 import { endSession } from '../utils/access.js';
+import { generateSvgLineChart } from '../utils/charts.js';
 
 export function CompleteView() {
   const session = Storage.getCurrentSession();
@@ -22,7 +23,8 @@ export function CompleteView() {
           email: session.email,
           age: session.age,
           handle: session.handle,
-          companyId: 'public',
+          companyId: localStorage.getItem('cogscreen_company_id') || 'xiberlinc',
+          accessCode: localStorage.getItem('cogscreen_access_code') || null,
           startedAt: session.startedAt,
           completedAt: new Date().toISOString(),
           trials: session.trials,
@@ -93,13 +95,16 @@ export function CompleteView() {
   }
 
   const historyList = Storage.getLocalHistory() || [];
-  const historyHtml = historyList.map(h => `
-    <div class="cv-history-item">
-      <span class="cv-hist-date">${new Date(h.completedAt).toLocaleDateString()}</span>
-      <span class="cv-hist-score">Comp: <strong>${(h.scores?.compositeScore || 0).toFixed(1)}</strong></span>
-      <span class="cv-hist-acc">Acc: <strong>${Math.round((h.scores?.accuracyPure || 0) * 100)}%</strong></span>
-    </div>
-  `).join('');
+  const localHistory = [...historyList].reverse();
+  const dataPoints = localHistory.map(h => ({
+    value: h.scores?.compositeScore || 0,
+    label: new Date(h.completedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+  }));
+  const chartHtml = localHistory.length > 0
+    ? `<div style="background:rgba(255,255,255,0.015); border:1px solid rgba(255,255,255,0.05); border-radius:12px; padding:16px 20px; margin-top:8px;">
+         ${generateSvgLineChart(dataPoints, 320, 180)}
+       </div>`
+    : `<div class="cv-history-item" style="justify-content:center;color:var(--text-tertiary);">No attempt history found</div>`;
 
   render(`
     <div class="view cv">
@@ -168,12 +173,10 @@ export function CompleteView() {
               </div>
             </div>
 
-            ${historyHtml ? `
+            ${historyList.length > 0 ? `
               <div class="cv-history">
                 <h3 class="cv-summary-title">${t('cv_history_title')}</h3>
-                <div class="cv-history-list">
-                  ${historyHtml}
-                </div>
+                ${chartHtml}
               </div>
             ` : ''}
           </div>

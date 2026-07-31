@@ -1,18 +1,24 @@
 /* ============================================================
    Admin View — Hidden dashboard (/admin)
-   Passphrase: cogscreen2026
+   Primary/Secondary Key Architecture
    ============================================================ */
 
 import { render, $, downloadFile } from '../utils/dom.js';
 import { Storage } from '../utils/storage.js';
 import { recalculateRanks, getTierDistribution, getStatsSummary } from '../scoring/RankingEngine.js';
+import { computeFullScores } from '../scoring/ScoringEngine.js';
 import { injectStyle } from '../router.js';
-import { validateAdminAccess } from '../utils/access.js';
+import { validateAdminAccess, validatePlayerAccess, createSecondaryKey, getSecondaryKeys, revokeSecondaryKey, reactivateSecondaryKey } from '../utils/access.js';
 import { t, getLang, setLang } from '../utils/i18n.js';
+import { generateSvgLineChart } from '../utils/charts.js';
 
 let authed = false;
 let adminCompanyId = null;
 let adminCompanyName = '';
+let adminCode = null;        // the primary key code used to login
+let playerMode = false;      // true if logged in with a secondary key
+let playerCode = null;       // the secondary key code
+let playerName = '';         // the player name from the secondary key
 
 export function AdminView() {
   injectStyle(`
@@ -460,7 +466,7 @@ export function AdminView() {
       background: #13131a;
       border: 1px solid rgba(255,255,255,0.1);
       border-radius: 20px;
-      max-width: 480px; width: 100%;
+      max-width: 600px; width: 100%;
       padding: 36px 32px;
       position: relative;
       animation: av-card-in 0.28s cubic-bezier(0.2,0,0,1.2);
@@ -518,7 +524,7 @@ export function AdminView() {
     }
   `);
 
-  if (!authed) { showGate(); } else { showDashboard(); }
+  if (!authed) { showGate(); } else if (playerMode) { showPlayerDashboard(); } else { showDashboard(); }
 }
 
 /* ---- Gate ---- */
@@ -547,6 +553,10 @@ function showGate() {
         <p class="agc-sub">${t('ad_gate_sub')}</p>
 
         <div class="agc-fields">
+          <div class="agc-field-wrap">
+            <div class="agc-field-icon">#</div>
+            <input class="agc-input" type="text" id="ap-code" placeholder="${t('ad_gate_placeholder_code')}" autocomplete="off" spellcheck="false" />
+          </div>
           <div class="agc-field-wrap">
             <div class="agc-field-icon">⬤</div>
             <input class="agc-input" type="password" id="ap-pass" placeholder="${t('ad_gate_placeholder_pass')}" autocomplete="off" />
@@ -647,17 +657,45 @@ function showGate() {
   `);
 
   const doAuth = async () => {
+    const code  = document.getElementById('ap-code').value.trim();
     const pass  = document.getElementById('ap-pass').value;
     const errEl = document.getElementById('ap-err');
     const btn   = document.getElementById('ap-auth');
     errEl.style.display = 'none';
     btn.querySelector('.agc-btn-text').textContent = 'Verifying...';
     btn.disabled = true;
-    const res = await validateAdminAccess(pass);
+
+    // Try player access (secondary key)
+    const playerRes = await validatePlayerAccess(code);
+    if (playerRes.ok) {
+      btn.querySelector('.agc-btn-text').textContent = 'Access Dashboard';
+      btn.disabled = false;
+      authed = true;
+      playerMode = true;
+      playerCode = code;
+      playerName = playerRes.playerName || code;
+      adminCompanyId = playerRes.companyId;
+      adminCompanyName = playerRes.companyName || playerRes.companyId;
+      showPlayerDashboard();
+      return;
+    }
+
+    if (playerRes.reason === 'inactive' || playerRes.reason === 'parent_inactive') {
+      btn.querySelector('.agc-btn-text').textContent = 'Access Dashboard';
+      btn.disabled = false;
+      errEl.textContent = 'This player key or parent organisation key is inactive.';
+      errEl.style.display = 'block';
+      return;
+    }
+
+    // Validate as Primary Admin Key
+    const res = await validateAdminAccess(code, pass);
     btn.querySelector('.agc-btn-text').textContent = 'Access Dashboard';
     btn.disabled = false;
     if (res.ok) {
       authed = true;
+      playerMode = false;
+      adminCode = code;
       adminCompanyId = res.companyId;
       adminCompanyName = res.companyName || res.companyId;
       showDashboard();
@@ -665,7 +703,7 @@ function showGate() {
       if (res.reason === 'auth_failed') {
         errEl.textContent = `Admin account not found. Create a Firebase Auth user: ${res.email}`;
       } else {
-        errEl.textContent = 'Invalid password.';
+        errEl.textContent = 'Invalid access code or password.';
       }
       errEl.style.display = 'block';
       document.getElementById('ap-pass').value = '';
@@ -674,6 +712,7 @@ function showGate() {
   };
   document.getElementById('ap-auth').addEventListener('click', doAuth);
   document.getElementById('ap-pass').addEventListener('keydown', e => { if (e.key === 'Enter') doAuth(); });
+  document.getElementById('ap-code').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('ap-pass').focus(); });
   document.getElementById('av-lang-toggle-gate').addEventListener('click', () => {
     const newLang = getLang() === 'en' ? 'ja' : 'en';
     setLang(newLang);
@@ -693,7 +732,12 @@ async function showDashboard() {
   `;
   render(loadingHtml);
 
-  const rawCandidates = await Storage.getCandidates(undefined);
+  const rawCandidates = await Storage.getCandidates(adminCompanyId || undefined);
+  rawCandidates.forEach(c => {
+    if (c.trials && c.trials.length > 0) {
+      c.scores = computeFullScores(c.trials);
+    }
+  });
   const candidates = recalculateRanks(rawCandidates);
   const stats = getStatsSummary(candidates);
   const tiers = getTierDistribution(candidates);
@@ -710,8 +754,10 @@ async function showDashboard() {
           <span>${t('ad_admin')}</span>
         </div>
         <div class="av-actions">
+          <button class="av-btn av-btn-ghost" id="av-keys" style="color:#d4ff00; font-family:var(--font-mono); font-size:12px; border:1px solid rgba(212,255,0,0.25); background:rgba(212,255,0,0.08);">🔑 Player Keys</button>
           <button class="av-btn av-btn-ghost" id="av-lang-toggle" style="color:#d4ff00; font-family:var(--font-mono); font-size:12px; border:1px solid rgba(212,255,0,0.25); background:rgba(212,255,0,0.08);">${t('lang_toggle')}</button>
           <button class="av-btn av-btn-ghost" id="av-refresh">↻ ${t('ad_refresh')}</button>
+          <button class="av-btn av-btn-ghost" id="av-logout">🚪 ${t('ad_logout')}</button>
           <button class="av-btn av-btn-ghost" id="av-json">↓ ${t('ad_json')}</button>
           <button class="av-btn av-btn-ghost" id="av-csv">↓ ${t('ad_csv')}</button>
         </div>
@@ -779,6 +825,11 @@ async function showDashboard() {
                     const cs = s.compositeScore || 0;
                     const tc = TIER_CLS[s.tier || 'D'] || 'd';
                     const initials = (c.name || 'N A').split(' ').map(p => p[0]).slice(0,2).join('').toUpperCase();
+                    const userSessions = candidates.filter(x => 
+                      (x.name && c.name && x.name.trim().toLowerCase() === c.name.trim().toLowerCase())
+                    );
+                    const sessionCount = userSessions.length;
+                    const sessionBadge = sessionCount > 1 ? `<span style="font-family:var(--font-mono);font-size:10px;background:rgba(52,211,153,0.12);color:#34d399;padding:2px 6px;border-radius:4px;margin-left:6px;font-weight:bold;" title="${sessionCount} sessions completed">📈 x${sessionCount}</span>` : '';
                     return `
                       <tr>
                         <td class="av-rank">${c.rank || i+1}</td>
@@ -786,7 +837,7 @@ async function showDashboard() {
                           <div class="av-candidate">
                             <div class="av-avatar">${initials}</div>
                             <div class="av-name">
-                              <strong>${c.name || '—'}</strong>
+                              <strong>${c.name || '—'}${sessionBadge}</strong>
                               <span class="av-handle">${c.handle||'—'}</span>
                             </div>
                           </div>
@@ -797,7 +848,7 @@ async function showDashboard() {
                         <td class="td-mono">${s.maxSetSize||0}</td>
                         <td class="td-mono">${(s.meanRT||0).toFixed(0)}ms</td>
                         <td class="td-mono">${((s.accuracyDistractor||0)*100).toFixed(0)}%</td>
-                        <td><button class="av-btn-view" data-email="${c.email||''}">${t('ad_btn_detail')}</button></td>
+                        <td><button class="av-btn-view" data-id="${c.id}">${t('ad_btn_detail')}</button></td>
                       </tr>
                     `;
                   }).join('')}
@@ -866,10 +917,15 @@ async function showDashboard() {
                     const sc = cs >= 70 ? 'td-score-hi' : cs >= 40 ? 'td-score-md' : 'td-score-lo';
                     const tc = TIER_CLS[s.tier || 'D'] || 'd';
                     const date = c.completedAt ? new Date(c.completedAt).toLocaleDateString() : '—';
+                    const userSessions = candidates.filter(x => 
+                      (x.name && c.name && x.name.trim().toLowerCase() === c.name.trim().toLowerCase())
+                    );
+                    const sessionCount = userSessions.length;
+                    const sessionBadge = sessionCount > 1 ? `<span style="font-family:var(--font-mono);font-size:10px;background:rgba(52,211,153,0.12);color:#34d399;padding:2px 6px;border-radius:4px;margin-left:6px;font-weight:bold;" title="${sessionCount} sessions completed">📈 x${sessionCount}</span>` : '';
                     return `
                       <tr>
                         <td class="td-mono">${c.rank || i+1}</td>
-                        <td class="td-name">${c.name || '—'}</td>
+                        <td class="td-name">${c.name || '—'}${sessionBadge}</td>
                         <td><span style="font-family:var(--font-mono);font-size:11px;background:rgba(0,240,255,0.08);color:#00f0ff;padding:2px 8px;border-radius:99px">${c.handle||'—'}</span></td>
                         <td class="td-mono">${c.age||'—'}</td>
                         <td><span class="tier-pip tier-${tc}">${s.tier||'—'}</span></td>
@@ -879,12 +935,11 @@ async function showDashboard() {
                         <td class="td-mono">${s.maxSetSize||0}</td>
                         <td class="td-mono">${(s.meanRT||0).toFixed(0)}ms</td>
                         <td class="td-mono">${((s.accuracyPure||0)*100).toFixed(0)}%</td>
-                        <td class="td-mono">${((s.accuracyDistractor||0)*100).toFixed(0)}%</td>
                         <td class="td-mono">${(s.alerting||0).toFixed(0)}ms</td>
                         <td class="td-mono">${(s.orienting||0).toFixed(0)}ms</td>
                         <td class="td-mono">${(s.executive||0).toFixed(0)}ms</td>
                         <td class="td-mono">${date}</td>
-                        <td><button class="av-btn-view" data-email="${c.email||''}">${t('ad_btn_detail')}</button></td>
+                        <td><button class="av-btn-view" data-id="${c.id}">${t('ad_btn_detail')}</button></td>
                       </tr>
                     `;
                   }).join('')}
@@ -900,7 +955,15 @@ async function showDashboard() {
   `);
 
   // Button handlers
+  document.getElementById('av-keys')?.addEventListener('click', () => showKeyManagerModal(adminCode, adminCompanyId));
   document.getElementById('av-refresh')?.addEventListener('click', () => showDashboard());
+  document.getElementById('av-logout')?.addEventListener('click', () => {
+    authed = false;
+    playerMode = false;
+    adminCode = null;
+    playerCode = null;
+    AdminView();
+  });
   document.getElementById('av-json')?.addEventListener('click', () => {
     downloadFile(Storage.exportJSON(candidates), 'candidates.json', 'application/json');
   });
@@ -914,7 +977,7 @@ async function showDashboard() {
   });
 
   document.querySelectorAll('.av-btn-view').forEach(btn => {
-    btn.addEventListener('click', () => showDetail(btn.dataset.email, candidates));
+    btn.addEventListener('click', () => showDetail(btn.dataset.id, candidates));
   });
 
   // Search functionality
@@ -932,10 +995,491 @@ async function showDashboard() {
   }
 }
 
+/* ---- Player Access Keys Manager Modal ---- */
+async function showKeyManagerModal(parentCode, companyId) {
+  const container = document.getElementById('av-modal-container');
+  if (!container) return;
+
+  const keys = await getSecondaryKeys(parentCode || 'xiber_privatekey$');
+
+  const modalHtml = `
+    <div class="av-modal-backdrop" id="key-modal-backdrop" style="position:fixed; inset:0; z-index:100; background:rgba(0,0,0,0.85); backdrop-filter:blur(8px); display:flex; align-items:center; justify-content:center; padding:20px;">
+      <div class="av-modal" style="max-width: 640px; width:100%; background:#0e0e12; border:1px solid rgba(212,255,0,0.25); box-shadow:0 24px 60px rgba(0,0,0,0.9); border-radius:18px; padding:24px; color:#fff;">
+        <div class="av-modal-head" style="display:flex; justify-content:space-between; align-items:flex-start; border-bottom:1px solid rgba(255,255,255,0.08); padding-bottom:16px;">
+          <div>
+            <h2 style="font-family:var(--font-display); font-size:20px; font-weight:700; color:var(--text-primary); margin:0;">${t('km_modal_title')}</h2>
+            <p style="font-size:12px; color:var(--text-secondary); margin:4px 0 0 0;">${t('km_modal_sub')}</p>
+          </div>
+          <button class="av-modal-close" id="key-modal-close" style="background:transparent; border:none; color:var(--text-tertiary); font-size:20px; cursor:pointer;">✕</button>
+        </div>
+
+        <div class="av-modal-body" style="padding:20px 0 0 0;">
+          <form id="sk-form" style="background:rgba(212,255,0,0.03); padding:16px; border-radius:12px; border:1px solid rgba(212,255,0,0.12); margin-bottom:20px;">
+            <h4 style="font-family:var(--font-mono); font-size:11px; color:var(--accent-volt); margin:0 0 12px 0; letter-spacing:0.08em; text-transform:uppercase;">${t('km_form_title')}</h4>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px;">
+              <div>
+                <label for="sk-player-name" style="font-size:11px; color:var(--text-tertiary); display:block; margin-bottom:4px; font-family:var(--font-mono);">${t('km_label_name')}</label>
+                <input type="text" id="sk-player-name" name="playerName" placeholder="e.g. Yuki Sakai" style="width:100%; background:rgba(0,0,0,0.5); border:1px solid rgba(255,255,255,0.12); border-radius:8px; color:#fff; padding:10px 12px; font-size:13px;" required />
+              </div>
+              <div>
+                <label for="sk-custom-code" style="font-size:11px; color:var(--text-tertiary); display:block; margin-bottom:4px; font-family:var(--font-mono);">${t('km_label_custom')}</label>
+                <input type="text" id="sk-custom-code" name="customCode" placeholder="e.g. PLY-SAKAI-01" style="width:100%; background:rgba(0,0,0,0.5); border:1px solid rgba(255,255,255,0.12); border-radius:8px; color:#fff; padding:10px 12px; font-size:13px; font-family:var(--font-mono);" />
+              </div>
+            </div>
+            
+            <div style="display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:10px; margin-bottom:12px;">
+              <div>
+                <label for="sk-email" style="font-size:10px; color:var(--text-tertiary); display:block; margin-bottom:4px; font-family:var(--font-mono);">${t('label_email')}</label>
+                <input type="email" id="sk-email" placeholder="yuki@example.com" style="width:100%; background:rgba(0,0,0,0.5); border:1px solid rgba(255,255,255,0.12); border-radius:8px; color:#fff; padding:8px 10px; font-size:12px;" />
+              </div>
+              <div>
+                <label for="sk-age" style="font-size:10px; color:var(--text-tertiary); display:block; margin-bottom:4px; font-family:var(--font-mono);">${t('label_age')}</label>
+                <input type="number" id="sk-age" placeholder="22" min="13" max="60" style="width:100%; background:rgba(0,0,0,0.5); border:1px solid rgba(255,255,255,0.12); border-radius:8px; color:#fff; padding:8px 10px; font-size:12px;" />
+              </div>
+              <div>
+                <label for="sk-gender" style="font-size:10px; color:var(--text-tertiary); display:block; margin-bottom:4px; font-family:var(--font-mono);">${t('label_gender')}</label>
+                <select id="sk-gender" style="width:100%; background:rgba(0,0,0,0.5); border:1px solid rgba(255,255,255,0.12); border-radius:8px; color:#fff; padding:8px 10px; font-size:12px;">
+                  <option value="">Select...</option>
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+              <div>
+                <label for="sk-handle" style="font-size:10px; color:var(--text-tertiary); display:block; margin-bottom:4px; font-family:var(--font-mono);">${t('label_handle')}</label>
+                <input type="text" id="sk-handle" placeholder="YUKI_FPS" style="width:100%; background:rgba(0,0,0,0.5); border:1px solid rgba(255,255,255,0.12); border-radius:8px; color:#fff; padding:8px 10px; font-size:12px;" />
+              </div>
+            </div>
+
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <span id="sk-form-msg" style="font-size:12px; color:#f87171; display:none;"></span>
+              <button type="submit" id="sk-create-btn" class="av-btn" style="background:var(--accent-volt); color:#080810; font-weight:700; font-family:var(--font-mono); border:none; padding:10px 18px; border-radius:8px; cursor:pointer; margin-left:auto; font-size:12px;">
+                ${t('km_btn_issue')}
+              </button>
+            </div>
+          </form>
+
+          <h4 style="font-family:var(--font-mono); font-size:11px; color:var(--text-secondary); margin:0 0 10px 0; letter-spacing:0.05em; text-transform:uppercase;">${t('km_issued_title', { count: keys.length })}</h4>
+          <div style="max-height:240px; overflow-y:auto; border:1px solid rgba(255,255,255,0.08); border-radius:10px;">
+            <table class="av-board-table" style="font-size:12px; width:100%;">
+              <thead>
+                <tr>
+                  <th>${t('km_col_code')}</th>
+                  <th>${t('km_col_name')}</th>
+                  <th>${t('km_col_status')}</th>
+                  <th>${t('km_col_action')}</th>
+                </tr>
+              </thead>
+              <tbody id="sk-table-body">
+                ${keys.length === 0 ? `
+                  <tr><td colspan="4" style="text-align:center; color:var(--text-tertiary); padding:20px;">${t('km_empty')}</td></tr>
+                ` : keys.map(k => `
+                  <tr>
+                    <td class="td-mono" style="color:var(--accent-volt); font-weight:bold;">${k.code}</td>
+                    <td>${k.playerName || '—'}</td>
+                    <td><span class="badge ${k.active !== false ? 'badge-b' : 'badge-d'}">${k.active !== false ? t('km_status_active') : t('km_status_revoked')}</span></td>
+                    <td>
+                      <button class="av-btn-copy" data-code="${k.code}" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); color:#fff; border-radius:6px; padding:4px 10px; font-size:11px; cursor:pointer; font-family:var(--font-mono);">
+                        ${t('km_btn_copy')}
+                      </button>
+                      ${k.active !== false ? `
+                        <button class="av-btn-revoke" data-code="${k.code}" style="background:rgba(248,113,113,0.12); border:1px solid rgba(248,113,113,0.3); color:#f87171; border-radius:6px; padding:4px 10px; font-size:11px; cursor:pointer; font-family:var(--font-mono); margin-left:6px;">
+                          ${t('km_btn_revoke')}
+                        </button>
+                      ` : `
+                        <button class="av-btn-reactivate" data-code="${k.code}" style="background:rgba(52,211,153,0.12); border:1px solid rgba(52,211,153,0.3); color:#34d399; border-radius:6px; padding:4px 10px; font-size:11px; cursor:pointer; font-family:var(--font-mono); margin-left:6px;">
+                          ${t('km_btn_reactivate')}
+                        </button>
+                      `}
+                    </td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  container.innerHTML = modalHtml;
+
+  document.getElementById('key-modal-close')?.addEventListener('click', () => { container.innerHTML = ''; });
+  document.getElementById('key-modal-backdrop')?.addEventListener('click', (e) => {
+    if (e.target.id === 'key-modal-backdrop') container.innerHTML = '';
+  });
+
+  const handleKeyCreate = async (e) => {
+    if (e) e.preventDefault();
+    const nameVal = document.getElementById('sk-player-name').value.trim();
+    const customCodeVal = document.getElementById('sk-custom-code').value.trim();
+    const emailVal = document.getElementById('sk-email')?.value.trim();
+    const ageVal = document.getElementById('sk-age')?.value.trim();
+    const genderVal = document.getElementById('sk-gender')?.value;
+    const handleVal = document.getElementById('sk-handle')?.value.trim();
+    const msgEl = document.getElementById('sk-form-msg');
+    
+    msgEl.style.display = 'none';
+    const res = await createSecondaryKey({
+      parentCode: parentCode || 'xiber_privatekey$',
+      companyId: companyId || 'xiberlinc',
+      customCode: customCodeVal || null,
+      playerName: nameVal,
+      email: emailVal || null,
+      age: ageVal || null,
+      gender: genderVal || null,
+      handle: handleVal || null
+    });
+
+    if (res.ok) {
+      showKeyManagerModal(parentCode, companyId);
+    } else {
+      if (res.reason === 'exists') {
+        msgEl.textContent = t('km_err_exists', { code: res.code });
+      } else if (res.reason === 'permission_denied') {
+        msgEl.textContent = t('km_err_permission');
+      } else {
+        msgEl.textContent = 'Failed to create player key.';
+      }
+      msgEl.style.display = 'inline';
+    }
+  };
+
+  document.getElementById('sk-form')?.addEventListener('submit', handleKeyCreate);
+
+  container.querySelectorAll('.av-btn-copy').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const code = btn.dataset.code;
+      navigator.clipboard.writeText(code);
+      btn.textContent = t('km_btn_copied');
+      setTimeout(() => { btn.textContent = t('km_btn_copy'); }, 2000);
+    });
+  });
+
+  container.querySelectorAll('.av-btn-revoke').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      await revokeSecondaryKey(btn.dataset.code);
+      showKeyManagerModal(parentCode, companyId);
+    });
+  });
+
+  container.querySelectorAll('.av-btn-reactivate').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      await reactivateSecondaryKey(btn.dataset.code);
+      showKeyManagerModal(parentCode, companyId);
+    });
+  });
+}
+
+/* ---- Player Individual Dashboard ---- */
+/* ---- Player Individual Dashboard ---- */
+async function showPlayerDashboard() {
+  const loadingHtml = `
+    <div class="av">
+      <div class="av-empty">
+        <div class="av-empty-icon animate-pulse">☁️</div>
+        <p>${t('ad_syncing')}</p>
+      </div>
+    </div>
+  `;
+  render(loadingHtml);
+
+  // Fetch player sessions by playerCode
+  let playerSessions = await Storage.getCandidatesByAccessCode(playerCode);
+  
+  // Fallback: if playerCode has no exact accessCode matches yet, match by playerName
+  if (playerSessions.length === 0 && playerName) {
+    const allC = await Storage.getCandidates(adminCompanyId || undefined);
+    playerSessions = allC.filter(c => c.name && c.name.trim().toLowerCase() === playerName.trim().toLowerCase());
+  }
+
+  playerSessions.forEach(c => {
+    if (!c.scores && c.trials && c.trials.length > 0) {
+      c.scores = computeFullScores(c.trials);
+    }
+  });
+
+  const sessionsNewest = [...playerSessions].sort((a, b) => new Date(b.completedAt || b.createdAt) - new Date(a.completedAt || a.createdAt));
+  const sessionsOldest = [...playerSessions].sort((a, b) => new Date(a.completedAt || a.createdAt) - new Date(b.completedAt || b.createdAt));
+
+  const latestSession = sessionsNewest[0] || null;
+  const latestScores = latestSession?.scores || {};
+  const n = playerSessions.length;
+
+  // Compute Growth & Peak Metrics for Charts
+  const compositePoints = sessionsOldest.map((s, i) => ({
+    label: `#${i + 1}`,
+    value: s.scores?.compositeScore || 0
+  }));
+  const kPoints = sessionsOldest.map((s, i) => ({
+    label: `#${i + 1}`,
+    value: s.scores?.kPure || 0
+  }));
+
+  const compositeValues = compositePoints.map(p => p.value);
+  const kValues = kPoints.map(p => p.value);
+  const maxComposite = compositeValues.length > 0 ? Math.max(...compositeValues) : 0;
+  const maxK = kValues.length > 0 ? Math.max(...kValues) : 0;
+
+  const firstComposite = compositeValues[0] || 0;
+  const lastComposite = compositeValues[compositeValues.length - 1] || 0;
+  const compositeGrowth = firstComposite > 0 ? ((lastComposite - firstComposite) / firstComposite) * 100 : 0;
+
+  // Calculate Cognitive Superpower Profile & Averages
+  const kPureAvg = playerSessions.length > 0 
+    ? playerSessions.reduce((acc, s) => acc + (s.scores?.kPure || 0), 0) / playerSessions.length 
+    : (latestScores.kPure || 0);
+
+  const kDistAvg = playerSessions.length > 0 
+    ? playerSessions.reduce((acc, s) => acc + (s.scores?.kDistractor || 0), 0) / playerSessions.length 
+    : (latestScores.kDistractor || 0);
+
+  const execEffAvg = playerSessions.length > 0 
+    ? playerSessions.reduce((acc, s) => acc + (s.scores?.vwmExecEfficiency || (s.scores?.accuracyDistractor ? s.scores.accuracyDistractor * 100 : 0)), 0) / playerSessions.length 
+    : (latestScores.vwmExecEfficiency || 0);
+
+  const rtAvg = playerSessions.length > 0 
+    ? playerSessions.reduce((acc, s) => acc + (s.scores?.meanRT || 0), 0) / playerSessions.length 
+    : (latestScores.meanRT || 0);
+
+  let powerBadgeTitle = t('player_power_balanced_title');
+  let powerBadgeDesc = t('player_power_balanced_desc');
+
+  if (kDistAvg >= kPureAvg * 0.88 || execEffAvg >= 82) {
+    powerBadgeTitle = t('player_power_distractor_title');
+    powerBadgeDesc = t('player_power_distractor_desc');
+  } else if (kPureAvg >= 4.2) {
+    powerBadgeTitle = t('player_power_pure_title');
+    powerBadgeDesc = t('player_power_pure_desc');
+  } else if (rtAvg > 0 && rtAvg <= 380) {
+    powerBadgeTitle = t('player_power_speed_title');
+    powerBadgeDesc = t('player_power_speed_desc');
+  }
+
+  const TIER_COLORS = { 'S+':'#ffd700','S':'#00f0ff','A':'#a855f7','B':'#34d399','C':'#fbbf24','D':'#f87171' };
+  const TIER_CLS    = { 'S+':'sp','S':'s','A':'a','B':'b','C':'c','D':'d' };
+
+  render(`
+    <div class="av">
+      <header class="av-header">
+        <div class="av-logo">
+          <img src="/xiberlinc_mark.png" alt="Xiberlinc" class="av-logo-img" />
+          <span>${t('player_portal_title')}</span>
+        </div>
+        <div class="av-actions">
+          <button class="av-btn av-btn-ghost" id="av-lang-toggle" style="color:#d4ff00; font-family:var(--font-mono); font-size:12px; border:1px solid rgba(212,255,0,0.25); background:rgba(212,255,0,0.08);">${t('lang_toggle')}</button>
+          <button class="av-btn av-btn-ghost" id="av-refresh">↻ ${t('ad_refresh')}</button>
+          <button class="av-btn av-btn-ghost" id="av-logout">🚪 ${t('ad_logout')}</button>
+        </div>
+      </header>
+
+      <div class="av-body">
+        <div class="av-top">
+          <div class="av-title">
+            <div style="font-family:var(--font-mono); font-size:11px; color:var(--accent-volt); letter-spacing:0.1em; text-transform:uppercase; margin-bottom:4px;">KEY: ${playerCode}</div>
+            <h1>${t('player_welcome', { name: playerName || 'Player' })}</h1>
+            <p>${t('player_portal_sub')}</p>
+          </div>
+        </div>
+
+        <!-- Top KPI Overview -->
+        <div class="av-kpis">
+          <div class="av-kpi-card">
+            <div class="av-kpi-label">${t('player_kpi_sessions')}</div>
+            <div class="av-kpi-val">${n}</div>
+          </div>
+          <div class="av-kpi-card">
+            <div class="av-kpi-label">${t('player_kpi_composite')}</div>
+            <div class="av-kpi-val" style="color:#00f0ff">${latestScores.compositeScore ? latestScores.compositeScore.toFixed(1) : '—'}</div>
+          </div>
+          <div class="av-kpi-card">
+            <div class="av-kpi-label">${t('player_kpi_cowan')}</div>
+            <div class="av-kpi-val" style="color:#a855f7">${latestScores.kPure ? latestScores.kPure.toFixed(2) : '—'}</div>
+          </div>
+          <div class="av-kpi-card">
+            <div class="av-kpi-label">${t('player_kpi_tier')}</div>
+            <div class="av-kpi-val" style="color:${TIER_COLORS[latestScores.tier || 'D']}">${latestScores.tier || '—'}</div>
+          </div>
+        </div>
+
+        <!-- Memory Capacity & Cognitive Breakdown Card -->
+        ${n > 0 ? `
+          <div style="background:rgba(18,18,24,0.8); border:1px solid rgba(212,255,0,0.2); border-radius:18px; padding:24px; margin-bottom:32px; box-shadow:0 12px 36px rgba(0,0,0,0.5);">
+            
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; border-bottom:1px solid rgba(255,255,255,0.08); padding-bottom:16px;">
+              <div>
+                <span style="font-family:var(--font-mono); font-size:10px; color:var(--accent-volt); letter-spacing:0.12em; text-transform:uppercase;">COGNITIVE PROFILE ANALYTICS</span>
+                <h2 style="font-family:var(--font-display); font-size:20px; font-weight:700; color:var(--text-primary); margin:4px 0 0 0;">${t('player_power_title')}</h2>
+                <p style="font-size:12px; color:var(--text-secondary); margin:4px 0 0 0;">${t('player_power_sub')}</p>
+              </div>
+            </div>
+
+            <!-- Side-by-Side Visual Memory Capacity Bars -->
+            <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px;">
+              
+              <!-- Skill 1: Pure Memory Capacity -->
+              <div style="background:rgba(0,0,0,0.4); border:1px solid rgba(255,255,255,0.06); border-radius:12px; padding:16px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                  <span style="font-size:11px; font-family:var(--font-mono); color:var(--text-tertiary);">${t('player_skill_pure')}</span>
+                  <span style="font-size:12px; font-family:var(--font-mono); font-weight:bold; color:#00f0ff;">${kPureAvg.toFixed(2)}</span>
+                </div>
+                <div style="height:8px; background:rgba(255,255,255,0.08); border-radius:4px; overflow:hidden; margin-bottom:8px;">
+                  <div style="width:${Math.min(100, (kPureAvg / 8) * 100)}%; height:100%; background:linear-gradient(90deg, #00f0ff, #0071e3); border-radius:4px;"></div>
+                </div>
+                <span style="font-size:10px; font-family:var(--font-mono); color:var(--text-tertiary);">${t('player_skill_capacity_label', { val: kPureAvg.toFixed(2) })}</span>
+              </div>
+
+              <!-- Skill 2: Distractor Memory Capacity -->
+              <div style="background:rgba(0,0,0,0.4); border:1px solid rgba(255,255,255,0.06); border-radius:12px; padding:16px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                  <span style="font-size:11px; font-family:var(--font-mono); color:var(--text-tertiary);">${t('player_skill_dist')}</span>
+                  <span style="font-size:12px; font-family:var(--font-mono); font-weight:bold; color:#a855f7;">${kDistAvg.toFixed(2)}</span>
+                </div>
+                <div style="height:8px; background:rgba(255,255,255,0.08); border-radius:4px; overflow:hidden; margin-bottom:8px;">
+                  <div style="width:${Math.min(100, (kDistAvg / 8) * 100)}%; height:100%; background:linear-gradient(90deg, #a855f7, #5e5ce6); border-radius:4px;"></div>
+                </div>
+                <span style="font-size:10px; font-family:var(--font-mono); color:var(--text-tertiary);">${t('player_skill_capacity_label', { val: kDistAvg.toFixed(2) })}</span>
+              </div>
+
+              <!-- Skill 3: Focus Retention Rate -->
+              <div style="background:rgba(0,0,0,0.4); border:1px solid rgba(255,255,255,0.06); border-radius:12px; padding:16px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                  <span style="font-size:11px; font-family:var(--font-mono); color:var(--text-tertiary);">${t('player_skill_retention')}</span>
+                  <span style="font-size:12px; font-family:var(--font-mono); font-weight:bold; color:#34d399;">${execEffAvg.toFixed(1)}%</span>
+                </div>
+                <div style="height:8px; background:rgba(255,255,255,0.08); border-radius:4px; overflow:hidden; margin-bottom:8px;">
+                  <div style="width:${Math.min(100, execEffAvg)}%; height:100%; background:linear-gradient(90deg, #34d399, #34c759); border-radius:4px;"></div>
+                </div>
+                <span style="font-size:10px; font-family:var(--font-mono); color:var(--text-tertiary);">${execEffAvg >= 80 ? 'Outstanding Focus Under Noise' : 'Consistent Attention Retention'}</span>
+              </div>
+
+            </div>
+          </div>
+        ` : ''}
+
+        <!-- Performance Trends & Trajectory Charts -->
+        ${n > 1 ? `
+          <div style="background:rgba(18,18,24,0.8); border:1px solid rgba(212,255,0,0.2); border-radius:16px; padding:24px; margin-bottom:32px; box-shadow:0 12px 32px rgba(0,0,0,0.4);">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; border-bottom:1px solid rgba(255,255,255,0.06); padding-bottom:14px;">
+              <div>
+                <h3 style="font-family:var(--font-display); font-size:18px; font-weight:700; color:var(--text-primary); margin:0;">${t('player_trajectory_title')}</h3>
+                <p style="font-size:12px; color:var(--text-secondary); margin:4px 0 0 0;">${t('player_trajectory_sub', { count: n })}</p>
+              </div>
+              <div style="font-family:var(--font-mono); font-size:11px; background:rgba(52,211,153,0.12); color:#34d399; border:1px solid rgba(52,211,153,0.3); padding:6px 14px; border-radius:99px; font-weight:bold;">
+                ${t('player_trend_progress', { growth: (compositeGrowth >= 0 ? '+' : '') + compositeGrowth.toFixed(1) })}
+              </div>
+            </div>
+
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
+              <!-- Chart 1: Composite Score Growth -->
+              <div style="background:rgba(0,0,0,0.4); border:1px solid rgba(255,255,255,0.06); border-radius:12px; padding:16px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                  <span style="font-family:var(--font-mono); font-size:11px; color:#00f0ff; letter-spacing:0.05em; text-transform:uppercase; font-weight:bold;">${t('player_trend_composite')}</span>
+                  <span style="font-family:var(--font-mono); font-size:11px; color:var(--text-tertiary);">${t('player_peak_composite', { val: maxComposite.toFixed(1) })}</span>
+                </div>
+                ${generateSvgLineChart(compositePoints, 480, 180, -1, 0, 100)}
+              </div>
+
+              <!-- Chart 2: Cowan's K Memory Capacity Trend -->
+              <div style="background:rgba(0,0,0,0.4); border:1px solid rgba(255,255,255,0.06); border-radius:12px; padding:16px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                  <span style="font-family:var(--font-mono); font-size:11px; color:#a855f7; letter-spacing:0.05em; text-transform:uppercase; font-weight:bold;">${t('player_trend_cowan')}</span>
+                  <span style="font-family:var(--font-mono); font-size:11px; color:var(--text-tertiary);">${t('player_peak_k', { val: maxK.toFixed(2) })}</span>
+                </div>
+                ${generateSvgLineChart(kPoints, 480, 180, -1, 0, 12)}
+              </div>
+            </div>
+          </div>
+        ` : ''}
+
+        <!-- Evaluation History Table -->
+        <div class="av-table-wrap">
+          <div class="av-table-head">
+            <h2>${t('player_history_title')}</h2>
+            <span class="av-table-count">${n} Session${n === 1 ? '' : 's'}</span>
+          </div>
+          ${n === 0 ? `
+            <div class="av-empty">
+              <div class="av-empty-icon">📊</div>
+              <p>${t('player_history_empty')}</p>
+            </div>
+          ` : `
+            <div class="av-table-scroll">
+              <table class="av-t">
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>${t('ad_col_completed')}</th>
+                    <th>${t('ad_col_tier')}</th>
+                    <th>${t('ad_col_composite')}</th>
+                    <th>${t('ad_col_cowan')}</th>
+                    <th>${t('ad_col_cowandist')}</th>
+                    <th>${t('ad_metric_execeff')}</th>
+                    <th>${t('ad_col_avgrt')}</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${sessionsNewest.map((s, i) => {
+                    const sc = s.scores || {};
+                    const cs = sc.compositeScore || 0;
+                    const tierVal = sc.tier || 'D';
+                    const tc = TIER_CLS[tierVal] || 'd';
+                    const kPureVal = sc.kPure !== undefined ? sc.kPure.toFixed(2) : '—';
+                    const kDistVal = sc.kDistractor !== undefined ? sc.kDistractor.toFixed(2) : '—';
+                    const execEffVal = sc.vwmExecEfficiency !== undefined ? sc.vwmExecEfficiency.toFixed(1) + '%' : (sc.accuracyDistractor !== undefined ? (sc.accuracyDistractor * 100).toFixed(0) + '%' : '—');
+                    const meanRtVal = sc.meanRT !== undefined ? sc.meanRT.toFixed(0) + 'ms' : '—';
+                    const date = s.completedAt ? new Date(s.completedAt).toLocaleDateString() : '—';
+                    return `
+                      <tr>
+                        <td class="td-mono">#${sessionsNewest.length - i}</td>
+                        <td class="td-mono">${date}</td>
+                        <td><span class="tier-pip tier-${tc}">${tierVal}</span></td>
+                        <td class="td-mono td-bold" style="color:${TIER_COLORS[tierVal]}">${cs.toFixed(1)}</td>
+                        <td class="td-mono">${kPureVal}</td>
+                        <td class="td-mono">${kDistVal}</td>
+                        <td class="td-mono">${execEffVal}</td>
+                        <td class="td-mono">${meanRtVal}</td>
+                        <td><button class="av-btn-view" data-id="${s.id}">${t('ad_btn_detail')}</button></td>
+                      </tr>
+                    `;
+                  }).join('')}
+                </tbody>
+              </table>
+            </div>
+          `}
+        </div>
+
+      </div>
+
+      <div id="av-modal-container"></div>
+    </div>
+  `);
+
+  document.getElementById('av-refresh')?.addEventListener('click', () => showPlayerDashboard());
+  document.getElementById('av-logout')?.addEventListener('click', () => {
+    authed = false;
+    playerMode = false;
+    adminCode = null;
+    playerCode = null;
+    AdminView();
+  });
+  document.getElementById('av-lang-toggle')?.addEventListener('click', () => {
+    const newLang = getLang() === 'en' ? 'ja' : 'en';
+    setLang(newLang);
+    showPlayerDashboard();
+  });
+
+  document.querySelectorAll('.av-btn-view').forEach(btn => {
+    btn.addEventListener('click', () => showDetail(btn.dataset.id, sessionsNewest));
+  });
+}
+
 /* ---- Detail modal (tabbed) ---- */
-function showDetail(email, candidates) {
-  const c = candidates.find(x => x.email === email);
+function showDetail(id, candidates) {
+  const c = candidates.find(x => x.id === id);
   if (!c) return;
+  const email = c.email || '';
   const s = c.scores || {};
 
   const skipsHtml = c.metadata?.skips
@@ -944,6 +1488,17 @@ function showDetail(email, candidates) {
         '<span style="background:#fbbf2420;color:#fbbf24;border:1px solid #fbbf2440;padding:2px 8px;font-size:10px;font-family:var(--font-mono)">SKIPPED: ' + t.toUpperCase() + '</span>'
       ).join('') + '</div>'
     : '';
+
+  const userSessions = candidates
+    .filter(x => (x.name && c.name && x.name.trim().toLowerCase() === c.name.trim().toLowerCase()))
+    .map(x => {
+      if (x.trials && x.trials.length > 0) {
+        x.scores = computeFullScores(x.trials);
+      }
+      return x;
+    })
+    .sort((a, b) => new Date(a.completedAt || a.createdAt) - new Date(b.completedAt || b.createdAt));
+  const currentSessionIndex = userSessions.findIndex(x => x.id === id);
 
   const mc = document.getElementById('av-modal-container');
   mc.innerHTML = `
@@ -986,7 +1541,10 @@ function showDetail(email, candidates) {
   });
 
   document.querySelectorAll('.av-metric-info-btn').forEach(btn => {
-    btn.addEventListener('click', e => { e.stopPropagation(); showMetricExplain(btn.dataset.metricKey); });
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      showMetricExplain(btn.dataset.metricKey, userSessions, currentSessionIndex);
+    });
   });
 
   const close = () => { mc.innerHTML = ''; };
@@ -994,60 +1552,95 @@ function showDetail(email, candidates) {
   document.getElementById('av-modal-bg').addEventListener('click', e => { if (e.target === e.currentTarget) close(); });
 }
 
-/* ---- Overview tab (existing metrics, K chart, ANT, component scores) ---- */
+/* ---- Overview tab (separated task sections & localized) ---- */
 function renderOverviewTab(c, s) {
-  const kData    = s.vwmPure?.kScores || {};
   const setSizes = [1, 2, 3, 4, 6, 8];
   const maxKVal  = 6;
 
-  const metricsHtml = [
-    { key:'composite',  label:'Composite',    val:(s.compositeScore||0).toFixed(1) },
-    { key:'kpure',      label:"Cowan's K",   val:(s.kPure||0).toFixed(2) },
-    { key:'kdist',      label:'K (Distract)',val:(s.kDistractor||0).toFixed(2) },
-    { key:'exec-eff',   label:'Exec. Efficiency', val:(s.vwmExecEfficiency||0).toFixed(1)+'%' },
-    { key:'exec-speed', label:'Exec. Speed',  val:(s.vwmExecSpeed||0).toFixed(0)+'ms' },
-    { key:'maxn',       label:'Max N',        val:s.maxSetSize||0 },
-    { key:'meanrt',     label:'Avg RT',       val:(s.meanRT||0).toFixed(0)+'ms' },
-    { key:'acc-pure',   label:'Acc Pure',     val:((s.accuracyPure||0)*100).toFixed(0)+'%' },
-    { key:'acc-dist',   label:'Acc Dist.',    val:((s.accuracyDistractor||0)*100).toFixed(0)+'%' },
+  // --- TASK 1: VWM PURE ---
+  const kDataPure = s.vwmPure?.kScores || {};
+  const pureMetricsHtml = [
+    { key:'kpure',    label:t('ad_metric_kpure'), val:(s.kPure||0).toFixed(2) },
+    { key:'maxn',     label:t('ad_metric_maxn'), val:s.maxSetSize||0 },
+    { key:'acc-pure', label:t('ad_metric_accpure'), val:((s.accuracyPure||0)*100).toFixed(0)+'%' },
+    { key:'meanrt',   label:t('ad_metric_meanrt'), val:(s.meanRT||0).toFixed(0)+'ms' },
   ].map(m =>
     '<div class="av-metric">' +
     '<div class="av-metric-label">' + m.label + '</div>' +
-    '<div class="av-metric-val" style="color:#d4ff00">' + m.val + '</div>' +
+    '<div class="av-metric-val" style="color:#00f0ff">' + m.val + '</div>' +
     '<button class="av-metric-info-btn" data-metric-key="' + m.key + '">i</button>' +
     '</div>'
   ).join('');
 
-  const kChartHtml = setSizes.map(n => {
-    const k   = kData[n]?.k || 0;
+  const pureKChartHtml = setSizes.map(n => {
+    const k   = kDataPure[n]?.k || 0;
     const pct = Math.max(2, (k / maxKVal) * 100);
     return '<div class="av-bar-col"><div class="av-bar-val">' + k.toFixed(1) + '</div>' +
-      '<div class="av-bar" style="height:' + pct + '%"></div>' +
+      '<div class="av-bar" style="height:' + pct + '%;background:#00f0ff"></div>' +
       '<div class="av-bar-lbl">N=' + n + '</div></div>';
   }).join('');
 
-  const antHtml = [
-    { key:'alerting',        label:'Alerting RT',       val:(s.alerting||0).toFixed(0)+'ms' },
-    { key:'orienting',       label:'Orienting RT',      val:(s.orienting||0).toFixed(0)+'ms' },
-    { key:'executive',       label:'Executive RT',      val:(s.executive||0).toFixed(0)+'ms' },
-    { key:'ant-congruent',   label:'Congruent RT',      val:(s.ant?.rtByFlanker?.congruent||0).toFixed(0)+'ms' },
-    { key:'ant-incongruent', label:'Incongruent RT',    val:(s.ant?.rtByFlanker?.incongruent||0).toFixed(0)+'ms' },
-    { key:'eff-congruent',   label:'Congruent Eff.',    val:(s.antCongruentEfficiency||0).toFixed(2)+' r/s' },
-    { key:'eff-incongruent', label:'Incongruent Eff.',  val:(s.antIncongruentEfficiency||0).toFixed(2)+' r/s' },
-    { key:'eff-alerting',    label:'Alerting Eff.',     val:(s.antAlertingEfficiency||0).toFixed(2) },
-    { key:'eff-orienting',   label:'Orienting Eff.',    val:(s.antOrientingEfficiency||0).toFixed(2) },
-    { key:'eff-executive',   label:'Executive Eff.',    val:(s.antExecutiveEfficiency||0).toFixed(2) },
+  const pureSetTableRows = setSizes.map(n => {
+    const acc = s.vwmPure?.accuracyBySetSize?.[n] !== undefined ? Math.round(s.vwmPure.accuracyBySetSize[n] * 100) + '%' : '—';
+    const rt = s.vwmPure?.correctRtBySetSize?.[n] ? Math.round(s.vwmPure.correctRtBySetSize[n]) + 'ms' : '—';
+    const k = kDataPure[n]?.k !== undefined ? kDataPure[n].k.toFixed(2) : '—';
+    return '<tr><td>N=' + n + '</td><td>' + k + '</td><td>' + acc + '</td><td>' + rt + '</td></tr>';
+  }).join('');
+
+  // --- TASK 2: VWM DISTRACTOR ---
+  const kDataDist = s.vwmDistractor?.kScores || {};
+  const distMetricsHtml = [
+    { key:'kdist',      label:t('ad_metric_kdist'), val:(s.kDistractor||0).toFixed(2) },
+    { key:'exec-eff',   label:t('ad_metric_execeff'), val:(s.vwmExecEfficiency||0).toFixed(1)+'%' },
+    { key:'exec-speed', label:t('ad_metric_execspeed'), val:(s.vwmExecSpeed||0).toFixed(0)+'ms' },
+    { key:'acc-dist',   label:t('ad_metric_accdist'), val:((s.accuracyDistractor||0)*100).toFixed(0)+'%' },
   ].map(m =>
     '<div class="av-metric">' +
     '<div class="av-metric-label">' + m.label + '</div>' +
-    '<div class="av-metric-val" style="color:#d4ff00">' + m.val + '</div>' +
+    '<div class="av-metric-val" style="color:#fbbf24">' + m.val + '</div>' +
     '<button class="av-metric-info-btn" data-metric-key="' + m.key + '">i</button>' +
     '</div>'
   ).join('');
 
-  const COMP_LABELS = { kPure:'CowanK', kDistractor:'CowanK(Dist)', maxSetSize:'MaxN', rtEfficiency:'RT Eff', alerting:'Alert', orienting:'Orient', executive:'Exec' };
+  const distKChartHtml = setSizes.map(n => {
+    const k   = kDataDist[n]?.k || 0;
+    const pct = Math.max(2, (k / maxKVal) * 100);
+    return '<div class="av-bar-col"><div class="av-bar-val">' + k.toFixed(1) + '</div>' +
+      '<div class="av-bar" style="height:' + pct + '%;background:#fbbf24"></div>' +
+      '<div class="av-bar-lbl">N=' + n + '</div></div>';
+  }).join('');
+
+  const distSetTableRows = setSizes.map(n => {
+    const acc = s.vwmDistractor?.accuracyBySetSize?.[n] !== undefined ? Math.round(s.vwmDistractor.accuracyBySetSize[n] * 100) + '%' : '—';
+    const rt = s.vwmDistractor?.correctRtBySetSize?.[n] ? Math.round(s.vwmDistractor.correctRtBySetSize[n]) + 'ms' : '—';
+    const k = kDataDist[n]?.k !== undefined ? kDataDist[n].k.toFixed(2) : '—';
+    return '<tr><td>N=' + n + '</td><td>' + k + '</td><td>' + acc + '</td><td>' + rt + '</td></tr>';
+  }).join('');
+
+  // --- TASK 3: ANT ---
+  const antHtml = [
+    { key:'alerting',        label:t('ad_metric_alerting'), val:(s.alerting||0).toFixed(0)+'ms' },
+    { key:'orienting',       label:t('ad_metric_orienting'), val:(s.orienting||0).toFixed(0)+'ms' },
+    { key:'executive',       label:t('ad_metric_executive'), val:(s.executive||0).toFixed(0)+'ms' },
+    { key:'ant-congruent',   label:t('ad_metric_ant_congruent'), val:(s.ant?.rtByFlanker?.congruent||0).toFixed(0)+'ms' },
+    { key:'ant-incongruent', label:t('ad_metric_ant_incongruent'), val:(s.ant?.rtByFlanker?.incongruent||0).toFixed(0)+'ms' },
+    { key:'eff-congruent',   label:t('ad_metric_eff_congruent'), val:(s.antCongruentEfficiency||0).toFixed(2)+' r/s' },
+    { key:'eff-incongruent', label:t('ad_metric_eff_incongruent'), val:(s.antIncongruentEfficiency||0).toFixed(2)+' r/s' },
+    { key:'eff-alerting',    label:t('ad_metric_eff_alerting'), val:(s.antAlertingEfficiency||0).toFixed(2) },
+    { key:'eff-orienting',   label:t('ad_metric_eff_orienting'), val:(s.antOrientingEfficiency||0).toFixed(2) },
+    { key:'eff-executive',   label:t('ad_metric_eff_executive'), val:(s.antExecutiveEfficiency||0).toFixed(2) },
+  ].map(m =>
+    '<div class="av-metric">' +
+    '<div class="av-metric-label">' + m.label + '</div>' +
+    '<div class="av-metric-val" style="color:#c084fc">' + m.val + '</div>' +
+    '<button class="av-metric-info-btn" data-metric-key="' + m.key + '">i</button>' +
+    '</div>'
+  ).join('');
+
+  // --- COMPONENT SCORES ---
+  const COMP_LABELS = { kPure:'CowanK (Pure)', kDistractor:'CowanK (Dist)', maxSetSize:'Max N', rtEfficiency:'RT Eff', alerting:'Alert', orienting:'Orient', executive:'Exec' };
   const componentHtml = s.componentScores
-    ? '<div class="av-chart-title">Component Scores (0–100)</div><div class="av-chart">' +
+    ? '<div class="av-chart-title">' + t('ad_chart_component') + '</div><div class="av-chart">' +
       Object.entries(s.componentScores).map(([key, val]) => {
         const color = val>=70?'#34d399':val>=40?'#fbbf24':'#f87171';
         return '<div class="av-bar-col"><div class="av-bar-val">' + val.toFixed(0) + '</div>' +
@@ -1059,80 +1652,189 @@ function renderOverviewTab(c, s) {
   const totalTrials = (s.vwmPure?.totalTrials||0) + (s.vwmDistractor?.totalTrials||0) + (s.ant?.totalTrials||0);
   const completedAt = c.completedAt ? new Date(c.completedAt).toLocaleString() : '—';
   const metaHtml = c.metadata
-    ? '<div style="font-family:var(--font-mono);font-size:11px;color:var(--text-tertiary);background:rgba(255,255,255,0.03);padding:12px;border-radius:8px;border:1px solid rgba(255,255,255,0.05);margin-top:8px;">' +
-      '<div style="margin-bottom:4px;color:var(--text-secondary);font-weight:600;text-transform:uppercase;letter-spacing:0.05em;">Device Telemetry</div>' +
-      '<div>Resolution: ' + c.metadata.windowWidth + 'x' + c.metadata.windowHeight + '</div>' +
-      '<div style="margin-top:4px;opacity:0.7;line-height:1.4;word-break:break-all;">Agent: ' + c.metadata.userAgent + '</div></div>'
+    ? '<div style="font-family:var(--font-mono);font-size:11px;color:var(--text-tertiary);">' +
+      '<div>' + t('ad_meta_resolution') + ' ' + c.metadata.windowWidth + 'x' + c.metadata.windowHeight + '</div>' +
+      '<div style="margin-top:4px;opacity:0.7;line-height:1.4;word-break:break-all;">' + t('ad_meta_agent') + ' ' + c.metadata.userAgent + '</div></div>'
     : '';
 
-  return `
-    <div class="av-modal-body">
-      <div class="av-metrics">${metricsHtml}</div>
-      <div class="av-chart-title">Cowan's K by Set Size (VWM Pure)</div>
-      <div class="av-chart">${kChartHtml}</div>
-      <div class="av-chart-title">ANT Scores & Efficiency</div>
-      <div class="av-metrics" style="grid-template-columns:repeat(auto-fit, minmax(130px, 1fr));">${antHtml}</div>
-      ${componentHtml}
-      <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px;padding-top:20px;border-top:1px solid rgba(255,255,255,0.06);">
-        <div style="font-family:var(--font-mono);font-size:12px;color:var(--text-tertiary);">
-          Total trials: ${totalTrials} · Completed: ${completedAt}
-        </div>
-        ${metaHtml}
-      </div>
-    </div>
-  `;
+  return '<div class="av-modal-body">' +
+    '<!-- TASK 1: VWM PURE -->' +
+    '<div class="av-task-section">' +
+      '<div class="av-task-header">' +
+        '<div class="av-task-title"><span>🟦</span> ' + t('ad_task1_title') + '</div>' +
+        '<span class="av-task-badge av-badge-cyan">' + t('ad_task1_badge') + '</span>' +
+      '</div>' +
+      '<div class="av-metrics" style="grid-template-columns:repeat(auto-fit, minmax(160px, 1fr));">' + pureMetricsHtml + '</div>' +
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px;">' +
+        '<div>' +
+          '<div class="av-chart-title">' + t('ad_chart_k_pure') + '</div>' +
+          '<div class="av-chart">' + pureKChartHtml + '</div>' +
+        '</div>' +
+        '<div>' +
+          '<div class="av-chart-title">' + t('ad_table_set_pure') + '</div>' +
+          '<table class="av-set-table">' +
+            '<thead><tr><th>' + t('ad_th_set_size') + '</th><th>' + t('ad_th_cowan_k') + '</th><th>' + t('ad_th_accuracy') + '</th><th>' + t('ad_th_median_rt') + '</th></tr></thead>' +
+            '<tbody>' + pureSetTableRows + '</tbody>' +
+          '</table>' +
+        '</div>' +
+      '</div>' +
+    '</div>' +
+
+    '<!-- TASK 2: VWM DISTRACTOR -->' +
+    '<div class="av-task-section">' +
+      '<div class="av-task-header">' +
+        '<div class="av-task-title"><span>🟨</span> ' + t('ad_task2_title') + '</div>' +
+        '<span class="av-task-badge av-badge-amber">' + t('ad_task2_badge') + '</span>' +
+      '</div>' +
+      '<div class="av-metrics" style="grid-template-columns:repeat(auto-fit, minmax(160px, 1fr));">' + distMetricsHtml + '</div>' +
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px;">' +
+        '<div>' +
+          '<div class="av-chart-title">' + t('ad_chart_k_dist') + '</div>' +
+          '<div class="av-chart">' + distKChartHtml + '</div>' +
+        '</div>' +
+        '<div>' +
+          '<div class="av-chart-title">' + t('ad_table_set_dist') + '</div>' +
+          '<table class="av-set-table">' +
+            '<thead><tr><th>' + t('ad_th_set_size') + '</th><th>' + t('ad_th_cowan_k') + '</th><th>' + t('ad_th_accuracy') + '</th><th>' + t('ad_th_median_rt') + '</th></tr></thead>' +
+            '<tbody>' + distSetTableRows + '</tbody>' +
+          '</table>' +
+        '</div>' +
+      '</div>' +
+    '</div>' +
+
+    '<!-- TASK 3: ANT -->' +
+    '<div class="av-task-section">' +
+      '<div class="av-task-header">' +
+        '<div class="av-task-title"><span>⚡</span> ' + t('ad_task3_title') + '</div>' +
+        '<span class="av-task-badge av-badge-purple">' + t('ad_task3_badge') + '</span>' +
+      '</div>' +
+      '<div class="av-metrics" style="grid-template-columns:repeat(auto-fit, minmax(140px, 1fr));">' + antHtml + '</div>' +
+    '</div>' +
+
+    '<!-- COMPONENT SCORES & TELEMETRY -->' +
+    '<div class="av-task-section">' +
+      '<div class="av-task-header">' +
+        '<div class="av-task-title"><span>📊</span> ' + t('ad_task_diag_title') + '</div>' +
+        '<span class="av-task-badge av-badge-volt">' + t('ad_task_diag_badge') + '</span>' +
+      '</div>' +
+      componentHtml +
+      '<div style="margin-top:16px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.06);display:flex;justify-content:space-between;align-items:center;">' +
+        '<div style="font-family:var(--font-mono);font-size:12px;color:var(--text-tertiary);">' +
+          t('ad_meta_total_trials') + ' <strong>' + totalTrials + '</strong> · ' + t('ad_meta_completed') + ' <strong>' + completedAt + '</strong>' +
+        '</div>' +
+        metaHtml +
+      '</div>' +
+    '</div>' +
+  '</div>';
 }
 
-/* ---- Raw Data tab ---- */
+/* ---- Raw Data tab (separated task sections & localized) ---- */
 function renderRawTab(c) {
   const trials = c.trials || [];
   if (!trials.length) {
-    return `<div class="av-modal-body"><div class="av-empty"><div class="av-empty-icon">📋</div><p>${t('ad_modal_no_raw')}</p></div></div>`;
+    return '<div class="av-modal-body"><div class="av-empty"><div class="av-empty-icon">📋</div><p>' + t('ad_modal_no_raw') + '</p></div></div>';
   }
 
   const vwmPure = trials.filter(t => t.taskType === 'vwm-pure');
   const vwmDist = trials.filter(t => t.taskType === 'vwm-distractor');
   const antT    = trials.filter(t => t.taskType === 'ant');
-  const allVwm  = [...vwmPure, ...vwmDist];
 
-  // At-a-glance
+  // At-a-glance overall
   const correct  = trials.filter(t => t.isCorrect).length;
   const acc      = trials.length ? (correct / trials.length * 100).toFixed(0) : 0;
   const rtVals   = trials.filter(t => t.isCorrect && t.reactionTimeMs > 0).map(t => t.reactionTimeMs);
   const avgRT    = rtVals.length ? Math.round(rtVals.reduce((a,b)=>a+b,0)/rtVals.length) : 0;
-  const fastRT   = rtVals.length ? Math.min(...rtVals) : 0;
-  const slowRT   = rtVals.length ? Math.max(...rtVals) : 0;
+  const fastRT   = rtVals.length ? Math.min(...rtVals).toFixed(2) : '0.00';
+  const slowRT   = rtVals.length ? Math.max(...rtVals).toFixed(2) : '0.00';
   let maxStreak  = 0, streak = 0;
   trials.forEach(t => { if (t.isCorrect) { streak++; maxStreak = Math.max(maxStreak, streak); } else streak = 0; });
 
   const accColor = acc >= 70 ? '#34d399' : acc >= 50 ? '#fbbf24' : '#f87171';
   const glanceHtml =
-    '<div class="raw-glance-card"><div class="raw-glance-label">Total trials</div><div class="raw-glance-val">' + trials.length + '</div></div>' +
-    '<div class="raw-glance-card"><div class="raw-glance-label">Overall accuracy</div><div class="raw-glance-val" style="color:' + accColor + '">' + acc + '%</div></div>' +
-    '<div class="raw-glance-card"><div class="raw-glance-label">Avg response time</div><div class="raw-glance-val">' + avgRT + 'ms</div></div>' +
-    '<div class="raw-glance-card"><div class="raw-glance-label">Fastest correct</div><div class="raw-glance-val" style="color:#34d399">' + fastRT + 'ms</div></div>' +
-    '<div class="raw-glance-card"><div class="raw-glance-label">Slowest correct</div><div class="raw-glance-val" style="color:#fbbf24">' + slowRT + 'ms</div></div>' +
-    '<div class="raw-glance-card"><div class="raw-glance-label">Best streak</div><div class="raw-glance-val">' + maxStreak + ' in a row</div></div>';
+    '<div class="raw-glance-card"><div class="raw-glance-label">' + t('ad_raw_card_total') + '</div><div class="raw-glance-val">' + trials.length + '</div></div>' +
+    '<div class="raw-glance-card"><div class="raw-glance-label">' + t('ad_raw_card_acc') + '</div><div class="raw-glance-val" style="color:' + accColor + '">' + acc + '%</div></div>' +
+    '<div class="raw-glance-card"><div class="raw-glance-label">' + t('ad_raw_card_avgrt') + '</div><div class="raw-glance-val">' + avgRT + 'ms</div></div>' +
+    '<div class="raw-glance-card"><div class="raw-glance-label">' + t('ad_raw_card_fast') + '</div><div class="raw-glance-val" style="color:#34d399">' + fastRT + 'ms</div></div>' +
+    '<div class="raw-glance-card"><div class="raw-glance-label">' + t('ad_raw_card_slow') + '</div><div class="raw-glance-val" style="color:#fbbf24">' + slowRT + 'ms</div></div>' +
+    '<div class="raw-glance-card"><div class="raw-glance-label">' + t('ad_raw_card_streak') + '</div><div class="raw-glance-val">' + maxStreak + ' ' + t('ad_raw_streak_suffix') + '</div></div>';
 
-  const vwmSections = allVwm.length
-    ? '<div class="raw-section"><div class="raw-section-title">Accuracy by Colour (VWM)</div>' + renderColorAccuracy(allVwm) + '</div>' +
-      '<div class="raw-section"><div class="raw-section-title">Response Time Trend (VWM)</div>' +
-      '<div style="font-size:11px;color:var(--text-tertiary);margin-bottom:8px;">Each bar = one trial. Green = correct, red = incorrect. Height = reaction time.</div>' +
-      renderSparkline(allVwm) + '</div>' +
-      (vwmPure.length ? '<div class="raw-section"><div class="raw-section-title">VWM Pure — Trial by Trial (' + vwmPure.length + ' trials)</div>' + renderVWMTrialTable(vwmPure) + '</div>' : '') +
-      (vwmDist.length ? '<div class="raw-section"><div class="raw-section-title">VWM Distractor — Trial by Trial (' + vwmDist.length + ' trials)</div>' + renderVWMTrialTable(vwmDist) + '</div>' : '')
+  // Section A: VWM Pure (Normal)
+  const vwmPureSection = vwmPure.length
+    ? '<div class="av-task-section">' +
+        '<div class="av-task-header">' +
+          '<div class="av-task-title"><span>🟦</span> ' + t('ad_raw_t1_title') + '</div>' +
+          '<span class="av-task-badge av-badge-cyan">' + t('ad_raw_trials_count', { count: vwmPure.length }) + '</span>' +
+        '</div>' +
+        '<div class="raw-section">' +
+          '<div class="raw-section-title">' + t('ad_raw_acc_color_pure') + '</div>' +
+          renderColorAccuracy(vwmPure) +
+        '</div>' +
+        '<div class="raw-section" style="margin-top:16px;">' +
+          '<div class="raw-section-title">' + t('ad_raw_rt_trend_pure') + '</div>' +
+          '<div style="font-size:11px;color:var(--text-tertiary);margin-bottom:8px;">' + t('ad_raw_spark_sub') + '</div>' +
+          renderSparkline(vwmPure) +
+        '</div>' +
+        '<div class="raw-section" style="margin-top:16px;">' +
+          '<div class="raw-section-title">' + t('ad_raw_table_pure') + '</div>' +
+          renderVWMTrialTable(vwmPure, false) +
+        '</div>' +
+      '</div>'
     : '';
 
+  // Section B: VWM Distractor (With Distractors)
+  const vwmDistSection = vwmDist.length
+    ? '<div class="av-task-section">' +
+        '<div class="av-task-header">' +
+          '<div class="av-task-title"><span>🟨</span> ' + t('ad_raw_t2_title') + '</div>' +
+          '<span class="av-task-badge av-badge-amber">' + t('ad_raw_trials_count', { count: vwmDist.length }) + '</span>' +
+        '</div>' +
+        '<div class="raw-section">' +
+          '<div class="raw-section-title">' + t('ad_raw_acc_color_dist') + '</div>' +
+          renderColorAccuracy(vwmDist) +
+        '</div>' +
+        '<div class="raw-section" style="margin-top:16px;">' +
+          '<div class="raw-section-title">' + t('ad_raw_rt_trend_dist') + '</div>' +
+          '<div style="font-size:11px;color:var(--text-tertiary);margin-bottom:8px;">' + t('ad_raw_spark_sub') + '</div>' +
+          renderSparkline(vwmDist) +
+        '</div>' +
+        '<div class="raw-section" style="margin-top:16px;">' +
+          '<div class="raw-section-title">' + t('ad_raw_table_dist') + '</div>' +
+          renderVWMTrialTable(vwmDist, true) +
+        '</div>' +
+      '</div>'
+    : '';
+
+  // Section C: ANT
   const antSection = antT.length
-    ? '<div class="raw-section"><div class="raw-section-title">ANT — Trial by Trial (' + antT.length + ' trials)</div>' + renderANTTrialTable(antT) + '</div>'
+    ? '<div class="av-task-section">' +
+        '<div class="av-task-header">' +
+          '<div class="av-task-title"><span>⚡</span> ' + t('ad_raw_t3_title') + '</div>' +
+          '<span class="av-task-badge av-badge-purple">' + t('ad_raw_trials_count', { count: antT.length }) + '</span>' +
+        '</div>' +
+        '<div class="raw-section">' +
+          '<div class="raw-section-title">' + t('ad_raw_rt_trend_ant') + '</div>' +
+          '<div style="font-size:11px;color:var(--text-tertiary);margin-bottom:8px;">' + t('ad_raw_spark_sub') + '</div>' +
+          renderSparkline(antT) +
+        '</div>' +
+        '<div class="raw-section" style="margin-top:16px;">' +
+          '<div class="raw-section-title">' + t('ad_raw_table_ant') + '</div>' +
+          renderANTTrialTable(antT) +
+        '</div>' +
+      '</div>'
     : '';
 
   return '<div class="av-modal-body">' +
-    '<div class="raw-section"><div class="raw-section-title">At a Glance</div><div class="raw-glance-grid">' + glanceHtml + '</div></div>' +
-    vwmSections + antSection + '</div>';
+    '<div class="raw-section" style="margin-bottom:20px;">' +
+      '<div class="raw-section-title">' + t('ad_raw_at_glance') + '</div>' +
+      '<div class="raw-glance-grid">' + glanceHtml + '</div>' +
+    '</div>' +
+    vwmPureSection +
+    vwmDistSection +
+    antSection +
+  '</div>';
 }
 
-/* ---- Colour accuracy (per colour across all VWM trials) ---- */
+/* ---- Colour accuracy (per colour across specified trials) ---- */
 function renderColorAccuracy(trials) {
   const map = {};
   trials.forEach(t => {
@@ -1143,7 +1845,7 @@ function renderColorAccuracy(trials) {
     });
   });
 
-  if (!Object.keys(map).length) return '<div style="color:var(--text-tertiary);font-size:13px;">No colour data available.</div>';
+  if (!Object.keys(map).length) return '<div style="color:var(--text-tertiary);font-size:13px;">' + t('ad_raw_no_color') + '</div>';
 
   return '<div class="color-acc-grid">' +
     Object.entries(map).sort((a, b) => b[1].total - a[1].total).map(([col, d]) => {
@@ -1153,7 +1855,7 @@ function renderColorAccuracy(trials) {
         '<div class="color-acc-swatch" style="background:' + col + '"></div>' +
         '<div><div class="color-acc-name">' + col + '</div>' +
         '<div class="color-acc-pct" style="color:' + valColor + '">' + pct + '%</div>' +
-        '<div class="color-acc-count">' + d.correct + '/' + d.total + ' correct</div></div>' +
+        '<div class="color-acc-count">' + d.correct + '/' + d.total + ' ' + t('cv_raw_spark_correct') + '</div></div>' +
         '</div>';
     }).join('') + '</div>';
 }
@@ -1161,8 +1863,6 @@ function renderColorAccuracy(trials) {
 /* ---- RT sparkline ---- */
 function renderSparkline(trials) {
   if (!trials.length) return '';
-  // Cap the y-axis scaling at 1500ms so that occasional long responses or timeouts (e.g. 6000ms / 1200ms)
-  // do not squash the rest of the graph. Any response time >= 1500ms will be drawn at full height.
   const maxRT = Math.min(1500, Math.max(...trials.map(t => t.reactionTimeMs || 0), 1));
   const bars  = trials.map((t, i) => {
     const rt = t.reactionTimeMs || 0;
@@ -1178,7 +1878,7 @@ function renderSparkline(trials) {
 }
 
 /* ---- VWM trial-by-trial table ---- */
-function renderVWMTrialTable(trials) {
+function renderVWMTrialTable(trials, showDistractors = false) {
   const rows = trials.map((t, i) => {
     const swatches = (t.stimulusColors || []).map(col =>
       '<span class="color-swatch" style="background:' + col + '" title="' + col + '"></span>'
@@ -1186,6 +1886,7 @@ function renderVWMTrialTable(trials) {
     return '<tr>' +
       '<td style="font-family:var(--font-mono);color:var(--text-tertiary)">' + (i+1) + '</td>' +
       '<td style="font-family:var(--font-mono)">' + (t.setSize||'—') + '</td>' +
+      (showDistractors ? '<td style="font-family:var(--font-mono);color:#fbbf24">' + (t.distractorCount||0) + '</td>' : '') +
       '<td>' + swatches + '</td>' +
       '<td style="font-size:11px;font-family:var(--font-mono)">' + (t.probeType||'—') + '</td>' +
       '<td style="font-size:11px;font-family:var(--font-mono)">' + (t.userResponse||'—') + '</td>' +
@@ -1194,7 +1895,7 @@ function renderVWMTrialTable(trials) {
       '</tr>';
   }).join('');
   return '<div style="overflow-x:auto;"><table class="raw-trial-table">' +
-    '<thead><tr><th>#</th><th>N</th><th>Colours</th><th>Type</th><th>Response</th><th>Result</th><th>RT (ms)</th></tr></thead>' +
+    '<thead><tr><th>' + t('ad_th_num') + '</th><th>N</th>' + (showDistractors ? '<th>' + t('ad_th_distractors') + '</th>' : '') + '<th>' + t('ad_th_colors') + '</th><th>' + t('ad_th_type') + '</th><th>' + t('ad_th_response') + '</th><th>' + t('ad_th_result') + '</th><th>' + t('ad_th_rt') + '</th></tr></thead>' +
     '<tbody>' + rows + '</tbody></table></div>';
 }
 
@@ -1212,152 +1913,326 @@ function renderANTTrialTable(trials) {
     '</tr>'
   ).join('');
   return '<div style="overflow-x:auto;"><table class="raw-trial-table">' +
-    '<thead><tr><th>#</th><th>Cue</th><th>Flanker</th><th>Target</th><th>Response</th><th>Result</th><th>RT (ms)</th></tr></thead>' +
+    '<thead><tr><th>' + t('ad_th_num') + '</th><th>' + t('ad_th_cue') + '</th><th>' + t('ad_th_flanker') + '</th><th>' + t('ad_th_target') + '</th><th>' + t('ad_th_response') + '</th><th>' + t('ad_th_result') + '</th><th>' + t('ad_th_rt') + '</th></tr></thead>' +
     '<tbody>' + rows + '</tbody></table></div>';
 }
 
-/* ---- Metric explanation overlay (plain-English + formula, general audience) ---- */
-function showMetricExplain(key) {
+/* ---- Metric explanation overlay (trajectory chart + plain-English, general audience) ---- */
+function getMetricValueForSession(key, session) {
+  const s = session.scores || {};
+  switch (key) {
+    case 'composite':
+      return { val: s.compositeScore || 0, min: 0, max: 100 };
+    case 'kpure':
+      return { val: s.kPure || 0, min: 0, max: 8 };
+    case 'kdist':
+      return { val: s.kDistractor || 0, min: 0, max: 8 };
+    case 'maxn':
+      return { val: s.maxSetSize || 0, min: 1, max: 8 };
+    case 'meanrt':
+      return { val: s.meanRT || 0, min: null, max: null };
+    case 'acc-pure':
+      return { val: (s.accuracyPure || 0) * 100, min: 0, max: 100 };
+    case 'acc-dist':
+      return { val: (s.accuracyDistractor || 0) * 100, min: 0, max: 100 };
+    case 'exec-eff':
+      return { val: s.vwmExecEfficiency || 0, min: null, max: null };
+    case 'exec-speed':
+      return { val: s.vwmExecSpeed || 0, min: null, max: null };
+    case 'alerting':
+      return { val: s.alerting || 0, min: null, max: null };
+    case 'orienting':
+      return { val: s.orienting || 0, min: null, max: null };
+    case 'executive':
+      return { val: s.executive || 0, min: null, max: null };
+    case 'ant-congruent':
+      return { val: s.ant?.rtByFlanker?.congruent || 0, min: null, max: null };
+    case 'ant-incongruent':
+      return { val: s.ant?.rtByFlanker?.incongruent || 0, min: null, max: null };
+    case 'eff-congruent':
+      return { val: s.antCongruentEfficiency || 0, min: 0, max: null };
+    case 'eff-incongruent':
+      return { val: s.antIncongruentEfficiency || 0, min: 0, max: null };
+    case 'eff-alerting':
+      return { val: s.antAlertingEfficiency || 0, min: null, max: null };
+    case 'eff-orienting':
+      return { val: s.antOrientingEfficiency || 0, min: null, max: null };
+    case 'eff-executive':
+      return { val: s.antExecutiveEfficiency || 0, min: null, max: null };
+    default:
+      return { val: 0, min: null, max: null };
+  }
+}
+
+function showMetricExplain(key, userSessions = [], currentSessionIndex = -1) {
   document.getElementById('av-explain-overlay')?.remove();
+
+  const isJa = getLang() === 'ja';
 
   const EXPLAINS = {
     composite: {
       tag: 'Overall Score',
-      title: 'Composite Score',
-      formula: 'Score = (K_pure × 0.30) + (K_dist × 0.20) + (MaxN × 0.15) + (RT_eff × 0.10) + (Alerting × 0.10) + (Orienting × 0.08) + (Executive × 0.07)',
-      body: 'Think of this as a final grade for the brain. It pulls together every task — memory, speed, focus, and attention control — into a single number from 0 to 100. The higher the score, the sharper the overall cognitive profile.',
+      title: 'Overall Performance',
+      body: 'Think of this as a final grade for the brain. It pulls together memory, speed, focus, and attention control into a single score from 0 to 100. A higher score means sharper overall mental performance.',
       analogy: '<strong>Real-world analogy:</strong> Like a credit score, but for the brain. It doesn\'t just look at one thing — it weighs up multiple factors to give a complete picture of mental performance.',
     },
     kpure: {
       tag: 'Working Memory',
-      title: "Cowan's K — Memory Capacity",
-      formula: 'K = N × (Hit Rate − False Alarm Rate)',
-      body: 'This measures how many items the brain can hold in mind at the same time — without any distractions. Most healthy adults score between 3 and 4. A higher score means more mental "slots" are available.',
+      title: 'Memory Size (No Distractions)',
+      body: 'This measures how many items the brain can hold in mind at the same time without any distractions. Most healthy adults score between 3 and 4.',
       analogy: '<strong>Real-world analogy:</strong> Imagine trying to remember a phone number while walking to find a pen. K measures how many digits you can keep in mind before they start dropping out.',
     },
     kdist: {
       tag: 'Working Memory Under Pressure',
-      title: "Cowan's K — Under Distraction",
-      formula: 'K = N × (Hit Rate − False Alarm Rate)  [applied to distractor trials]',
-      body: 'The same memory test, but with distracting elements added. This shows whether the brain can hold onto information when things get noisy or busy. A big drop from the pure K score means distractions hit hard.',
+      title: 'Memory Size (With Distractions)',
+      body: 'This measures memory capacity when distracting elements are present. Comparing this to pure memory capacity shows how well focus is maintained under pressure.',
       analogy: '<strong>Real-world analogy:</strong> Can you still remember your shopping list if someone starts talking to you? The gap between this score and pure K tells you how sensitive this person is to interruptions.',
     },
     maxn: {
       tag: 'Task Progression',
-      title: 'Maximum Set Size',
-      formula: 'Max N = highest setSize value across all VWM trials',
-      body: 'The largest number of items shown in a single round. The test adapts automatically — better performance unlocks harder levels with more items. A higher Max N means the person progressed further into the challenge.',
+      title: 'Peak Memory Level',
+      body: 'The largest number of items shown in a single round. The test difficulty increases as you answer correctly; a higher level means you progressed further.',
       analogy: '<strong>Real-world analogy:</strong> Like levels in a video game. This tells you how far the player got before the difficulty became too much.',
     },
     meanrt: {
       tag: 'Processing Speed',
-      title: 'Mean Reaction Time',
-      formula: 'Mean RT = Σ(RT on correct trials) ÷ Number of correct trials',
-      body: 'The average time between seeing the question and giving a correct answer. Only correct trials are counted — wrong answers are excluded as they likely reflect guessing, not real processing. Lower is faster.',
+      title: 'Average Response Speed',
+      body: 'The average time (in milliseconds) taken to give correct answers. Lower reaction times indicate faster mental processing speed.',
       analogy: '<strong>Real-world analogy:</strong> Like a sprinter\'s average lap time — but only counting the laps they finished cleanly. Under 400ms is very fast; above 800ms on simple tasks suggests slower processing.',
     },
     'acc-pure': {
       tag: 'Accuracy',
-      title: 'Accuracy — Memory (Pure)',
-      formula: 'Accuracy = Correct Trials ÷ Total Trials × 100',
-      body: 'The percentage of memory trials answered correctly when there were no distractions. This is the baseline measure of how reliably the brain can compare what it saw versus what it remembered.',
+      title: 'Memory Accuracy (No Distractions)',
+      body: 'The percentage of memory trials answered correctly when there were no distractions. This is a baseline measure of visual memory reliability.',
       analogy: '<strong>Real-world analogy:</strong> If someone showed you 10 flash cards and you got 8 right, that\'s 80% accuracy. This works the same way, across many repeated trials.',
     },
     'acc-dist': {
       tag: 'Accuracy Under Pressure',
-      title: 'Accuracy — Memory (Distractor)',
-      formula: 'Accuracy = Correct Trials ÷ Total Trials × 100  [distractor trials only]',
-      body: 'The same accuracy measure, but during trials that included distracting elements. Comparing this to the pure accuracy score reveals how much distractions chip away at memory reliability.',
+      title: 'Memory Accuracy (With Distractions)',
+      body: 'The percentage of memory trials answered correctly when distractions were present. A drop compared to pure accuracy shows how distractions affect accuracy.',
       analogy: '<strong>Real-world analogy:</strong> Could you still pass the flash card test if someone was tapping on your desk? The gap between pure and distractor accuracy shows how easily this person is thrown off.',
     },
     alerting: {
       tag: 'Attention Network',
-      title: 'Alerting',
-      formula: 'Alerting = RT(No Cue) − RT(Center Cue)',
-      body: 'This measures how much a warning signal speeds up the brain\'s response. A positive number means the brain uses alerts effectively — it gets faster when it knows something is coming.',
+      title: 'Alert Preparation Speed',
+      body: 'This measures how well warning cues alert the brain to prepare for an upcoming stimulus, speeding up response times.',
       analogy: '<strong>Real-world analogy:</strong> The difference between being startled by a sudden knock vs. opening the door when the doorbell rings. Alerting captures how well the brain uses "heads-up" signals.',
     },
     orienting: {
       tag: 'Attention Network',
-      title: 'Orienting',
-      formula: 'Orienting = RT(Center Cue) − RT(Spatial Cue)',
-      body: 'This measures how well the brain can direct its focus to exactly where it needs to be. When a cue points to the right location, responses get faster. This score captures the size of that benefit.',
+      title: 'Target Focus Speed',
+      body: 'This measures how effectively the brain directs its visual attention to a specific location on the screen when given a directional cue.',
       analogy: '<strong>Real-world analogy:</strong> Looking for someone in a crowd. If a friend taps you and points in the right direction, you find them faster. Orienting measures how much that "point" helps.',
     },
     executive: {
       tag: 'Attention Network',
-      title: 'Executive Control',
-      formula: 'Executive = RT(Incongruent Flankers) − RT(Congruent Flankers)',
-      body: 'This measures the brain\'s ability to ignore conflicting information and stay focused on the task. A higher number means more mental effort was needed to override the interference.',
+      title: 'Conflict Resolution Speed',
+      body: "This measures the brain's ability to filter out conflict and stay focused. It captures the extra processing time needed to ignore misleading information.",
       analogy: '<strong>Real-world analogy:</strong> Reading the word "RED" printed in blue ink — your brain has to override one signal to process another. This score captures that mental tug-of-war.',
     },
     'exec-eff': {
-      tag: 'VWM Executive',
-      title: 'Executive Efficiency',
-      formula: 'Exec. Efficiency = ((Distractor K − Pure K) ÷ Pure K) × 100',
-      body: 'This measures how much working memory capacity is impacted when distractors are present compared to the pure baseline. A negative score indicates a performance drop due to distractors, while scores closer to 0% show high resilience to distraction.',
+      tag: 'Focus Resilience',
+      title: 'Focus Retention Under Distraction',
+      body: 'This shows the relative percentage change in memory capacity when distractions are introduced. Closer to 0% means higher distraction resilience.',
       analogy: '<strong>Real-world analogy:</strong> If you can remember 4 tasks when it is quiet, but only 3 tasks when the TV is on, your efficiency drops by 25%. This score captures that relative drop under distraction.',
     },
     'exec-speed': {
-      tag: 'VWM Executive',
-      title: 'Executive Speed',
-      formula: 'Exec. Speed = Pure RT − Distractor RT',
-      body: 'This measures the response speed difference between the pure and distractor memory tasks. A positive value means the candidate responded faster when distractors were present, whereas a negative value indicates they slowed down to process the distraction.',
+      tag: 'Focus Speed',
+      title: 'Speed Cost Under Distraction',
+      body: 'The speed difference when distractions are present. It shows if visual distraction causes the player to slow down to maintain accuracy.',
       analogy: '<strong>Real-world analogy:</strong> The extra time you take to read a sign when there are flashing advertisements around it. It shows if you slow down to maintain accuracy when distractors pop up.',
     },
     'ant-congruent': {
       tag: 'Attention Network',
-      title: 'Congruent RT',
-      formula: 'Congruent RT = median(RT on correct congruent trials)',
-      body: 'The median response time when the surrounding arrows point in the same direction as the target arrow. This represents the baseline response speed under conditions of low conflict/interference.',
+      title: 'Standard Response Speed',
+      body: 'The average speed to identify the center arrow when surrounding arrows point in the same direction. This represents baseline speed under no conflict.',
       analogy: '<strong>Real-world analogy:</strong> Like driving when all traffic flow indicators point in the same direction. It requires very little mental filter to make a decision.',
     },
     'ant-incongruent': {
       tag: 'Attention Network',
-      title: 'Incongruent RT',
-      formula: 'Incongruent RT = median(RT on correct incongruent trials)',
-      body: 'The median response time when the surrounding arrows point in the opposite direction of the target arrow. This indicates processing speed under high-interference and high-conflict conditions.',
+      title: 'Conflicting Response Speed',
+      body: 'The average speed to identify the center arrow when surrounding arrows point in the opposite direction, representing speed under conflict.',
       analogy: '<strong>Real-world analogy:</strong> Like driving in a construction zone where some arrows point left but a sign says "Turn Right". It takes longer because your brain must filter out the misleading visual cues.',
     },
     'eff-congruent': {
       tag: 'Attention Throughput',
-      title: 'Congruent Efficiency',
-      formula: 'Congruent Efficiency = (Accuracy_congruent ÷ Congruent RT) × 1000',
-      body: 'The cognitive throughput (correct responses per second) under low conflict. A higher throughput indicates high accuracy combined with rapid processing speed.',
+      title: 'Standard Task Efficiency',
+      body: 'Overall cognitive throughput (speed and accuracy combined) under low-conflict conditions. Higher is better.',
       analogy: '<strong>Real-world analogy:</strong> Typing speed on a keyboard when you are typing familiar words — high speed and high accuracy combine for high productivity.',
     },
     'eff-incongruent': {
       tag: 'Attention Throughput',
-      title: 'Incongruent Efficiency',
-      formula: 'Incongruent Efficiency = (Accuracy_incongruent ÷ Incongruent RT) × 1000',
-      body: 'The cognitive throughput (correct responses per second) under high conflict. This metric represents how productively the brain can perform complex tasks that require filtering out active distraction.',
-      analogy: '<strong>Real-world analogy:</strong> The speed and accuracy with which you can type text while listening to someone speak different words. It measures high-conflict productivity.',
+      title: 'Conflicting Task Efficiency',
+      body: 'Overall cognitive throughput (speed and accuracy combined) under high-conflict conditions. Higher is better.',
+      analogy: '<strong>Real-world analogy:</strong> Driving through complex, unfamiliar traffic while still making split-second correct decisions.',
     },
     'eff-alerting': {
-      tag: 'Attention Throughput',
-      title: 'Alerting Efficiency',
-      formula: 'Alerting Efficiency = ((Accuracy_center − Accuracy_none) ÷ Alerting RT) × 1000',
-      body: 'This measures attention throughput efficiency gained from warning cues. It combines accuracy changes and RT speed-ups to quantify how productively the brain utilizes warning signals.',
-      analogy: '<strong>Real-world analogy:</strong> How much more work a driver gets done safely when a co-pilot gives them heads-up alerts about upcoming traffic signals.',
+      tag: 'Attention Efficiency',
+      title: 'Alert Prep Efficiency',
+      body: 'Throughput gain from alert cues. Shows how effectively warning signals improve performance.',
+      analogy: '<strong>Real-world analogy:</strong> How much a "heads-up" warning boosts your actual productivity.',
     },
     'eff-orienting': {
-      tag: 'Attention Throughput',
-      title: 'Orienting Efficiency',
-      formula: 'Orienting Efficiency = ((Accuracy_spatial − Accuracy_center) ÷ Orienting RT) × 1000',
-      body: 'This measures attention throughput efficiency gained from spatial cues. It combines accuracy changes and RT speed-ups to quantify how productively the brain utilizes directional pointers to align focus.',
-      analogy: '<strong>Real-world analogy:</strong> A GPS highlight showing exactly which lane to turn into. It helps you execute the turn faster and with fewer mistakes.',
+      tag: 'Attention Efficiency',
+      title: 'Target Focus Efficiency',
+      body: 'Throughput gain from spatial cues. Shows how effectively directional hints improve performance.',
+      analogy: '<strong>Real-world analogy:</strong> How much a precise pointer speeds up finding what you need.',
     },
     'eff-executive': {
-      tag: 'Attention Throughput',
-      title: 'Executive Efficiency',
-      formula: 'Executive Efficiency = ((Accuracy_congruent − Accuracy_incongruent) ÷ Executive RT) × 1000',
-      body: 'This measures the efficiency of resolving conflict/interference under executive control. It combines accuracy changes and RT speed-ups to quantify how productively the brain handles conflict resolution.',
-      analogy: '<strong>Real-world analogy:</strong> An air traffic controller resolving flight path overlaps on a busy day. It represents throughput efficiency under intense cognitive conflict.',
-    },
+      tag: 'Attention Efficiency',
+      title: 'Conflict Filter Efficiency',
+      body: 'Throughput retention under visual conflict. Shows how effectively conflict is filtered out without losing speed/accuracy.',
+      analogy: '<strong>Real-world analogy:</strong> Noise-cancelling headphones for your brain.',
+    }
   };
 
-  const info = EXPLAINS[key];
+  const EXPLAINS_JA = {
+    composite: {
+      tag: '総合スコア',
+      title: '総合パフォーマンス',
+      body: '脳の総合成績表のようなものです。記憶力、速度、集中力、注意制御を統合し、0から100の単一スコアで表します。数値が高いほど総合的な認知能力が高いことを意味します。',
+      analogy: '<strong>現実例：</strong> 脳の信用スコアのようなものです。単一の要素だけでなく多角的な指標を統合して全体像を示します。',
+    },
+    kpure: {
+      tag: 'ワーキングメモリ',
+      title: '記憶容量 (通常 / 妨害なし)',
+      body: '妨害がない状態において、脳が同時に保持できる視覚要素の測定値です。一般的な成人の平均は3〜4項目です。',
+      analogy: '<strong>現実例：</strong> ペンを探して歩いている間に電話番号を記憶するようなものです。Cowan\'s Kは忘れずに覚えていられる数字の桁数を測定します。',
+    },
+    kdist: {
+      tag: '負荷時のワーキングメモリ',
+      title: '記憶容量 (妨害あり)',
+      body: '視覚的な妨害要素（ディストラクター）が存在する状況での記憶容量です。通常の記憶容量と比較することで、プレッシャーやノイズ下での集中維持力を評価します。',
+      analogy: '<strong>現実例：</strong> 誰かに話しかけられながら買い物リストを記憶できるか。通常Kとの差で割り込みへの強さが分かります。',
+    },
+    maxn: {
+      tag: '進行レベル',
+      title: '最高到達記憶レベル',
+      body: '1ラウンドで表示された最大のアイテム数（N）です。正解を重ねるごとに難易度が上がり、高いレベルに到達するほど記憶の限界値が高いことを示します。',
+      analogy: '<strong>現実例：</strong> ゲームのステージ到達度のイメージです。難易度が限界に達するまでにどこまで進めたかを示します。',
+    },
+    meanrt: {
+      tag: '処理速度',
+      title: '平均回答速度',
+      body: '正解した試行における平均反応時間（ミリ秒）です。数値が低いほど脳の視覚・意思決定処理速度が速いことを示します。',
+      analogy: '<strong>現実例：</strong> スプリンターの平均タイムのようなものです。400ms未満は非常に高速、800ms以上は処理が慎重であることを示します。',
+    },
+    'acc-pure': {
+      tag: '正解率',
+      title: '記憶正解率 (通常 / 妨害なし)',
+      body: '妨害なしの環境で正確に視覚記憶を正解できた割合です。視覚メモリの基本的な正確性を測るベースラインです。',
+      analogy: '<strong>現実例：</strong> 10枚のカードを見せられて8枚正解できたら正解率80%です。これを多数の試行で計測します。',
+    },
+    'acc-dist': {
+      tag: '負荷時の正解率',
+      title: '記憶正解率 (妨害あり)',
+      body: '妨害要素が存在する環境での正解率です。通常正解率からの低下幅を見ることで、妨害による制度の乱れを測定します。',
+      analogy: '<strong>現実例：</strong> 机をトントン叩かれてもカードテストに正解できるか。妨害への影響の受けやすさが分かります。',
+    },
+    alerting: {
+      tag: '注意ネットワーク',
+      title: '警告準備速度',
+      body: '予告信号（キュー）によって脳が刺激の出現に事前に備え、反応をどれだけスピードアップできるかを測る効果です。',
+      analogy: '<strong>現実例：</strong> 突然のノックに驚くか、インターホンが鳴ってドアを開けるかの違いです。事前の「準備」の効果を測定します。',
+    },
+    orienting: {
+      tag: '注意ネットワーク',
+      title: 'ターゲット注視速度',
+      body: '画面上の特定の位置へ視線と注意を向けさせるガイド（方向キュー）が出た際、どれだけ迅速に焦点を合わせられるかを測ります。',
+      analogy: '<strong>現実例：</strong> 人ごみの中で友達を探す際、「あっちだよ」と指をさされた方が素早く見つけられる効果と同じです。',
+    },
+    executive: {
+      tag: '注意ネットワーク',
+      title: '葛藤解消速度',
+      body: '周囲の誤解を招く情報（相反する矢印など）を無視し、真のターゲットに集中する葛藤抑制能力です。',
+      analogy: '<strong>現実例：</strong> 青いインクで書かれた「赤」という文字を読むストループ効果です。誤った視覚情報を抑え込む脳の力を評価します。',
+    },
+    'exec-eff': {
+      tag: '集中維持率',
+      title: '妨害下での集中維持率',
+      body: '妨害要素が加わった際の記憶容量の保持割合（%）です。100%に近いほど妨害に強い集中力を発揮します。',
+      analogy: '<strong>現実例：</strong> 静かな部屋で4つ覚えていたことが、TVがつくと3つに減った場合、保持率は75%になります。',
+    },
+    'exec-speed': {
+      tag: '速度コスト',
+      title: '妨害による速度低下コスト',
+      body: '妨害要素が現れた際に回答スピードがどれだけ遅くなったか（ms）を示します。正確性を保つために慎重になった度合いです。',
+      analogy: '<strong>現実例：</strong> 点滅広告がある場所で標識を読むときにかかる追加の時間です。',
+    },
+    'ant-congruent': {
+      tag: '注意ネットワーク',
+      title: '標準試行の回答速度',
+      body: '周囲の矢印と中央の矢印が同じ方向を向いている（一致試行）際の平均回答スピードです。',
+      analogy: '<strong>現実例：</strong> 全ての標識が同じ方向を指している道路を運転するスムーズな状態です。',
+    },
+    'ant-incongruent': {
+      tag: '注意ネットワーク',
+      title: '葛藤試行の回答速度',
+      body: '周囲の矢印が中央の矢印と逆を向いている（不一致試行）際の平均回答スピードです。',
+      analogy: '<strong>現実例：</strong> 「右折」の看板があるのに矢印が左を指している工事現場のような、視覚的葛藤がある状態です。',
+    },
+    'eff-congruent': {
+      tag: 'スループット',
+      title: '標準タスク効率',
+      body: '葛藤のない標準的な試行における正確性とスピードを統合した認知スループット（試行/秒）です。',
+      analogy: '<strong>現実例：</strong> 慣れた文字をタイピングするときのスピードと正確性の両立度合いです。',
+    },
+    'eff-incongruent': {
+      tag: 'スループット',
+      title: '葛藤タスク効率',
+      body: '視覚的葛藤が存在する過酷な状況下での正確性とスピードを統合した認知スループット（試行/秒）です。',
+      analogy: '<strong>現実例：</strong> 複雑な交通状況下で正確かつ素早く判断を下す処理能力です。',
+    },
+    'eff-alerting': {
+      tag: '注意効率',
+      title: '警告準備効率',
+      body: '警告シグナルを活用したときのスループット向上効果です。',
+      analogy: '<strong>現実例：</strong> 準備信号により作業効率がどれだけ向上したかの倍率です。',
+    },
+    'eff-orienting': {
+      tag: '注意効率',
+      title: 'ターゲット注視効率',
+      body: '方向指示キューを活用したときのスループット向上効果です。',
+      analogy: '<strong>現実例：</strong> 視界の誘導によって作業効率がどれだけ高まったかを示します。',
+    },
+    'eff-executive': {
+      tag: '注意効率',
+      title: '葛藤フィルター効率',
+      body: 'ノイズや葛藤情報をシャットアウトしたときのスループット保持効率です。',
+      analogy: '<strong>現実例：</strong> ノイズキャンセリングのように不要な情報を遮断して処理を維持する能力です。',
+    }
+  };
+
+  const info = (isJa && EXPLAINS_JA[key]) ? EXPLAINS_JA[key] : (EXPLAINS[key] || {
+    tag: 'Metric',
+    title: key,
+    body: 'Detailed metric performance calculation.',
+    analogy: ''
+  });
   if (!info) return;
+
+  let chartSection = '';
+  if (userSessions && userSessions.length > 0) {
+    const dataPoints = userSessions.map(us => {
+      const details = getMetricValueForSession(key, us);
+      return {
+        value: details.val,
+        label: new Date(us.completedAt || us.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+      };
+    });
+    const firstSess = userSessions[0];
+    const { min, max } = getMetricValueForSession(key, firstSess);
+    
+    chartSection = `
+      <div class="av-explain-trajectory">
+        <div class="av-formula-label" style="margin-bottom:8px;">Performance Trajectory</div>
+        <div style="background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.06); border-radius:12px; padding:16px 20px; margin: 8px 0 16px 0;">
+          ${generateSvgLineChart(dataPoints, 520, 160, currentSessionIndex, min, max)}
+        </div>
+        ${userSessions.length === 1 ? `<div style="font-size:10px; color:var(--text-tertiary); text-align:center; margin-top:-8px; margin-bottom:16px; font-family:var(--font-mono)">1 session completed. Additional sessions will build a trend line.</div>` : ''}
+      </div>
+    `;
+  }
 
   const overlay = document.createElement('div');
   overlay.className = 'av-explain-overlay';
@@ -1368,7 +2243,7 @@ function showMetricExplain(key) {
     '<div class="av-explain-tag">' + info.tag + '</div>' +
     '<div class="av-explain-title">' + info.title + '</div>' +
     '<div class="av-explain-body">' + info.body + '</div>' +
-    '<div class="av-explain-formula"><span class="av-formula-label">Formula</span>' + info.formula + '</div>' +
+    chartSection +
     '<div class="av-explain-analogy">' + info.analogy + '</div>' +
     '</div>';
 

@@ -23,13 +23,6 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
-if (!firebaseConfig.apiKey) {
-  console.warn(
-    "[Firebase] Warning: Firebase API key is not configured. " +
-    "Please define VITE_FIREBASE_* environment variables in your deployment or local .env file."
-  );
-}
-
 // Initialize Cloud Firestore and get a reference to the service
 export const db = getFirestore(app);
 

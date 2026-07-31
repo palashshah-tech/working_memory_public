@@ -6,7 +6,7 @@ import { render } from '../utils/dom.js';
 import { Storage } from '../utils/storage.js';
 import { navigate, injectStyle } from '../router.js';
 import { t, getLang, setLang } from '../utils/i18n.js';
-import { ensureAccessAndSession, startHeartbeat } from '../utils/access.js';
+import { validateAccessCode, ensureAccessAndSession, startHeartbeat } from '../utils/access.js';
 
 const LEGAL_CONTENT = {
   en: {
@@ -176,6 +176,11 @@ export function WelcomeView(params = {}) {
           <form id="reg-form" class="wv-form">
             <h2 class="form-title">${t('intake_title')}</h2>
             <div class="input-grid">
+              <div class="field" style="grid-column: 1 / -1;">
+                <label>${t('label_access_code')} (Optional)</label>
+                <input type="text" id="r-access" placeholder="Optional Access Code (Leave blank for Public Session)" />
+                <div id="access-error" style="margin-top:6px; font-size:12px; color:#f87171; display:none;"></div>
+              </div>
               <div class="field">
                 <label>${t('label_name')}</label>
                 <input type="text" id="r-name" placeholder="${t('placeholder_name')}" required />
@@ -209,6 +214,9 @@ export function WelcomeView(params = {}) {
                 <input type="checkbox" id="r-privacy" required style="margin-top:2px; width:auto; cursor:pointer;" />
                 <label for="r-privacy" style="font-size:12px; color:#ffffff; line-height:1.4; cursor:pointer; font-family:var(--font-body);">${t('privacy_text')}</label>
               </div>
+              <p class="notice" style="max-width:none; color:#ffffff;">
+                <span>${t('disclaimer_text')}</span>
+              </p>
               <button type="submit" class="btn-volt" style="align-self: flex-end;">${t('btn_init')}</button>
             </div>
           </form>
@@ -235,6 +243,19 @@ export function WelcomeView(params = {}) {
         </div>
       </div>
 
+      <div id="waitlist-modal" class="legal-modal-overlay">
+        <div class="legal-modal-card glass-card" style="max-width:520px;">
+          <header class="legal-modal-header">
+            <h3>${t('waitlist_title')}</h3>
+            <button id="waitlist-close" class="btn-ghost-modal">&times;</button>
+          </header>
+          <div class="legal-modal-body" style="text-align:center;">
+            <p id="waitlist-msg" style="margin-top:0;">${t('waitlist_copy')}</p>
+            <div id="waitlist-meta" style="font-family:var(--font-mono); font-size:12px; color:#9a9a9f; margin:16px 0;"></div>
+            <button id="waitlist-retry" class="btn-volt">${t('waitlist_retry')}</button>
+          </div>
+        </div>
+      </div>
     </div>
   `);
 
@@ -262,18 +283,6 @@ export function WelcomeView(params = {}) {
       width: 100%;
       max-width: 800px;
       z-index: 10;
-    }
-
-    .wv-logo {
-      height: 48px;
-      mix-blend-mode: screen;
-      filter: brightness(1.4) contrast(1.3);
-      transition: var(--transition-fast);
-    }
-    @media (min-width: 768px) {
-      .wv-logo {
-        height: 64px;
-      }
     }
 
     .wv-header {
@@ -524,8 +533,20 @@ export function WelcomeView(params = {}) {
       color: var(--accent-volt) !important;
     }
 
+    .wv-logo {
+      height: 48px;
+      mix-blend-mode: screen;
+      filter: brightness(1.4) contrast(1.3);
+      transition: var(--transition-fast);
+    }
+    @media (min-width: 768px) {
+      .wv-logo {
+        height: 64px;
+      }
+    }
+
     @media (min-width: 1400px) {
-      .wv-container { max-width: 1100px; }
+      .wv-content { max-width: 1100px; }
       .wv-title { font-size: 4rem; }
       .wv-tagline { font-size: 1.3rem; }
       .form-title { font-size: 1.8rem; }
@@ -534,7 +555,7 @@ export function WelcomeView(params = {}) {
       .wv-main { padding: 48px !important; }
     }
     @media (min-width: 1800px) {
-      .wv-container { max-width: 1300px; }
+      .wv-content { max-width: 1300px; }
       .wv-title { font-size: 4.8rem; }
       .wv-tagline { font-size: 1.5rem; }
       .form-title { font-size: 2.1rem; }
@@ -545,6 +566,7 @@ export function WelcomeView(params = {}) {
   `);
 
   document.getElementById('lang-toggle').addEventListener('click', () => {
+    const accessVal = document.getElementById('r-access')?.value || '';
     const nameVal = document.getElementById('r-name')?.value || '';
     const emailVal = document.getElementById('r-email')?.value || '';
     const ageVal = document.getElementById('r-age')?.value || '';
@@ -556,12 +578,33 @@ export function WelcomeView(params = {}) {
     setLang(newLang);
     WelcomeView(); // Re-render
 
+    if (document.getElementById('r-access')) document.getElementById('r-access').value = accessVal;
     if (document.getElementById('r-name')) document.getElementById('r-name').value = nameVal;
     if (document.getElementById('r-email')) document.getElementById('r-email').value = emailVal;
     if (document.getElementById('r-age')) document.getElementById('r-age').value = ageVal;
     if (document.getElementById('r-gender')) document.getElementById('r-gender').value = genderVal;
     if (document.getElementById('r-handle')) document.getElementById('r-handle').value = handleVal;
     if (document.getElementById('r-privacy')) document.getElementById('r-privacy').checked = privacyChecked;
+  });
+
+  const accessError = document.getElementById('access-error');
+  const waitlistModal = document.getElementById('waitlist-modal');
+  const waitlistMsg = document.getElementById('waitlist-msg');
+  const waitlistMeta = document.getElementById('waitlist-meta');
+  const waitlistRetry = document.getElementById('waitlist-retry');
+  const waitlistClose = document.getElementById('waitlist-close');
+
+  const showWaitlist = (position, etaMin) => {
+    waitlistMsg.textContent = t('waitlist_copy');
+    waitlistMeta.textContent = t('waitlist_meta', { position, eta: etaMin });
+    waitlistModal.classList.add('active');
+  };
+
+  waitlistRetry.addEventListener('click', () => {
+    waitlistModal.classList.remove('active');
+  });
+  waitlistClose.addEventListener('click', () => {
+    waitlistModal.classList.remove('active');
   });
 
   // Modal Setup
@@ -583,6 +626,8 @@ export function WelcomeView(params = {}) {
     modalBody.innerHTML = content[type] || '';
     modal.classList.add('active');
   };
+
+    // Registration handled above with access code gate.
 
   const hideModal = () => {
     modal.classList.remove('active');
@@ -620,9 +665,14 @@ export function WelcomeView(params = {}) {
     if (e.target === modal) hideModal();
   });
 
+
+
   document.getElementById('reg-form').addEventListener('submit', async (e) => {
     e.preventDefault();
 
+    accessError.style.display = 'none';
+
+    const accessCode = document.getElementById('r-access').value.trim();
     const name   = document.getElementById('r-name').value.trim();
     const email  = document.getElementById('r-email').value.trim();
     const ageRaw = document.getElementById('r-age').value.trim();
@@ -634,6 +684,7 @@ export function WelcomeView(params = {}) {
 
     const errors = [];
 
+    // In public version, access code is optional
     if (name.length < 2) errors.push({ id: 'r-name', msg: 'Name must be at least 2 characters' });
 
     const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -661,12 +712,31 @@ export function WelcomeView(params = {}) {
       return;
     }
 
-    const sessionInfo = await ensureAccessAndSession();
-    if (!sessionInfo.ok) {
-      return;
+    let codeInfo = { ok: true, type: 'public', companyId: 'public', code: accessCode || 'PUBLIC' };
+    if (accessCode) {
+      const validateRes = await validateAccessCode(accessCode);
+      if (validateRes.ok) {
+        codeInfo = validateRes;
+      }
     }
 
-    startHeartbeat();
+    if (codeInfo.type !== 'public') {
+      const sessionInfo = await ensureAccessAndSession(codeInfo);
+      if (!sessionInfo.ok) {
+        if (sessionInfo.waitlist) {
+          showWaitlist(sessionInfo.position, sessionInfo.etaMin);
+        } else {
+          if (sessionInfo.reason === 'limit_reached') {
+            accessError.textContent = t('access_limit_reached');
+          } else {
+            accessError.textContent = t('access_invalid');
+          }
+          accessError.style.display = 'block';
+        }
+        return;
+      }
+      startHeartbeat();
+    }
 
     const metadata = {
       windowWidth: window.innerWidth,
@@ -674,11 +744,64 @@ export function WelcomeView(params = {}) {
       userAgent: navigator.userAgent
     };
 
-    sessionStorage.removeItem('practice_done_vwm-pure');
-    sessionStorage.removeItem('practice_done_vwm-distractor');
-    sessionStorage.removeItem('practice_done_ant');
-
     Storage.saveCurrentSession({ name, email, age, gender, handle, startedAt: new Date().toISOString(), trials: [], metadata });
     navigate('instructions', { task: 'vwm-pure' });
   });
+
+  // Live pre-fill profile data on Access Code entry
+  const accessInput = document.getElementById('r-access');
+  if (accessInput) {
+    let lastCheckedCode = '';
+    const checkAndAutoFill = async () => {
+      const code = accessInput.value.trim();
+      if (!code || code === lastCheckedCode || code.length < 3) return;
+      lastCheckedCode = code;
+      try {
+        const info = await validateAccessCode(code);
+        if (info.ok && info.type === 'secondary') {
+          const nameEl = document.getElementById('r-name');
+          const emailEl = document.getElementById('r-email');
+          const ageEl = document.getElementById('r-age');
+          const genderEl = document.getElementById('r-gender');
+          const handleEl = document.getElementById('r-handle');
+
+          if (info.playerName && nameEl && !nameEl.value) {
+            nameEl.value = info.playerName;
+            nameEl.style.borderColor = 'var(--accent-volt)';
+          }
+          if (info.email && emailEl && !emailEl.value) {
+            emailEl.value = info.email;
+            emailEl.style.borderColor = 'var(--accent-volt)';
+          }
+          if (info.age && ageEl && !ageEl.value) {
+            ageEl.value = info.age;
+            ageEl.style.borderColor = 'var(--accent-volt)';
+          }
+          if (info.gender && genderEl) {
+            const targetGender = info.gender.trim().toLowerCase();
+            for (const opt of genderEl.options) {
+              if (opt.value && opt.value.toLowerCase() === targetGender) {
+                genderEl.value = opt.value;
+                genderEl.style.borderColor = 'var(--accent-volt)';
+                break;
+              }
+            }
+          }
+          if (info.handle && handleEl && !handleEl.value) {
+            handleEl.value = info.handle;
+            handleEl.style.borderColor = 'var(--accent-volt)';
+          }
+        }
+      } catch (e) {
+        // silent fallback
+      }
+    };
+
+    accessInput.addEventListener('blur', checkAndAutoFill);
+    accessInput.addEventListener('input', () => {
+      if (accessInput.value.trim().length >= 4) {
+        checkAndAutoFill();
+      }
+    });
+  }
 }

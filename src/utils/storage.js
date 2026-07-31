@@ -38,11 +38,12 @@ export const Storage = {
     await authReady;
     try {
       const companyId = candidate.companyId || localStorage.getItem('cogscreen_company_id') || 'xiberlinc';
+      const accessCode = candidate.accessCode || localStorage.getItem('cogscreen_access_code') || null;
       const docRef = await addDoc(collection(db, COLLECTION_NAME), {
         ...candidate,
         companyId,
+        accessCode,
         createdAt: Timestamp.now(),
-        // Just in case, also store locally as a backup
       });
       console.log("Candidate saved to cloud with ID: ", docRef.id);
       
@@ -88,6 +89,26 @@ export const Storage = {
       return candidates;
     } catch (e) {
       console.error("Error fetching from Firebase: ", e);
+      return [];
+    }
+  },
+
+  /**
+   * FETCH CANDIDATES BY ACCESS CODE (Player-scoped)
+   */
+  async getCandidatesByAccessCode(accessCode) {
+    await authReady;
+    try {
+      const baseRef = collection(db, COLLECTION_NAME);
+      const q = query(baseRef, where('accessCode', '==', accessCode), orderBy("createdAt", "desc"));
+      const querySnapshot = await getDocs(q);
+      const candidates = [];
+      querySnapshot.forEach((doc) => {
+        candidates.push({ id: doc.id, ...doc.data() });
+      });
+      return candidates;
+    } catch (e) {
+      console.error("Error fetching player candidates: ", e);
       return [];
     }
   },
