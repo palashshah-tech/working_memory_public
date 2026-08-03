@@ -1070,6 +1070,27 @@
       line-height: 1.6;
   }
 
+  .axis-labels-worded {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      align-items: flex-end;
+      flex-shrink: 0;
+      width: 46px;
+      font-size: 10px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+  }
+
+  .axis-labels-worded .spark-slowest {
+      color: #D44040;
+  }
+
+  .axis-labels-worded .spark-fastest {
+      color: #50A87F;
+  }
+
   .mc,
   .chart-panel,
   .net-card,

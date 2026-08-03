@@ -290,7 +290,11 @@ function sparklineHTML(trialsChrono, totalLabel, labelEvery = 5) {
       <div class="chart-title">${t('rpt_spark_title')} — ${totalLabel}</div>
       <div class="chart-sub">${t('rpt_spark_desc')}</div>
       <div class="chart-with-axis">
-        ${axisLabelsHTML(axis, v => Math.round(v) + 'ms')}
+        <div class="axis-labels-worded">
+          <span class="spark-slowest">${t('rpt_spark_slowest')}</span>
+          ${axisLabelsHTML(axis, v => Math.round(v) + 'ms')}
+          <span class="spark-fastest">${t('rpt_spark_fastest')}</span>
+        </div>
         <div class="chart-plot chart-plot-spark">
           ${gridlinesHTML(axis)}
           <div class="spark">
@@ -302,9 +306,9 @@ function sparklineHTML(trialsChrono, totalLabel, labelEvery = 5) {
           </div>
         </div>
       </div>
-      <div class="spark-axis" style="margin-left:46px;">
-        ${trialsChrono.map((_, i) => (i === 0 || (i + 1) % labelEvery === 0) ? `<span style="left:${(i / (trialsChrono.length - 1)) * 100}%;">#${i + 1}</span>` : '').join('')}
-      </div>
+        <div class="spark-axis" style="margin-left:46px;">
+            ${trialsChrono.map((_, i) => (i === 0 || (i + 1) % labelEvery === 0) ? `<span style="left:${(i / (trialsChrono.length - 1)) * 100}%;">#${i + 1}</span>` : '').join('')}
+        </div>
     </div>
   `;
 }
@@ -359,6 +363,12 @@ function buildReportHTML(c) {
     const reportId = 'XBL-' + (c.completedAt ? new Date(c.completedAt).toISOString().slice(0, 10).replace(/-/g, '') : '00000000') +
         '-' + (c.name || 'CAND').split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 3);
     const assessDate = c.completedAt ? new Date(c.completedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : '—';
+    const assessRangeStart = c.completedAt ? new Date(new Date(c.completedAt).getTime() - 21 * 24 * 60 * 60 * 1000) : null;
+    const assessDateRange = (assessRangeStart && c.completedAt)
+    ? `${assessRangeStart.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })} – ${new Date(c.completedAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`
+    : '—';
+    const sportType = c.sportType || 'Futsal';
+    const playerType = c.playerType || 'Pro';
     const completedTime = c.completedAt ? new Date(c.completedAt).toLocaleTimeString('en-US') : '—';
     const candFirst = (c.name || 'The candidate').split(' ')[0];
 
@@ -385,7 +395,13 @@ function buildReportHTML(c) {
   <div class="section">
     ${sectionHeaderHTML('01', t('rpt_sec1_label'), t('rpt_sec1_title'), '#E95295', t('rpt_sec1_desc'))}
 
-    ${whatYouDidBoxHTML('#E95295', '#FDF3F7', stripTags(t('t1_sum')) + ' ' + stripTags(t('t1_s2')) + ' ' + stripTags(t('t1_s3')))}
+    ${interpretBoxHTML('#E95295', `
+      ${t('rpt_interp1', {
+                name: candFirst, k: pure.maxK.toFixed(1),
+                peakSize: pure.curve.find(c => c.k === pure.maxK)?.setSize || pure.maxSetSize,
+                trials: pure.totalTrials, acc: (pure.overallAcc * 100).toFixed(0), streak: pure.maxStreak,
+            })}
+    `)}
 
     <div class="mc-grid">
       ${metricCardHTML({ label: t('rpt_m_cowansk'), value: pure.maxK.toFixed(1), accent: '#E95295', sub: t('rpt_m_cowansk_sub'), highlight: true })}
@@ -415,14 +431,6 @@ function buildReportHTML(c) {
                 { term: t('rpt_gloss_setsize_term'), def: t('rpt_gloss_setsize_def') },
             ])}
 
-    ${interpretBoxHTML('#E95295', `
-      ${t('rpt_interp1', {
-                name: candFirst, k: pure.maxK.toFixed(1),
-                peakSize: pure.curve.find(c => c.k === pure.maxK)?.setSize || pure.maxSetSize,
-                trials: pure.totalTrials, acc: (pure.overallAcc * 100).toFixed(0), streak: pure.maxStreak,
-            })}
-    `)}
-
     ${footerHTML('Section 01 / 03', reportId)}
   </div>
   `;
@@ -433,7 +441,14 @@ function buildReportHTML(c) {
   <div class="section">
     ${sectionHeaderHTML('02', t('rpt_sec2_label'), t('rpt_sec2_title'), '#50A87F', t('rpt_sec2_desc'))}
 
-    ${whatYouDidBoxHTML('#50A87F', '#F2FAF6', stripTags(t('t2_sum')) + ' ' + stripTags(t('t2_s2')) + ' ' + stripTags(t('t2_s5')))}
+    ${interpretBoxHTML('#50A87F', `
+      ${t('rpt_interp2', {
+                acc: (dist.overallAcc * 100).toFixed(0), trials: dist.totalTrials,
+                change: distDrop >= 0 ? t('rpt_interp2_change_lower', { n: distDrop.toFixed(0) }) : t('rpt_interp2_change_higher', { n: Math.abs(distDrop).toFixed(0) }),
+                k1: pure.maxK.toFixed(1), k2: dist.maxK.toFixed(1), execEff: execEfficiency.toFixed(1),
+                resilience: Math.abs(distDrop) < 5 ? t('rpt_interp2_resilience_high') : Math.abs(distDrop) < 20 ? t('rpt_interp2_resilience_mod') : t('rpt_interp2_resilience_low'),
+            })}
+    `)}
 
     <div class="mc-grid">
       ${metricCardHTML({ label: t('rpt_m_cowansk_dist'), value: dist.maxK.toFixed(1), accent: '#50A87F', sub: t('rpt_m_cowansk_dist_sub'), highlight: true })}
@@ -480,15 +495,6 @@ function buildReportHTML(c) {
                 { term: t('rpt_gloss_distractoreffect_term'), def: t('rpt_gloss_distractoreffect_def') },
             ])}
 
-    ${interpretBoxHTML('#50A87F', `
-      ${t('rpt_interp2', {
-                acc: (dist.overallAcc * 100).toFixed(0), trials: dist.totalTrials,
-                change: distDrop >= 0 ? t('rpt_interp2_change_lower', { n: distDrop.toFixed(0) }) : t('rpt_interp2_change_higher', { n: Math.abs(distDrop).toFixed(0) }),
-                k1: pure.maxK.toFixed(1), k2: dist.maxK.toFixed(1), execEff: execEfficiency.toFixed(1),
-                resilience: Math.abs(distDrop) < 5 ? t('rpt_interp2_resilience_high') : Math.abs(distDrop) < 20 ? t('rpt_interp2_resilience_mod') : t('rpt_interp2_resilience_low'),
-            })}
-    `)}
-
     ${footerHTML('Section 02 / 03', reportId)}
   </div>
   `;
@@ -515,7 +521,12 @@ function buildReportHTML(c) {
   <div class="section">
     ${sectionHeaderHTML('03', t('rpt_sec3_label'), t('rpt_sec3_title'), '#1BA8D8', t('rpt_sec3_desc'))}
 
-    ${whatYouDidBoxHTML('#1BA8D8', '#F1F8FB', stripTags(t('t3_sum')) + ' ' + stripTags(t('t3_s2')) + ' ' + stripTags(t('t3_s4')))}
+    ${interpretBoxHTML('#1BA8D8', `
+      ${t('rpt_interp3', {
+                alerting: ant.alerting.toFixed(0), orienting: ant.orienting.toFixed(0), executive: ant.executive.toFixed(0),
+                rtC: ant.rtCongruent.toFixed(0), rtI: ant.rtIncongruent.toFixed(0), trials: ant.totalTrials, acc: (ant.overallAcc * 100).toFixed(0),
+            })}
+    `)}
 
     <div class="net-grid">
       ${networkCard('rpt_net_alerting_label', ant.alerting, '#D4A030', 'rpt_net_alerting_body', alertPct)}
@@ -551,13 +562,6 @@ function buildReportHTML(c) {
                 { term: t('rpt_gloss_flanker_term'), def: t('rpt_gloss_flanker_def') },
                 { term: t('rpt_gloss_cuetypes_term'), def: t('rpt_gloss_cuetypes_def') },
             ])}
-
-    ${interpretBoxHTML('#1BA8D8', `
-      ${t('rpt_interp3', {
-                alerting: ant.alerting.toFixed(0), orienting: ant.orienting.toFixed(0), executive: ant.executive.toFixed(0),
-                rtC: ant.rtCongruent.toFixed(0), rtI: ant.rtIncongruent.toFixed(0), trials: ant.totalTrials, acc: (ant.overallAcc * 100).toFixed(0),
-            })}
-    `)}
 
     ${footerHTML('Section 03 / 03', reportId)}
   </div>
@@ -669,14 +673,16 @@ function buildReportHTML(c) {
         <div class="cover-title">${t('rpt_cover_title_1')}<br>${t('rpt_cover_title_2')}<br><span class="accent">${t('rpt_cover_title_3')}</span></div>
         <div class="cover-sub">${t('rpt_cover_sub')}</div>
         <div class="cand-box">
-          <div class="cand-grid">
-            <div><div class="cand-label">${t('rpt_cand_participant')}</div><div class="cand-val">${c.name || '—'}</div></div>
-            <div><div class="cand-label">${t('rpt_cand_handle')}</div><div class="cand-val">@${c.handle || '—'}</div></div>
-            <div><div class="cand-label">${t('rpt_cand_assessdate')}</div><div class="cand-val">${assessDate}</div></div>
-            <div><div class="cand-label">${t('rpt_cand_completedat')}</div><div class="cand-val">${completedTime}</div></div>
-            <div><div class="cand-label">${t('rpt_cand_totaltrials')}</div><div class="cand-val">${trials.length}</div></div>
-            <div><div class="cand-label">${t('rpt_cand_age')}</div><div class="cand-val">${c.age || '—'}</div></div>
-          </div>
+        <div class="cand-grid">
+        <div><div class="cand-label">${t('rpt_cand_participant')}</div><div class="cand-val">${c.name || '—'}</div></div>
+        <div><div class="cand-label">${t('rpt_cand_handle')}</div><div class="cand-val">@${c.handle || '—'}</div></div>
+        <div><div class="cand-label">${t('rpt_cand_assessperiod')}</div><div class="cand-val">${assessDateRange}</div></div>
+        <div><div class="cand-label">${t('rpt_cand_completedat')}</div><div class="cand-val">${completedTime}</div></div>
+        <div><div class="cand-label">${t('rpt_cand_totaltrials')}</div><div class="cand-val">${trials.length}</div></div>
+        <div><div class="cand-label">${t('rpt_cand_age')}</div><div class="cand-val">${c.age || '—'}</div></div>
+        <div><div class="cand-label">${t('rpt_cand_sporttype')}</div><div class="cand-val">${sportType}</div></div>
+        <div><div class="cand-label">${t('rpt_cand_playertype')}</div><div class="cand-val">${playerType}</div></div>
+        </div>
         </div>
       </div>
       <div class="gauge-side">
