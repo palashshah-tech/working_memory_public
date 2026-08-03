@@ -155,7 +155,7 @@ function stripTags(html) { return (html || '').replace(/<[^>]*>/g, ''); }
 --------------------------------------------------------------- */
 function metricCardHTML({ label, value, unit = '', accent = '#E95295', sub = '', highlight = false }) {
     return `
-    <div class="mc ${highlight ? 'mc-hl' : ''}" style="${highlight ? `border-color:${accent}55;box-shadow:0 2px 12px ${accent}18;` : ''}">
+    <div class="mc ${highlight ? 'mc-hl' : ''}" style="${highlight ? `border-color:${accent}55; background:${accent}08;` : ''}">
       <div class="mc-label">${label}</div>
       <div class="mc-val-row">
         <span class="mc-val" style="${highlight ? `color:${accent}` : ''}">${value}</span>
