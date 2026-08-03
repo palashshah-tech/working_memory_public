@@ -1,7 +1,7 @@
   @import url('https://fonts.googleapis.com/css2?family=Raleway:wght@400;600;700;800&family=Roboto+Mono:wght@400;500&display=swap');
 
   @page {
-      margin: 0;
+      margin: 20mm 0;
       size: A4;
   }
 
@@ -268,10 +268,12 @@
   }
 
   .section {
-      padding: 48px 56px 44px;
+      padding: 8px 56px 44px;
       border-bottom: 1px solid #EBEBEB;
-      break-inside: avoid;
       page-break-before: always;
+      display: flex;
+      flex-direction: column;
+      min-height: 257mm;
   }
 
   .sec-header {
@@ -746,7 +748,7 @@
       justify-content: space-between;
       font-size: 10px;
       color: #BBB;
-      margin-top: 32px;
+      margin-top: auto;
       padding-top: 16px;
       border-top: 1px solid #EFEFEF;
       font-family: 'Roboto Mono', monospace;
@@ -849,6 +851,8 @@
       grid-template-columns: 1fr auto 1fr;
       gap: 24px;
       align-items: center;
+      break-inside: avoid;
+      page-break-inside: avoid;
   }
 
   .composite-panel-label {
@@ -966,6 +970,8 @@
   .strength-box {
       border-radius: 10px;
       padding: 18px 20px;
+      break-inside: avoid;
+      page-break-inside: avoid;
   }
 
   .strength-good {
@@ -1019,6 +1025,8 @@
       border-radius: 10px;
       padding: 18px 20px;
       margin-bottom: 24px;
+      break-inside: avoid;
+      page-break-inside: avoid;
   }
 
   .about-title {
@@ -1042,6 +1050,7 @@
       align-items: center;
       padding-top: 20px;
       border-top: 1px solid #EBEBEB;
+      margin-top: auto;
   }
 
   .final-footer-logo-img {
@@ -1056,4 +1065,15 @@
       font-size: 9.5px;
       color: #BBB;
       line-height: 1.6;
+  }
+
+  .mc,
+  .chart-panel,
+  .net-card,
+  .wyd-box,
+  .ibox,
+  .change-panel,
+  .glossary-card {
+      break-inside: avoid;
+      page-break-inside: avoid;
   }
