@@ -549,7 +549,7 @@ ${sparklineHTML(pure.trialsChrono, `TRIAL BY TRIAL (${pure.trialsChrono.length})
         ${barChartHTML(t('rpt_chart_cuespeed_title'), t('rpt_chart_cuespeed_sub'),
         ant.rtByCue.map(r => ({ label: r.cue, val: r.rt })), '#1BA8D8', v => Math.round(v) + 'ms', null, true)}
         ${barChartHTML(t('rpt_chart_congr_title'), t('rpt_chart_congr_sub', { gap: Math.abs(ant.executive).toFixed(0) }),
-            [{ label: 'Congruent', val: ant.rtCongruent, color: '#1BA8D8' }, { label: 'Incongruent', val: ant.rtIncongruent, color: '#E95295' }], '#1BA8D8', v => Math.round(v) + 'ms', null, true)}
+            [{ label: 'No Distractor', val: ant.rtCongruent, color: '#1BA8D8' }, { label: 'Distractor', val: ant.rtIncongruent, color: '#E95295' }], '#1BA8D8', v => Math.round(v) + 'ms', null, true)}
     </div>
 
     ${sparklineHTML(ant.trialsChrono, `TRIAL BY TRIAL (${ant.trialsChrono.length})`, '#1BA8D8', 4)}
