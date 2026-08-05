@@ -124,29 +124,29 @@ function scoreLabel(score) {
 }
 function pseudoPercentile(score) { return Math.round(score); }
 function computeNiceAxis(values, targetTicks = 5) {
-  const dataMin = Math.min(...values);
-  const dataMax = Math.max(...values);
-  if (dataMin === dataMax) return { min: 0, max: (dataMax || 1) * 1.2, ticks: [0, dataMax || 1] };
-  const range = dataMax - dataMin;
-  const rawStep = range / (targetTicks - 1);
-  const mag = Math.pow(10, Math.floor(Math.log10(rawStep)));
-  const norm = rawStep / mag;
-  const niceStep = norm < 1.5 ? mag : norm < 3 ? 2 * mag : norm < 7 ? 5 * mag : 10 * mag;
-  const min = Math.floor(dataMin / niceStep) * niceStep;
-  let max = Math.ceil(dataMax / niceStep) * niceStep;
-  if (max === min) max = min + niceStep;
-  const ticks = [];
-  for (let v = min; v <= max + 1e-9; v += niceStep) ticks.push(Math.round(v));
-  return { min, max, ticks };
+    const dataMin = Math.min(...values);
+    const dataMax = Math.max(...values);
+    if (dataMin === dataMax) return { min: 0, max: (dataMax || 1) * 1.2, ticks: [0, dataMax || 1] };
+    const range = dataMax - dataMin;
+    const rawStep = range / (targetTicks - 1);
+    const mag = Math.pow(10, Math.floor(Math.log10(rawStep)));
+    const norm = rawStep / mag;
+    const niceStep = norm < 1.5 ? mag : norm < 3 ? 2 * mag : norm < 7 ? 5 * mag : 10 * mag;
+    const min = Math.floor(dataMin / niceStep) * niceStep;
+    let max = Math.ceil(dataMax / niceStep) * niceStep;
+    if (max === min) max = min + niceStep;
+    const ticks = [];
+    for (let v = min; v <= max + 1e-9; v += niceStep) ticks.push(Math.round(v));
+    return { min, max, ticks };
 }
 
 function axisLabelsHTML(axis, valueFmt) {
-  return `<div class="axis-labels">${axis.ticks.slice().reverse().map(tick => `<div class="axis-label">${valueFmt(tick)}</div>`).join('')}</div>`;
+    return `<div class="axis-labels">${axis.ticks.slice().reverse().map(tick => `<div class="axis-label">${valueFmt(tick)}</div>`).join('')}</div>`;
 }
 
 function gridlinesHTML(axis) {
-  const range = axis.max - axis.min || 1;
-  return `<div class="gridlines">${axis.ticks.map(tick => `<div class="gridline" style="bottom:${((tick - axis.min) / range) * 100}%;"></div>`).join('')}</div>`;
+    const range = axis.max - axis.min || 1;
+    return `<div class="gridlines">${axis.ticks.map(tick => `<div class="gridline" style="bottom:${((tick - axis.min) / range) * 100}%;"></div>`).join('')}</div>`;
 }
 function stripTags(html) { return (html || '').replace(/<[^>]*>/g, ''); }
 
@@ -175,11 +175,11 @@ function whatYouDidBoxHTML(accent, bgTint, bodyHtml) {
   `;
 }
 
-function interpretBoxHTML(accent, bodyHtml) {
+function interpretBoxHTML(accent, bgTint, bodyHtml) {
     return `
-    <div class="ibox" style="border-left-color:${accent};">
-      <div class="ibox-title" style="color:${accent};">${t('rpt_results_mean_title')}</div>
-      <div class="ibox-body">${bodyHtml}</div>
+    <div class="wyd-box" style="background:${bgTint}; border-color:${accent}22;">
+      <div class="wyd-title" style="color:${accent};">${t('rpt_results_mean_title')}</div>
+      <div class="wyd-body">${bodyHtml}</div>
     </div>
   `;
 }
@@ -203,7 +203,7 @@ function sectionHeaderHTML(number, label, title, accent, description) {
     <div class="sec-header">
       <div class="sec-rule" style="background:linear-gradient(90deg, ${accent} 0%, ${accent}00 100%);"></div>
       <div class="sec-header-row">
-        <div class="sec-number" style="color:${accent}14;">${number}</div>
+        <div class="sec-number" style="color:${accent}28;">${number}</div>
         <div class="sec-header-text">
           <div class="sec-label" style="color:${accent};">${label}</div>
           <h2 class="sec-title">${title}</h2>
@@ -215,12 +215,12 @@ function sectionHeaderHTML(number, label, title, accent, description) {
 }
 
 function barChartHTML(title, sub, items, accent, valueFmt, refLine, useAxis) {
-  const axis = useAxis ? computeNiceAxis(items.map(i => i.val).concat(refLine != null ? [refLine] : [])) : null;
-  const min = axis ? axis.min : 0;
-  const max = axis ? axis.max : Math.max(...items.map(i => i.val), refLine || 0, 1) * 1.05;
-  const range = max - min || 1;
+    const axis = useAxis ? computeNiceAxis(items.map(i => i.val).concat(refLine != null ? [refLine] : [])) : null;
+    const min = axis ? axis.min : 0;
+    const max = axis ? axis.max : Math.max(...items.map(i => i.val), refLine || 0, 1) * 1.05;
+    const range = max - min || 1;
 
-  return `
+    return `
     <div class="chart-panel">
       <div class="chart-title">${title}</div>
       <div class="chart-sub">${sub}</div>
@@ -245,12 +245,12 @@ function barChartHTML(title, sub, items, accent, valueFmt, refLine, useAxis) {
 }
 
 function comparisonBarChartHTML(title, sub, labels, seriesA, seriesB, colorA, colorB, nameA, nameB, valueFmt, useAxis) {
-  const axis = useAxis ? computeNiceAxis([...seriesA, ...seriesB]) : null;
-  const min = axis ? axis.min : 0;
-  const max = axis ? axis.max : Math.max(...seriesA, ...seriesB, 1) * 1.05;
-  const range = max - min || 1;
+    const axis = useAxis ? computeNiceAxis([...seriesA, ...seriesB]) : null;
+    const min = axis ? axis.min : 0;
+    const max = axis ? axis.max : Math.max(...seriesA, ...seriesB, 1) * 1.05;
+    const range = max - min || 1;
 
-  return `
+    return `
     <div class="chart-panel">
       <div class="chart-title">${title}</div>
       <div class="chart-sub">${sub}</div>
@@ -279,34 +279,34 @@ function comparisonBarChartHTML(title, sub, labels, seriesA, seriesB, colorA, co
   `;
 }
 
-function sparklineHTML(trialsChrono, totalLabel, labelEvery = 5) {
-  if (!trialsChrono.length) return '';
-  const rts = trialsChrono.map(tr => tr.reactionTimeMs || 0).filter(v => v > 0);
-  const axis = computeNiceAxis(rts.length ? rts : [0, 1000]);
-  const min = axis.min, range = (axis.max - axis.min) || 1;
+function sparklineHTML(trialsChrono, totalLabel, accent, labelEvery = 5) {
+    if (!trialsChrono.length) return '';
+    const rts = trialsChrono.map(tr => tr.reactionTimeMs || 0).filter(v => v > 0);
+    const axis = computeNiceAxis(rts.length ? rts : [0, 1000]);
+    const min = axis.min, range = (axis.max - axis.min) || 1;
 
-  return `
+    return `
     <div class="chart-panel">
       <div class="chart-title">${t('rpt_spark_title')} — ${totalLabel}</div>
       <div class="chart-sub">${t('rpt_spark_desc')}</div>
       <div class="chart-with-axis">
         <div class="axis-labels-worded">
-          <span class="spark-slowest">${t('rpt_spark_slowest')}</span>
+          <span style="color:${accent};">${t('rpt_spark_slowest')}</span>
           ${axisLabelsHTML(axis, v => Math.round(v) + 'ms')}
-          <span class="spark-fastest">${t('rpt_spark_fastest')}</span>
+          <span style="color:${accent};">${t('rpt_spark_fastest')}</span>
         </div>
         <div class="chart-plot chart-plot-spark">
           ${gridlinesHTML(axis)}
           <div class="spark">
             ${trialsChrono.map((tr, i) => {
-              const rt = tr.reactionTimeMs || 0;
-              const h = Math.max(3, ((rt - min) / range) * 100);
-              return `<div class="spark-bar" style="height:${h}%; background:${tr.isCorrect ? '#50A87F' : '#D44040'};" title="${i + 1}: ${rt.toFixed(0)}ms"></div>`;
-            }).join('')}
+        const rt = tr.reactionTimeMs || 0;
+        const h = Math.max(3, ((rt - min) / range) * 100);
+        return `<div class="spark-bar" style="height:${h}%; background:${tr.isCorrect ? '#50A87F' : '#D44040'};" title="${i + 1}: ${rt.toFixed(0)}ms"></div>`;
+    }).join('')}
           </div>
         </div>
       </div>
-        <div class="spark-axis" style="margin-left:46px;">
+        <div class="spark-axis" style="margin-left:54px;">
             ${trialsChrono.map((_, i) => (i === 0 || (i + 1) % labelEvery === 0) ? `<span style="left:${(i / (trialsChrono.length - 1)) * 100}%;">#${i + 1}</span>` : '').join('')}
         </div>
     </div>
@@ -352,7 +352,7 @@ function footerHTML(sectionLabel, reportId) {
 /* ---------------------------------------------------------------
    MAIN BUILDER
 --------------------------------------------------------------- */
-function buildReportHTML(c) {
+function buildReportHTML(c, allCandidates = []) {
     const trials = c.trials || [];
     const s = c.scores || {};
     const pure = computeVWMStats(trials, 'vwm-pure');
@@ -363,10 +363,16 @@ function buildReportHTML(c) {
     const reportId = 'XBL-' + (c.completedAt ? new Date(c.completedAt).toISOString().slice(0, 10).replace(/-/g, '') : '00000000') +
         '-' + (c.name || 'CAND').split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 3);
     const assessDate = c.completedAt ? new Date(c.completedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : '—';
-    const assessRangeStart = c.completedAt ? new Date(new Date(c.completedAt).getTime() - 21 * 24 * 60 * 60 * 1000) : null;
-    const assessDateRange = (assessRangeStart && c.completedAt)
-    ? `${assessRangeStart.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })} – ${new Date(c.completedAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`
-    : '—';
+    const sessions = allCandidates.filter(x => x.email && c.email && x.email === c.email && x.completedAt);
+    const sessionDates = sessions.map(x => new Date(x.completedAt).getTime());
+    const earliestDate = sessionDates.length ? new Date(Math.min(...sessionDates)) : (c.completedAt ? new Date(c.completedAt) : null);
+    const latestDate = sessionDates.length ? new Date(Math.max(...sessionDates)) : (c.completedAt ? new Date(c.completedAt) : null);
+    const sessionCount = sessions.length || (c.completedAt ? 1 : 0);
+    const assessDateRange = (earliestDate && latestDate)
+        ? (earliestDate.getTime() === latestDate.getTime()
+            ? earliestDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+            : `${earliestDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })} – ${latestDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`)
+        : '—';
     const sportType = c.sportType || 'Futsal';
     const playerType = c.playerType || 'Pro';
     const completedTime = c.completedAt ? new Date(c.completedAt).toLocaleTimeString('en-US') : '—';
@@ -395,12 +401,12 @@ function buildReportHTML(c) {
   <div class="section">
     ${sectionHeaderHTML('01', t('rpt_sec1_label'), t('rpt_sec1_title'), '#E95295', t('rpt_sec1_desc'))}
 
-    ${interpretBoxHTML('#E95295', `
+    ${interpretBoxHTML('#E95295', '#FDF3F7', `
       ${t('rpt_interp1', {
-                name: candFirst, k: pure.maxK.toFixed(1),
-                peakSize: pure.curve.find(c => c.k === pure.maxK)?.setSize || pure.maxSetSize,
-                trials: pure.totalTrials, acc: (pure.overallAcc * 100).toFixed(0), streak: pure.maxStreak,
-            })}
+        name: candFirst, k: pure.maxK.toFixed(1),
+        peakSize: pure.curve.find(c => c.k === pure.maxK)?.setSize || pure.maxSetSize,
+        trials: pure.totalTrials, acc: (pure.overallAcc * 100).toFixed(0), streak: pure.maxStreak,
+    })}
     `)}
 
     <div class="mc-grid">
@@ -424,7 +430,7 @@ function buildReportHTML(c) {
             '#E95295', v => Math.round(v) + '%', 50)}
     </div>
 
-    ${sparklineHTML(pure.trialsChrono, `TRIAL BY TRIAL (${pure.trialsChrono.length})`)}
+${sparklineHTML(pure.trialsChrono, `TRIAL BY TRIAL (${pure.trialsChrono.length})`, '#E95295')}
 
     ${glossaryHTML('#E95295', [
                 { term: t('rpt_gloss_cowansk_term'), def: t('rpt_gloss_cowansk_def') },
@@ -441,13 +447,13 @@ function buildReportHTML(c) {
   <div class="section">
     ${sectionHeaderHTML('02', t('rpt_sec2_label'), t('rpt_sec2_title'), '#50A87F', t('rpt_sec2_desc'))}
 
-    ${interpretBoxHTML('#50A87F', `
+    ${interpretBoxHTML('#50A87F', '#F2FAF6', `
       ${t('rpt_interp2', {
-                acc: (dist.overallAcc * 100).toFixed(0), trials: dist.totalTrials,
-                change: distDrop >= 0 ? t('rpt_interp2_change_lower', { n: distDrop.toFixed(0) }) : t('rpt_interp2_change_higher', { n: Math.abs(distDrop).toFixed(0) }),
-                k1: pure.maxK.toFixed(1), k2: dist.maxK.toFixed(1), execEff: execEfficiency.toFixed(1),
-                resilience: Math.abs(distDrop) < 5 ? t('rpt_interp2_resilience_high') : Math.abs(distDrop) < 20 ? t('rpt_interp2_resilience_mod') : t('rpt_interp2_resilience_low'),
-            })}
+        acc: (dist.overallAcc * 100).toFixed(0), trials: dist.totalTrials,
+        change: distDrop >= 0 ? t('rpt_interp2_change_lower', { n: distDrop.toFixed(0) }) : t('rpt_interp2_change_higher', { n: Math.abs(distDrop).toFixed(0) }),
+        k1: pure.maxK.toFixed(1), k2: dist.maxK.toFixed(1), execEff: execEfficiency.toFixed(1),
+        resilience: Math.abs(distDrop) < 5 ? t('rpt_interp2_resilience_high') : Math.abs(distDrop) < 20 ? t('rpt_interp2_resilience_mod') : t('rpt_interp2_resilience_low'),
+    })}
     `)}
 
     <div class="mc-grid">
@@ -486,7 +492,7 @@ function buildReportHTML(c) {
             '#E95295', '#50A87F', t('rpt_task1_pure'), t('rpt_task2_distractor'), v => Math.round(v) + '%')}
     </div>
 
-    ${sparklineHTML(dist.trialsChrono, `TRIAL BY TRIAL (${dist.trialsChrono.length})`, 5)}
+    ${sparklineHTML(dist.trialsChrono, `TRIAL BY TRIAL (${dist.trialsChrono.length})`, '#50A87F', 5)}
 
     ${glossaryHTML('#50A87F', [
                 { term: t('rpt_gloss_cowanskdist_term'), def: t('rpt_gloss_cowanskdist_def') },
@@ -521,11 +527,11 @@ function buildReportHTML(c) {
   <div class="section">
     ${sectionHeaderHTML('03', t('rpt_sec3_label'), t('rpt_sec3_title'), '#1BA8D8', t('rpt_sec3_desc'))}
 
-    ${interpretBoxHTML('#1BA8D8', `
+    ${interpretBoxHTML('#1BA8D8', '#F1F8FB', `
       ${t('rpt_interp3', {
-                alerting: ant.alerting.toFixed(0), orienting: ant.orienting.toFixed(0), executive: ant.executive.toFixed(0),
-                rtC: ant.rtCongruent.toFixed(0), rtI: ant.rtIncongruent.toFixed(0), trials: ant.totalTrials, acc: (ant.overallAcc * 100).toFixed(0),
-            })}
+        alerting: ant.alerting.toFixed(0), orienting: ant.orienting.toFixed(0), executive: ant.executive.toFixed(0),
+        rtC: ant.rtCongruent.toFixed(0), rtI: ant.rtIncongruent.toFixed(0), trials: ant.totalTrials, acc: (ant.overallAcc * 100).toFixed(0),
+    })}
     `)}
 
     <div class="net-grid">
@@ -543,10 +549,10 @@ function buildReportHTML(c) {
         ${barChartHTML(t('rpt_chart_cuespeed_title'), t('rpt_chart_cuespeed_sub'),
         ant.rtByCue.map(r => ({ label: r.cue, val: r.rt })), '#1BA8D8', v => Math.round(v) + 'ms', null, true)}
         ${barChartHTML(t('rpt_chart_congr_title'), t('rpt_chart_congr_sub', { gap: Math.abs(ant.executive).toFixed(0) }),
-        [{ label: 'Congruent', val: ant.rtCongruent, color: '#1BA8D8' }, { label: 'Incongruent', val: ant.rtIncongruent, color: '#E95295' }], '#1BA8D8', v => Math.round(v) + 'ms', null, true)}
+            [{ label: 'Congruent', val: ant.rtCongruent, color: '#1BA8D8' }, { label: 'Incongruent', val: ant.rtIncongruent, color: '#E95295' }], '#1BA8D8', v => Math.round(v) + 'ms', null, true)}
     </div>
 
-    ${sparklineHTML(ant.trialsChrono, `TRIAL BY TRIAL (${ant.trialsChrono.length})`, 4)}
+    ${sparklineHTML(ant.trialsChrono, `TRIAL BY TRIAL (${ant.trialsChrono.length})`, '#1BA8D8', 4)}
 
     <div class="mc-grid mc-grid-3">
       ${metricCardHTML({ label: t('rpt_m_alerteff'), value: ant.effAlerting.toFixed(2), unit: 'r/s', accent: '#D4A030', sub: t('rpt_m_alerteff_sub2') })}
@@ -676,7 +682,7 @@ function buildReportHTML(c) {
         <div class="cand-grid">
         <div><div class="cand-label">${t('rpt_cand_participant')}</div><div class="cand-val">${c.name || '—'}</div></div>
         <div><div class="cand-label">${t('rpt_cand_handle')}</div><div class="cand-val">@${c.handle || '—'}</div></div>
-        <div><div class="cand-label">${t('rpt_cand_assessperiod')}</div><div class="cand-val">${assessDateRange}</div></div>
+        <div><div class="cand-label">${t('rpt_cand_assessperiod')}</div><div class="cand-val">${assessDateRange}${sessionCount > 1 ? ` (${sessionCount} sessions)` : ''}</div></div>
         <div><div class="cand-label">${t('rpt_cand_completedat')}</div><div class="cand-val">${completedTime}</div></div>
         <div><div class="cand-label">${t('rpt_cand_totaltrials')}</div><div class="cand-val">${trials.length}</div></div>
         <div><div class="cand-label">${t('rpt_cand_age')}</div><div class="cand-val">${c.age || '—'}</div></div>

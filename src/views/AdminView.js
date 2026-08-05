@@ -1058,7 +1058,7 @@ function showDetail(email, candidates) {
   const close = () => { mc.innerHTML = ''; };
   document.getElementById('av-close-modal').addEventListener('click', close);
   document.getElementById('av-print-report').addEventListener('click', () => {
-    const html = buildReportHTML(c);
+    const html = buildReportHTML(c, candidates);
     const w = window.open('', '_blank', 'width=1000,height=1000,left=100,top=50,scrollbars=yes');
     w.document.write(html);
     w.document.close();
