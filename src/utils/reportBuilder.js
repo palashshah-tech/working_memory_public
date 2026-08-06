@@ -782,7 +782,7 @@ ${sparklineHTML(pure.trialsChrono, `TRIAL BY TRIAL (${pure.trialsChrono.length})
         </ul>
       </div>
       <div class="strength-box strength-dev">
-        <div class="strength-title" style="color:#D4A030;">${t('rpt_dev_title')}</div>
+        <div class="strength-title" style="color:#D44040;">${t('rpt_dev_title')}</div>
         <ul>
           ${developing.map(dv => `<li>${t('rpt_strength_item', { name: dv.name, score: dv.score.toFixed(0) })}</li>`).join('')}
         </ul>

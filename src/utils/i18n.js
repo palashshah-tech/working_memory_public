@@ -208,7 +208,7 @@ const DICTIONARY = {
     "rpt_sec1_desc": "How many things can you hold in your visual memory at once? This section measures the raw size of your visual short-term memory — without any extra distractions.",
     "rpt_sec2_label": "TWO",
     "rpt_sec2_title": "Executive Function",
-    "rpt_sec2_desc": "Can your brain hold onto important information while surrounded by irrelevant distractions? This section adds 'decoy' squares to the memory test — and measures how well you filtered them out.",
+    "rpt_sec2_desc": "Can your brain hold onto important information while surrounded by irrelevant distractions? This section adds 'decoy' squares to the working memory control test — and measures how well you filtered them out.",
     "rpt_sec3_label": "THREE",
     "rpt_sec3_title": "Attention Network",
     "rpt_sec3_desc": "Your attention system is actually three separate brain networks working together. This task teases them apart — measuring how well you use time-based cues, spatial cues, and how well you handle conflicting information.",
