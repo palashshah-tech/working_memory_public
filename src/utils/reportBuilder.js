@@ -123,6 +123,31 @@ function scoreLabel(score) {
     return t('rpt_band_developing');
 }
 function pseudoPercentile(score) { return Math.round(score); }
+
+function computeRealPercentile(allCandidates, fieldOrExtractor, value, higherIsBetter = true) {
+  const extractor = typeof fieldOrExtractor === 'function'
+    ? fieldOrExtractor
+    : (x) => (x.scores ? x.scores[fieldOrExtractor] : undefined);
+  const pool = allCandidates.map(extractor).filter(v => typeof v === 'number' && !isNaN(v));
+  if (pool.length < 10 || value == null) return null;
+  const below = pool.filter(v => higherIsBetter ? v < value : v > value).length;
+  return Math.round((below / pool.length) * 100);
+}
+
+function percentileBarHTML(accent, pct) {
+    if (pct == null) return '';
+    const topPct = 100 - pct;
+    return `
+    <div class="pct-bar-wrap">
+      <div class="pct-bar-row">
+        <span class="pct-bar-label">${t('rpt_net_percentile_label')}</span>
+        <span class="pct-bar-val" style="color:${accent};">${pct}th <span class="pct-bar-top">(top ${topPct}%)</span></span>
+      </div>
+      <div class="pct-bar-track"><div class="pct-bar-fill" style="width:${pct}%; background:${accent};"></div></div>
+    </div>
+  `;
+}
+
 function computeNiceAxis(values, targetTicks = 5) {
     const dataMin = Math.min(...values);
     const dataMax = Math.max(...values);
@@ -359,6 +384,17 @@ function buildReportHTML(c, allCandidates = []) {
     const dist = computeVWMStats(trials, 'vwm-distractor');
     const ant = computeANTStats(trials);
 
+    // Precompute the same trial-derived stats for every candidate in the pool,
+    // so extremes (fastest/slowest/streak/RT) can be percentiled too, not just stored score fields.
+    const poolStats = allCandidates.map(x => {
+      const xTrials = x.trials || [];
+      return {
+        pure: computeVWMStats(xTrials, 'vwm-pure'),
+        dist: computeVWMStats(xTrials, 'vwm-distractor'),
+        ant: computeANTStats(xTrials),
+      };
+    });
+
     const composite = s.compositeScore || 0;
     const reportId = 'XBL-' + (c.completedAt ? new Date(c.completedAt).toISOString().slice(0, 10).replace(/-/g, '') : '00000000') +
         '-' + (c.name || 'CAND').split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 3);
@@ -392,6 +428,31 @@ function buildReportHTML(c, allCandidates = []) {
     const execSpeed = pure.avgRT - dist.avgRT;
     const distDrop = (pure.overallAcc - dist.overallAcc) * 100;
 
+    const kPurePct = computeRealPercentile(allCandidates, 'kPure', s.kPure, true);
+    const kDistPct = computeRealPercentile(allCandidates, 'kDistractor', s.kDistractor, true);
+    const compositePct = computeRealPercentile(allCandidates, 'compositeScore', composite, true);
+
+    // STANDING AMONG CANDIDATE PERCENTILES
+    // Section 1
+    const maxSetSizePct = computeRealPercentile(allCandidates, x => x.scores?.maxSetSize, pure.maxSetSize, true);
+    const pureAvgRTPct = computeRealPercentile(allCandidates, (x, i) => poolStats[allCandidates.indexOf(x)]?.pure.avgRT, pure.avgRT, false);
+    const pureAccPct = computeRealPercentile(allCandidates, (x, i) => poolStats[allCandidates.indexOf(x)]?.pure.overallAcc, pure.overallAcc, true);
+    const fastestPct = computeRealPercentile(allCandidates, (x) => poolStats[allCandidates.indexOf(x)]?.pure.fastest, pure.fastest, false);
+    const slowestPct = computeRealPercentile(allCandidates, (x) => poolStats[allCandidates.indexOf(x)]?.pure.slowest, pure.slowest, false);
+    const streakPct = computeRealPercentile(allCandidates, (x) => poolStats[allCandidates.indexOf(x)]?.pure.maxStreak, pure.maxStreak, true);
+
+    // Section 2
+    const distAccPct = computeRealPercentile(allCandidates, (x) => poolStats[allCandidates.indexOf(x)]?.dist.overallAcc, dist.overallAcc, true);
+    const execEffPct = computeRealPercentile(allCandidates, 'vwmExecEfficiency', s.vwmExecEfficiency, true);
+    const execSpeedPct = computeRealPercentile(allCandidates, 'vwmExecSpeed', s.vwmExecSpeed, true);
+
+    // Section 3
+    const noDistRTPct = computeRealPercentile(allCandidates, (x) => poolStats[allCandidates.indexOf(x)]?.ant.rtCongruent, ant.rtCongruent, false);
+    const distRTPct = computeRealPercentile(allCandidates, (x) => poolStats[allCandidates.indexOf(x)]?.ant.rtIncongruent, ant.rtIncongruent, false);
+    const antAlertEffPct = computeRealPercentile(allCandidates, 'antAlertingEfficiency', s.antAlertingEfficiency, true);
+    const antOrientEffPct = computeRealPercentile(allCandidates, 'antOrientingEfficiency', s.antOrientingEfficiency, true);
+    const antExecEffPct = computeRealPercentile(allCandidates, 'antExecutiveEfficiency', s.antExecutiveEfficiency, true);
+
     const sortedScores = [...componentScores].sort((a, b) => b.score - a.score);
     const strengths = sortedScores.slice(0, Math.min(4, sortedScores.length));
     const developing = sortedScores.slice(-Math.min(3, sortedScores.length)).reverse();
@@ -403,22 +464,57 @@ function buildReportHTML(c, allCandidates = []) {
 
     ${interpretBoxHTML('#E95295', '#FDF3F7', `
       ${t('rpt_interp1', {
-        name: candFirst, k: pure.maxK.toFixed(1),
-        peakSize: pure.curve.find(c => c.k === pure.maxK)?.setSize || pure.maxSetSize,
-        trials: pure.totalTrials, acc: (pure.overallAcc * 100).toFixed(0), streak: pure.maxStreak,
-    })}
+                name: candFirst, k: pure.maxK.toFixed(1),
+                peakSize: pure.curve.find(c => c.k === pure.maxK)?.setSize || pure.maxSetSize,
+                trials: pure.totalTrials, acc: (pure.overallAcc * 100).toFixed(0), streak: pure.maxStreak,
+            })}${kPurePct != null ? t('rpt_interp1_pct', { name: candFirst, topPct: 100 - kPurePct }) : ''}
     `)}
 
     <div class="mc-grid">
-      ${metricCardHTML({ label: t('rpt_m_cowansk'), value: pure.maxK.toFixed(1), accent: '#E95295', sub: t('rpt_m_cowansk_sub'), highlight: true })}
-      ${metricCardHTML({ label: t('rpt_m_maxsetsize'), value: 'N=' + pure.maxSetSize, accent: '#E95295', sub: t('rpt_m_maxsetsize_sub') })}
-      ${metricCardHTML({ label: t('rpt_m_avgrt'), value: pure.avgRT.toFixed(0), unit: 'ms', accent: '#E95295', sub: t('rpt_m_avgrt_sub') })}
-      ${metricCardHTML({ label: t('rpt_m_overallacc'), value: (pure.overallAcc * 100).toFixed(0), unit: '%', accent: '#E95295', sub: t('rpt_m_overallacc_sub', { count: pure.totalTrials }) })}
+      <div class="mc mc-hl" style="border-color:#E9529555; background:#E9529508;">
+        <div class="mc-label">${t('rpt_m_cowansk')}</div>
+        <div class="mc-val-row"><span class="mc-val" style="color:#E95295;">${pure.maxK.toFixed(1)}</span></div>
+        <div class="mc-sub">${t('rpt_m_cowansk_sub')}</div>
+        ${percentileBarHTML('#E95295', kPurePct)}
+      </div>
+      <div class="mc">
+        <div class="mc-label">${t('rpt_m_maxsetsize')}</div>
+        <div class="mc-val-row"><span class="mc-val">N=${pure.maxSetSize}</span></div>
+        <div class="mc-sub">${t('rpt_m_maxsetsize_sub')}</div>
+        ${percentileBarHTML('#E95295', maxSetSizePct)}
+      </div>
+      <div class="mc">
+        <div class="mc-label">${t('rpt_m_avgrt')}</div>
+        <div class="mc-val-row"><span class="mc-val">${pure.avgRT.toFixed(0)}</span><span class="mc-unit">ms</span></div>
+        <div class="mc-sub">${t('rpt_m_avgrt_sub')}</div>
+        ${percentileBarHTML('#E95295', pureAvgRTPct)}
+      </div>
+      <div class="mc">
+        <div class="mc-label">${t('rpt_m_overallacc')}</div>
+        <div class="mc-val-row"><span class="mc-val">${(pure.overallAcc * 100).toFixed(0)}</span><span class="mc-unit">%</span></div>
+        <div class="mc-sub">${t('rpt_m_overallacc_sub', { count: pure.totalTrials })}</div>
+        ${percentileBarHTML('#E95295', pureAccPct)}
+      </div>
     </div>
     <div class="mc-grid mc-grid-3">
-      ${metricCardHTML({ label: t('rpt_m_fastest'), value: pure.fastest.toFixed(0), unit: 'ms', accent: '#E95295', sub: t('rpt_m_fastest_sub') })}
-      ${metricCardHTML({ label: t('rpt_m_slowest'), value: pure.slowest.toFixed(0), unit: 'ms', accent: '#E95295', sub: t('rpt_m_slowest_sub') })}
-      ${metricCardHTML({ label: t('rpt_m_beststreak'), value: pure.maxStreak, unit: t('rpt_m_beststreak_unit'), accent: '#E95295', sub: t('rpt_m_beststreak_sub') })}
+      <div class="mc">
+        <div class="mc-label">${t('rpt_m_fastest')}</div>
+        <div class="mc-val-row"><span class="mc-val">${pure.fastest.toFixed(0)}</span><span class="mc-unit">ms</span></div>
+        <div class="mc-sub">${t('rpt_m_fastest_sub')}</div>
+        ${percentileBarHTML('#E95295', fastestPct)}
+      </div>
+      <div class="mc">
+        <div class="mc-label">${t('rpt_m_slowest')}</div>
+        <div class="mc-val-row"><span class="mc-val">${pure.slowest.toFixed(0)}</span><span class="mc-unit">ms</span></div>
+        <div class="mc-sub">${t('rpt_m_slowest_sub')}</div>
+        ${percentileBarHTML('#E95295', slowestPct)}
+      </div>
+      <div class="mc">
+        <div class="mc-label">${t('rpt_m_beststreak')}</div>
+        <div class="mc-val-row"><span class="mc-val">${pure.maxStreak}</span><span class="mc-unit">${t('rpt_m_beststreak_unit')}</span></div>
+        <div class="mc-sub">${t('rpt_m_beststreak_sub')}</div>
+        ${percentileBarHTML('#E95295', streakPct)}
+      </div>
     </div>
 
     <div class="chart-grid-2">
@@ -449,18 +545,38 @@ ${sparklineHTML(pure.trialsChrono, `TRIAL BY TRIAL (${pure.trialsChrono.length})
 
     ${interpretBoxHTML('#50A87F', '#F2FAF6', `
       ${t('rpt_interp2', {
-        acc: (dist.overallAcc * 100).toFixed(0), trials: dist.totalTrials,
-        change: distDrop >= 0 ? t('rpt_interp2_change_lower', { n: distDrop.toFixed(0) }) : t('rpt_interp2_change_higher', { n: Math.abs(distDrop).toFixed(0) }),
-        k1: pure.maxK.toFixed(1), k2: dist.maxK.toFixed(1), execEff: execEfficiency.toFixed(1),
-        resilience: Math.abs(distDrop) < 5 ? t('rpt_interp2_resilience_high') : Math.abs(distDrop) < 20 ? t('rpt_interp2_resilience_mod') : t('rpt_interp2_resilience_low'),
-    })}
+                acc: (dist.overallAcc * 100).toFixed(0), trials: dist.totalTrials,
+                change: distDrop >= 0 ? t('rpt_interp2_change_lower', { n: distDrop.toFixed(0) }) : t('rpt_interp2_change_higher', { n: Math.abs(distDrop).toFixed(0) }),
+                k1: pure.maxK.toFixed(1), k2: dist.maxK.toFixed(1), execEff: execEfficiency.toFixed(1),
+                resilience: Math.abs(distDrop) < 5 ? t('rpt_interp2_resilience_high') : Math.abs(distDrop) < 20 ? t('rpt_interp2_resilience_mod') : t('rpt_interp2_resilience_low'),
+            })}${kDistPct != null ? t('rpt_interp2_pct', { name: candFirst, topPct: 100 - kDistPct }) : ''}
     `)}
 
     <div class="mc-grid">
-      ${metricCardHTML({ label: t('rpt_m_cowansk_dist'), value: dist.maxK.toFixed(1), accent: '#50A87F', sub: t('rpt_m_cowansk_dist_sub'), highlight: true })}
-      ${metricCardHTML({ label: t('rpt_m_overallacc'), value: (dist.overallAcc * 100).toFixed(0), unit: '%', accent: '#50A87F', sub: t('rpt_m_overallacc_sub', { count: dist.totalTrials }) })}
-      ${metricCardHTML({ label: t('rpt_m_execeff'), value: execEfficiency.toFixed(1), unit: '%', accent: '#50A87F', sub: t('rpt_m_execeff_sub') })}
-      ${metricCardHTML({ label: t('rpt_m_execspeed'), value: (execSpeed >= 0 ? '−' : '+') + Math.abs(execSpeed).toFixed(0), unit: 'ms', accent: '#50A87F', sub: execSpeed >= 0 ? t('rpt_m_execspeed_sub_faster') : t('rpt_m_execspeed_sub_slower') })}
+      <div class="mc mc-hl" style="border-color:#50A87F55; background:#50A87F08;">
+        <div class="mc-label">${t('rpt_m_cowansk_dist')}</div>
+        <div class="mc-val-row"><span class="mc-val" style="color:#50A87F;">${dist.maxK.toFixed(1)}</span></div>
+        <div class="mc-sub">${t('rpt_m_cowansk_dist_sub')}</div>
+        ${percentileBarHTML('#50A87F', kDistPct)}
+      </div>
+      <div class="mc">
+        <div class="mc-label">${t('rpt_m_overallacc')}</div>
+        <div class="mc-val-row"><span class="mc-val">${(dist.overallAcc * 100).toFixed(0)}</span><span class="mc-unit">%</span></div>
+        <div class="mc-sub">${t('rpt_m_overallacc_sub', { count: dist.totalTrials })}</div>
+        ${percentileBarHTML('#50A87F', distAccPct)}
+      </div>
+      <div class="mc">
+        <div class="mc-label">${t('rpt_m_execeff')}</div>
+        <div class="mc-val-row"><span class="mc-val">${execEfficiency.toFixed(1)}</span><span class="mc-unit">%</span></div>
+        <div class="mc-sub">${t('rpt_m_execeff_sub')}</div>
+        ${percentileBarHTML('#50A87F', execEffPct)}
+      </div>
+      <div class="mc">
+        <div class="mc-label">${t('rpt_m_execspeed')}</div>
+        <div class="mc-val-row"><span class="mc-val">${(execSpeed >= 0 ? '−' : '+') + Math.abs(execSpeed).toFixed(0)}</span><span class="mc-unit">ms</span></div>
+        <div class="mc-sub">${execSpeed >= 0 ? t('rpt_m_execspeed_sub_faster') : t('rpt_m_execspeed_sub_slower')}</div>
+        ${percentileBarHTML('#50A87F', execSpeedPct)}
+      </div>
     </div>
 
     <div class="change-panel">
@@ -519,9 +635,9 @@ ${sparklineHTML(pure.trialsChrono, `TRIAL BY TRIAL (${pure.trialsChrono.length})
     </div>
   `;
 
-    const alertPct = pseudoPercentile(s.componentScores?.alerting || 0);
-    const orientPct = pseudoPercentile(s.componentScores?.orienting || 0);
-    const execPct = pseudoPercentile(s.componentScores?.executive || 0);
+    const alertPct = computeRealPercentile(allCandidates, 'alerting', s.alerting, true) ?? pseudoPercentile(s.componentScores?.alerting || 0);
+    const orientPct = computeRealPercentile(allCandidates, 'orienting', s.orienting, true) ?? pseudoPercentile(s.componentScores?.orienting || 0);
+    const execPct = computeRealPercentile(allCandidates, 'executive', s.executive, true) ?? pseudoPercentile(s.componentScores?.executive || 0);
 
     const sec3 = `
   <div class="section">
@@ -529,9 +645,9 @@ ${sparklineHTML(pure.trialsChrono, `TRIAL BY TRIAL (${pure.trialsChrono.length})
 
     ${interpretBoxHTML('#1BA8D8', '#F1F8FB', `
       ${t('rpt_interp3', {
-        alerting: ant.alerting.toFixed(0), orienting: ant.orienting.toFixed(0), executive: ant.executive.toFixed(0),
-        rtC: ant.rtCongruent.toFixed(0), rtI: ant.rtIncongruent.toFixed(0), trials: ant.totalTrials, acc: (ant.overallAcc * 100).toFixed(0),
-    })}
+                alerting: ant.alerting.toFixed(0), orienting: ant.orienting.toFixed(0), executive: ant.executive.toFixed(0),
+                rtC: ant.rtCongruent.toFixed(0), rtI: ant.rtIncongruent.toFixed(0), trials: ant.totalTrials, acc: (ant.overallAcc * 100).toFixed(0),
+            })}${execPct != null ? t('rpt_interp3_pct', { name: candFirst, topPct: 100 - execPct }) : ''}
     `)}
 
     <div class="net-grid">
@@ -541,8 +657,18 @@ ${sparklineHTML(pure.trialsChrono, `TRIAL BY TRIAL (${pure.trialsChrono.length})
     </div>
 
     <div class="mc-grid mc-grid-2">
-    ${metricCardHTML({ label: t('rpt_m_congruentrt'), value: ant.rtCongruent.toFixed(0), unit: 'ms', accent: '#1BA8D8', sub: t('rpt_m_congruentrt_sub') })}
-    ${metricCardHTML({ label: t('rpt_m_incongruentrt'), value: ant.rtIncongruent.toFixed(0), unit: 'ms', accent: '#1BA8D8', sub: t('rpt_m_incongruentrt_sub') })}
+      <div class="mc">
+        <div class="mc-label">${t('rpt_m_congruentrt')}</div>
+        <div class="mc-val-row"><span class="mc-val">${ant.rtCongruent.toFixed(0)}</span><span class="mc-unit">ms</span></div>
+        <div class="mc-sub">${t('rpt_m_congruentrt_sub')}</div>
+        ${percentileBarHTML('#1BA8D8', noDistRTPct)}
+      </div>
+      <div class="mc">
+        <div class="mc-label">${t('rpt_m_incongruentrt')}</div>
+        <div class="mc-val-row"><span class="mc-val">${ant.rtIncongruent.toFixed(0)}</span><span class="mc-unit">ms</span></div>
+        <div class="mc-sub">${t('rpt_m_incongruentrt_sub')}</div>
+        ${percentileBarHTML('#1BA8D8', distRTPct)}
+      </div>
     </div>
 
     <div class="chart-grid-2">
@@ -555,9 +681,24 @@ ${sparklineHTML(pure.trialsChrono, `TRIAL BY TRIAL (${pure.trialsChrono.length})
     ${sparklineHTML(ant.trialsChrono, `TRIAL BY TRIAL (${ant.trialsChrono.length})`, '#1BA8D8', 4)}
 
     <div class="mc-grid mc-grid-3">
-      ${metricCardHTML({ label: t('rpt_m_alerteff'), value: ant.effAlerting.toFixed(2), unit: 'r/s', accent: '#D4A030', sub: t('rpt_m_alerteff_sub2') })}
-      ${metricCardHTML({ label: t('rpt_m_orienteff'), value: ant.effOrienting.toFixed(2), unit: 'r/s', accent: '#E95295', sub: t('rpt_m_orienteff_sub2') })}
-      ${metricCardHTML({ label: t('rpt_cs_executive') + ' Efficiency', value: ant.effExecutive.toFixed(2), unit: 'r/s', accent: '#1BA8D8', sub: t('rpt_m_execeff2_sub') })}
+      <div class="mc">
+        <div class="mc-label">${t('rpt_m_alerteff')}</div>
+        <div class="mc-val-row"><span class="mc-val">${ant.effAlerting.toFixed(2)}</span><span class="mc-unit">r/s</span></div>
+        <div class="mc-sub">${t('rpt_m_alerteff_sub2')}</div>
+        ${percentileBarHTML('#D4A030', antAlertEffPct)}
+      </div>
+      <div class="mc">
+        <div class="mc-label">${t('rpt_m_orienteff')}</div>
+        <div class="mc-val-row"><span class="mc-val">${ant.effOrienting.toFixed(2)}</span><span class="mc-unit">r/s</span></div>
+        <div class="mc-sub">${t('rpt_m_orienteff_sub2')}</div>
+        ${percentileBarHTML('#E95295', antOrientEffPct)}
+      </div>
+      <div class="mc">
+        <div class="mc-label">${t('rpt_cs_executive')} Efficiency</div>
+        <div class="mc-val-row"><span class="mc-val">${ant.effExecutive.toFixed(2)}</span><span class="mc-unit">r/s</span></div>
+        <div class="mc-sub">${t('rpt_m_execeff2_sub')}</div>
+        ${percentileBarHTML('#1BA8D8', antExecEffPct)}
+      </div>
     </div>
 
     ${glossaryHTML('#1BA8D8', [
@@ -594,6 +735,7 @@ ${sparklineHTML(pure.trialsChrono, `TRIAL BY TRIAL (${pure.trialsChrono.length})
         <div class="composite-panel-val">${composite.toFixed(1)}<span>/100</span></div>
         <div class="composite-panel-band">${scoreLabel(composite)}</div>
         <p class="composite-panel-text">${t('rpt_composite_text', { score: composite.toFixed(1), name: candFirst, band: scoreLabel(composite) })}</p>
+        ${percentileBarHTML('#1A1A1A', compositePct)}
       </div>
       <div class="bands-row">
         <div class="bands-title">${t('rpt_bands_title')}</div>

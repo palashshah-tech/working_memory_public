@@ -299,7 +299,7 @@ const DICTIONARY = {
     "rpt_net_orienting_body": "A location flash changed response speed by {val}ms. This reflects the benefit gained from knowing exactly where the target will appear.",
     "rpt_net_executive_label": "EXECUTIVE NETWORK",
     "rpt_net_executive_body": "Conflicting arrows changed response time by {val}ms. This measures the ability to resolve conflicting visual information.",
-    "rpt_net_percentile_label": "SCORE PERCENTILE (illustrative)",
+    "rpt_net_percentile_label": "PERCENTILE",
 
     "rpt_m_congruentrt": "No Distractor RT",
     "rpt_m_congruentrt_sub": "Easy trials (arrows agree)",
@@ -314,6 +314,9 @@ const DICTIONARY = {
     "rpt_m_execeff2_sub": "Higher = better conflict handling",
 
     "rpt_interp1": "{name}'s visual memory capacity — measured as <strong>Cowan's K = {k}</strong> — reached its peak around set size {peakSize}. Accuracy stayed strongest at lower set sizes and declined as more items were added, which is the expected pattern for visual working memory: a hard capacity limit rather than a gradual one. Overall accuracy across all {trials} trials in this stage was <strong>{acc}%</strong>, with a best streak of {streak} consecutive correct trials.",
+    "rpt_interp1_pct": " {name} ranks in the top {topPct}% of all candidates on memory capacity.",
+    "rpt_interp2_pct": " {name} ranks in the top {topPct}% of all candidates on distraction-resilient memory capacity.",
+    "rpt_interp3_pct": " {name} ranks in the top {topPct}% of all candidates on executive attention control.",
     "rpt_interp1_placeholder": "[Placeholder: deeper narrative synthesis of this candidate's memory profile would be generated here.]",
     "rpt_interp2": "With distraction present, accuracy was <strong>{acc}%</strong> across {trials} trials — a change of <strong>{change}</strong> than the distraction-free baseline. Memory capacity moved from K={k1} to K={k2}, and executive filtering efficiency measured at {execEff}%. This reflects {resilience}.",
     "rpt_interp2_placeholder": "[Placeholder: deeper narrative synthesis of this candidate's filtering profile would be generated here.]",

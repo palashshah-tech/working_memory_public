@@ -1083,6 +1083,44 @@
       letter-spacing: 0.06em;
   }
 
+  .pct-bar-wrap {
+      margin-top: 10px;
+  }
+
+  .pct-bar-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 9px;
+      color: #AAA;
+      margin-bottom: 4px;
+  }
+
+  .pct-bar-label {
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+  }
+
+  .pct-bar-val {
+      font-weight: 700;
+  }
+
+  .pct-bar-top {
+      color: #AAA;
+      font-weight: 400;
+  }
+
+  .pct-bar-track {
+      height: 4px;
+      background: #EBEBEB;
+      border-radius: 2px;
+      overflow: hidden;
+  }
+
+  .pct-bar-fill {
+      height: 100%;
+  }
+
   .mc,
   .chart-panel,
   .net-card,
