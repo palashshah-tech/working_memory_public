@@ -804,6 +804,11 @@ ${sparklineHTML(pure.trialsChrono, `TRIAL BY TRIAL (${pure.trialsChrono.length})
       </div>
     </div>
 
+    <div class="expert-box">
+      <div class="expert-title">${t('rpt_expert_title')}</div>
+      <p class="${c.expertCommentary ? '' : 'expert-empty'}">${c.expertCommentary || t('rpt_expert_empty')}</p>
+    </div>
+
     <div class="about-box">
       <div class="about-title">${t('rpt_about_title')}</div>
       <p>${t('rpt_about_text')}</p>

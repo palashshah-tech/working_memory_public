@@ -366,6 +366,9 @@ const DICTIONARY = {
     "rpt_cs_alerting": "Alerting",
     "rpt_cs_orienting": "Orienting",
     "rpt_cs_executive": "Executive",
+
+    "rpt_expert_title": "EXPERT COMMENTARY",
+    "rpt_expert_empty": "No expert commentary has been added to this report yet.",
   },
   ja: {
     // Welcome
