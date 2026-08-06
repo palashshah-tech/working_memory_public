@@ -657,6 +657,8 @@
       gap: 1.5px;
       height: 80px;
       margin-top: 4px;
+      position: relative;
+      z-index: 1;
   }
 
   .spark-bar {
@@ -1075,6 +1077,56 @@
   .expert-box p.expert-empty {
       color: #AAA;
       font-style: italic;
+  }
+
+  .spark-groups-row {
+      position: relative;
+      height: 30px;
+      margin-top: 4px;
+  }
+
+  .spark-group {
+      position: absolute;
+      top: 0;
+      text-align: center;
+  }
+
+  .spark-group-bracket {
+      border-top: 1.5px solid;
+      height: 6px;
+      border-left: 1.5px solid;
+      border-right: 1.5px solid;
+      border-bottom: none;
+      margin: 0 2px;
+  }
+
+  .spark-group-label {
+      font-family: 'Roboto Mono', monospace;
+      font-size: 9px;
+      font-weight: 700;
+      color: #666;
+      margin-top: 2px;
+  }
+
+  .spark-streak-highlight {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.06);
+      border-radius: 4px;
+      z-index: 2;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding-top: 4px;
+      pointer-events: none;
+  }
+
+  .spark-streak-label {
+      font-family: 'Roboto Mono', monospace;
+      font-size: 8.5px;
+      font-weight: 700;
+      white-space: nowrap;
   }
 
   .final-footer {

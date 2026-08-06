@@ -267,6 +267,7 @@ const DICTIONARY = {
     "rpt_spark_desc": "Green = correct, red = incorrect. Taller bars = slower response.",
     "rpt_spark_slowest": "Slowest",
     "rpt_spark_fastest": "Fastest",
+    "rpt_spark_best_streak": "Best streak: {n}",
 
     "rpt_gloss_cowansk_term": "Cowan's K",
     "rpt_gloss_cowansk_def": "Your memory 'size' — how many items your brain can hold in mind at once. Think of it as the number of slots on your mental whiteboard. Most people have 3–4 slots.",

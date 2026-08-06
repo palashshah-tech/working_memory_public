@@ -315,16 +315,61 @@ function comparisonBarChartHTML(title, sub, labels, seriesA, seriesB, colorA, co
   `;
 }
 
-function sparklineHTML(trialsChrono, totalLabel, accent, labelEvery = 5) {
-    if (!trialsChrono.length) return '';
-    const rts = trialsChrono.map(tr => tr.reactionTimeMs || 0).filter(v => v > 0);
-    const axis = computeNiceAxis(rts.length ? rts : [0, 1000]);
-    const min = axis.min, range = (axis.max - axis.min) || 1;
+function computeSetSizeGroups(trialsChrono) {
+  const groups = [];
+  trialsChrono.forEach((tr, i) => {
+    const last = groups[groups.length - 1];
+    if (last && last.setSize === tr.setSize) {
+      last.end = i + 1;
+    } else {
+      groups.push({ setSize: tr.setSize, start: i, end: i + 1 });
+    }
+  });
+  return groups;
+}
 
+function computeLongestStreakRange(trialsChrono, start, end) {
+  let bestStart = -1, bestLen = 0, curStart = -1, curLen = 0;
+  for (let i = start; i < end; i++) {
+    if (trialsChrono[i].isCorrect) {
+      if (curLen === 0) curStart = i;
+      curLen++;
+      if (curLen > bestLen) { bestLen = curLen; bestStart = curStart; }
+    } else {
+      curLen = 0;
+    }
+  }
+  return bestLen >= 2 ? { start: bestStart, end: bestStart + bestLen, len: bestLen } : null;
+}
+
+function sparklineHTML(trialsChrono, totalLabel, accent, labelEvery = 5, withSetSizeGroups = false) {
+  if (!trialsChrono.length) return '';
+  const rts = trialsChrono.map(tr => tr.reactionTimeMs || 0).filter(v => v > 0);
+  const axis = computeNiceAxis(rts.length ? rts : [0, 1000]);
+  const min = axis.min, range = (axis.max - axis.min) || 1;
+  const n = trialsChrono.length;
+
+  const groups = withSetSizeGroups ? computeSetSizeGroups(trialsChrono) : [];
+  const groupBracketsHtml = groups.map(g => {
+    const left = (g.start / n) * 100;
+    const width = ((g.end - g.start) / n) * 100;
     return `
+      <div class="spark-group" style="left:${left}%; width:${width}%;">
+        <div class="spark-group-bracket" style="border-color:${accent};"></div>
+        <div class="spark-group-label">N=${g.setSize}</div>
+      </div>
+    `;
+  }).join('');
+
+  const overallStreak = computeLongestStreakRange(trialsChrono, 0, n);
+  const streakLeft = overallStreak ? (overallStreak.start / n) * 100 : 0;
+  const streakWidth = overallStreak ? ((overallStreak.end - overallStreak.start) / n) * 100 : 0;
+
+  return `
     <div class="chart-panel">
       <div class="chart-title">${t('rpt_spark_title')} — ${totalLabel}</div>
       <div class="chart-sub">${t('rpt_spark_desc')}</div>
+      ${withSetSizeGroups ? `<div class="spark-groups-row" style="margin-left:54px;">${groupBracketsHtml}</div>` : ''}
       <div class="chart-with-axis">
         <div class="axis-labels-worded">
           <span style="color:${accent};">${t('rpt_spark_slowest')}</span>
@@ -333,18 +378,23 @@ function sparklineHTML(trialsChrono, totalLabel, accent, labelEvery = 5) {
         </div>
         <div class="chart-plot chart-plot-spark">
           ${gridlinesHTML(axis)}
+          ${overallStreak ? `
+            <div class="spark-streak-highlight" style="left:${streakLeft}%; width:${streakWidth}%;">
+              <span class="spark-streak-label" style="color:${accent};">${t('rpt_spark_best_streak', { n: overallStreak.len })}</span>
+            </div>
+          ` : ''}
           <div class="spark">
             ${trialsChrono.map((tr, i) => {
-        const rt = tr.reactionTimeMs || 0;
-        const h = Math.max(3, ((rt - min) / range) * 100);
-        return `<div class="spark-bar" style="height:${h}%; background:${tr.isCorrect ? '#50A87F' : '#D44040'};" title="${i + 1}: ${rt.toFixed(0)}ms"></div>`;
-    }).join('')}
+              const rt = tr.reactionTimeMs || 0;
+              const h = Math.max(3, ((rt - min) / range) * 100);
+              return `<div class="spark-bar" style="height:${h}%; background:${tr.isCorrect ? '#50A87F' : '#D44040'};" title="${i + 1}: ${rt.toFixed(0)}ms${tr.setSize != null ? ', N=' + tr.setSize : ''}"></div>`;
+            }).join('')}
           </div>
         </div>
       </div>
-        <div class="spark-axis" style="margin-left:54px;">
-            ${trialsChrono.map((_, i) => (i === 0 || (i + 1) % labelEvery === 0) ? `<span style="left:${(i / (trialsChrono.length - 1)) * 100}%;">#${i + 1}</span>` : '').join('')}
-        </div>
+      <div class="spark-axis" style="margin-left:54px;">
+        ${trialsChrono.map((_, i) => (i === 0 || (i + 1) % labelEvery === 0) ? `<span style="left:${(i / (trialsChrono.length - 1)) * 100}%;">#${i + 1}</span>` : '').join('')}
+      </div>
     </div>
   `;
 }
@@ -541,7 +591,7 @@ function buildReportHTML(c, allCandidates = []) {
             '#E95295', v => Math.round(v) + '%', 50)}
     </div>
 
-${sparklineHTML(pure.trialsChrono, `TRIAL BY TRIAL (${pure.trialsChrono.length})`, '#E95295')}
+${sparklineHTML(pure.trialsChrono, `TRIAL BY TRIAL (${pure.trialsChrono.length})`, '#E95295', 5, true)}
 
     ${glossaryHTML('#E95295', [
                 { term: t('rpt_gloss_cowansk_term'), def: t('rpt_gloss_cowansk_def') },
@@ -623,7 +673,7 @@ ${sparklineHTML(pure.trialsChrono, `TRIAL BY TRIAL (${pure.trialsChrono.length})
             '#E95295', '#50A87F', t('rpt_task1_pure'), t('rpt_task2_distractor'), v => Math.round(v) + '%')}
     </div>
 
-    ${sparklineHTML(dist.trialsChrono, `TRIAL BY TRIAL (${dist.trialsChrono.length})`, '#50A87F', 5)}
+  ${sparklineHTML(dist.trialsChrono, `TRIAL BY TRIAL (${dist.trialsChrono.length})`, '#50A87F', 5, true)}
 
     ${glossaryHTML('#50A87F', [
                 { term: t('rpt_gloss_cowanskdist_term'), def: t('rpt_gloss_cowanskdist_def') },
