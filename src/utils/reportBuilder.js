@@ -9,6 +9,14 @@ import { t } from './i18n.js';
 import reportStyles from '../styles/reportBuilder.css?raw';
 
 const STANDARD_SET_SIZES = [1, 2, 3, 4, 6, 8];
+
+function median(arr) {
+    if (!arr.length) return 0;
+    const sorted = [...arr].sort((a, b) => a - b);
+    const mid = Math.floor(sorted.length / 2);
+    return sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+}
+
 const logoUrl = window.location.origin + '/xiberlinc_logo_transparent.png';
 
 function padToStandardSizes(curve) {
@@ -43,13 +51,13 @@ function computeVWMStats(trials, taskType) {
         const faRate = (b.fa + b.cr) ? b.fa / (b.fa + b.cr) : 0;
         const k = Math.max(0, size * (hitRate - faRate));
         const acc = b.total ? (b.hits + b.cr) / b.total : 0;
-        const avgRT = b.rts.length ? b.rts.reduce((a, x) => a + x, 0) / b.rts.length : 0;
+        const avgRT = median(b.rts);
         return { setSize: size, k, hitRate, faRate, accuracy: acc, avgRT, trials: b.total };
     });
 
     const correctRts = stage.filter(tr => tr.isCorrect && tr.reactionTimeMs).map(tr => tr.reactionTimeMs);
     const overallAcc = stage.length ? stage.filter(tr => tr.isCorrect).length / stage.length : 0;
-    const avgRT = correctRts.length ? correctRts.reduce((a, b) => a + b, 0) / correctRts.length : 0;
+    const avgRT = median(correctRts);
     const fastest = correctRts.length ? Math.min(...correctRts) : 0;
     const slowest = correctRts.length ? Math.max(...correctRts) : 0;
     let maxStreak = 0, streak = 0;
@@ -71,15 +79,14 @@ function computeANTStats(trials) {
         byFlanker[tr.flankerType].total++;
         if (tr.isCorrect) { byFlanker[tr.flankerType].correct++; if (tr.reactionTimeMs) byFlanker[tr.flankerType].rts.push(tr.reactionTimeMs); }
     });
-    const avg = arr => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0;
     const accOf = obj => obj && obj.total ? obj.correct / obj.total : 0;
 
-    const rtNone = avg(byCue['none']?.rts || []);
-    const rtCenter = avg(byCue['center']?.rts || []);
-    const rtDouble = avg(byCue['double']?.rts || []);
-    const rtSpatial = avg(byCue['spatial']?.rts || []);
-    const rtCongruent = avg(byFlanker['congruent']?.rts || []);
-    const rtIncongruent = avg(byFlanker['incongruent']?.rts || []);
+    const rtNone = median(byCue['none']?.rts || []);
+    const rtCenter = median(byCue['center']?.rts || []);
+    const rtDouble = median(byCue['double']?.rts || []);
+    const rtSpatial = median(byCue['spatial']?.rts || []);
+    const rtCongruent = median(byFlanker['congruent']?.rts || []);
+    const rtIncongruent = median(byFlanker['incongruent']?.rts || []);
     const accCongruent = accOf(byFlanker['congruent']);
     const accIncongruent = accOf(byFlanker['incongruent']);
     const accNone = accOf(byCue['none']);
@@ -122,27 +129,26 @@ function scoreLabel(score) {
     if (score >= 30) return t('rpt_band_average');
     return t('rpt_band_developing');
 }
-function pseudoPercentile(score) { return Math.round(score); }
 
 function computeRealPercentile(allCandidates, fieldOrExtractor, value, higherIsBetter = true) {
-  const extractor = typeof fieldOrExtractor === 'function'
-    ? fieldOrExtractor
-    : (x) => (x.scores ? x.scores[fieldOrExtractor] : undefined);
-  const pool = allCandidates.map(extractor).filter(v => typeof v === 'number' && !isNaN(v));
-  if (pool.length < 10 || value == null) return null;
-  const below = pool.filter(v => higherIsBetter ? v < value : v > value).length;
-  return Math.round((below / pool.length) * 100);
+    const extractor = typeof fieldOrExtractor === 'function'
+        ? fieldOrExtractor
+        : (x) => (x.scores ? x.scores[fieldOrExtractor] : undefined);
+    const pool = allCandidates.map(extractor).filter(v => typeof v === 'number' && !isNaN(v));
+    if (pool.length < 10 || value == null) return null;
+    const below = pool.filter(v => higherIsBetter ? v < value : v > value).length;
+    return Math.round((below / pool.length) * 100);
 }
 
 function computePoolStats(allCandidates, fieldOrExtractor) {
-  const extractor = typeof fieldOrExtractor === 'function'
-    ? fieldOrExtractor
-    : (x) => (x.scores ? x.scores[fieldOrExtractor] : undefined);
-  const pool = allCandidates.map(extractor).filter(v => typeof v === 'number' && !isNaN(v));
-  if (pool.length < 10) return null;
-  const mean = pool.reduce((a, b) => a + b, 0) / pool.length;
-  const variance = pool.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / pool.length;
-  return { mean, stdDev: Math.sqrt(variance), n: pool.length };
+    const extractor = typeof fieldOrExtractor === 'function'
+        ? fieldOrExtractor
+        : (x) => (x.scores ? x.scores[fieldOrExtractor] : undefined);
+    const pool = allCandidates.map(extractor).filter(v => typeof v === 'number' && !isNaN(v));
+    if (pool.length < 10) return null;
+    const mean = pool.reduce((a, b) => a + b, 0) / pool.length;
+    const variance = pool.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / pool.length;
+    return { mean, stdDev: Math.sqrt(variance), n: pool.length };
 }
 
 function percentileBarHTML(accent, pct) {
@@ -316,56 +322,56 @@ function comparisonBarChartHTML(title, sub, labels, seriesA, seriesB, colorA, co
 }
 
 function computeSetSizeGroups(trialsChrono) {
-  const groups = [];
-  trialsChrono.forEach((tr, i) => {
-    const last = groups[groups.length - 1];
-    if (last && last.setSize === tr.setSize) {
-      last.end = i + 1;
-    } else {
-      groups.push({ setSize: tr.setSize, start: i, end: i + 1 });
-    }
-  });
-  return groups;
+    const groups = [];
+    trialsChrono.forEach((tr, i) => {
+        const last = groups[groups.length - 1];
+        if (last && last.setSize === tr.setSize) {
+            last.end = i + 1;
+        } else {
+            groups.push({ setSize: tr.setSize, start: i, end: i + 1 });
+        }
+    });
+    return groups;
 }
 
 function computeLongestStreakRange(trialsChrono, start, end) {
-  let bestStart = -1, bestLen = 0, curStart = -1, curLen = 0;
-  for (let i = start; i < end; i++) {
-    if (trialsChrono[i].isCorrect) {
-      if (curLen === 0) curStart = i;
-      curLen++;
-      if (curLen > bestLen) { bestLen = curLen; bestStart = curStart; }
-    } else {
-      curLen = 0;
+    let bestStart = -1, bestLen = 0, curStart = -1, curLen = 0;
+    for (let i = start; i < end; i++) {
+        if (trialsChrono[i].isCorrect) {
+            if (curLen === 0) curStart = i;
+            curLen++;
+            if (curLen > bestLen) { bestLen = curLen; bestStart = curStart; }
+        } else {
+            curLen = 0;
+        }
     }
-  }
-  return bestLen >= 2 ? { start: bestStart, end: bestStart + bestLen, len: bestLen } : null;
+    return bestLen >= 2 ? { start: bestStart, end: bestStart + bestLen, len: bestLen } : null;
 }
 
 function sparklineHTML(trialsChrono, totalLabel, accent, labelEvery = 5, withSetSizeGroups = false) {
-  if (!trialsChrono.length) return '';
-  const rts = trialsChrono.map(tr => tr.reactionTimeMs || 0).filter(v => v > 0);
-  const axis = computeNiceAxis(rts.length ? rts : [0, 1000]);
-  const min = axis.min, range = (axis.max - axis.min) || 1;
-  const n = trialsChrono.length;
+    if (!trialsChrono.length) return '';
+    const rts = trialsChrono.map(tr => tr.reactionTimeMs || 0).filter(v => v > 0);
+    const axis = computeNiceAxis(rts.length ? rts : [0, 1000]);
+    const min = axis.min, range = (axis.max - axis.min) || 1;
+    const n = trialsChrono.length;
 
-  const groups = withSetSizeGroups ? computeSetSizeGroups(trialsChrono) : [];
-  const groupBracketsHtml = groups.map(g => {
-    const left = (g.start / n) * 100;
-    const width = ((g.end - g.start) / n) * 100;
-    return `
+    const groups = withSetSizeGroups ? computeSetSizeGroups(trialsChrono) : [];
+    const groupBracketsHtml = groups.map(g => {
+        const left = (g.start / n) * 100;
+        const width = ((g.end - g.start) / n) * 100;
+        return `
       <div class="spark-group" style="left:${left}%; width:${width}%;">
         <div class="spark-group-bracket" style="border-color:${accent};"></div>
         <div class="spark-group-label">N=${g.setSize}</div>
       </div>
     `;
-  }).join('');
+    }).join('');
 
-  const overallStreak = computeLongestStreakRange(trialsChrono, 0, n);
-  const streakLeft = overallStreak ? (overallStreak.start / n) * 100 : 0;
-  const streakWidth = overallStreak ? ((overallStreak.end - overallStreak.start) / n) * 100 : 0;
+    const overallStreak = computeLongestStreakRange(trialsChrono, 0, n);
+    const streakLeft = overallStreak ? (overallStreak.start / n) * 100 : 0;
+    const streakWidth = overallStreak ? ((overallStreak.end - overallStreak.start) / n) * 100 : 0;
 
-  return `
+    return `
     <div class="chart-panel">
       <div class="chart-title">${t('rpt_spark_title')} — ${totalLabel}</div>
       <div class="chart-sub">${t('rpt_spark_desc')}</div>
@@ -385,10 +391,10 @@ function sparklineHTML(trialsChrono, totalLabel, accent, labelEvery = 5, withSet
           ` : ''}
           <div class="spark">
             ${trialsChrono.map((tr, i) => {
-              const rt = tr.reactionTimeMs || 0;
-              const h = Math.max(3, ((rt - min) / range) * 100);
-              return `<div class="spark-bar" style="height:${h}%; background:${tr.isCorrect ? '#50A87F' : '#D44040'};" title="${i + 1}: ${rt.toFixed(0)}ms${tr.setSize != null ? ', N=' + tr.setSize : ''}"></div>`;
-            }).join('')}
+        const rt = tr.reactionTimeMs || 0;
+        const h = Math.max(3, ((rt - min) / range) * 100);
+        return `<div class="spark-bar" style="height:${h}%; background:${tr.isCorrect ? '#50A87F' : '#D44040'};" title="${i + 1}: ${rt.toFixed(0)}ms${tr.setSize != null ? ', N=' + tr.setSize : ''}"></div>`;
+    }).join('')}
           </div>
         </div>
       </div>
@@ -448,12 +454,12 @@ function buildReportHTML(c, allCandidates = []) {
     // Precompute the same trial-derived stats for every candidate in the pool,
     // so extremes (fastest/slowest/streak/RT) can be percentiled too, not just stored score fields.
     const poolStats = allCandidates.map(x => {
-      const xTrials = x.trials || [];
-      return {
-        pure: computeVWMStats(xTrials, 'vwm-pure'),
-        dist: computeVWMStats(xTrials, 'vwm-distractor'),
-        ant: computeANTStats(xTrials),
-      };
+        const xTrials = x.trials || [];
+        return {
+            pure: computeVWMStats(xTrials, 'vwm-pure'),
+            dist: computeVWMStats(xTrials, 'vwm-distractor'),
+            ant: computeANTStats(xTrials),
+        };
     });
 
     const composite = s.compositeScore || 0;
@@ -529,10 +535,10 @@ function buildReportHTML(c, allCandidates = []) {
 
     ${interpretBoxHTML('#E95295', '#FDF3F7', `
       ${t('rpt_interp1', {
-                name: candFirst, k: pure.maxK.toFixed(1),
-                peakSize: pure.curve.find(c => c.k === pure.maxK)?.setSize || pure.maxSetSize,
-                trials: pure.totalTrials, acc: (pure.overallAcc * 100).toFixed(0), streak: pure.maxStreak,
-            })}${kPurePct != null && kPureStats ? t('rpt_interp1_pct', { name: candFirst, topPct: 100 - kPurePct, pct: kPurePct, value: pure.maxK.toFixed(1), mean: kPureStats.mean.toFixed(1), sd: kPureStats.stdDev.toFixed(1) }) : ''}
+        name: candFirst, k: pure.maxK.toFixed(1),
+        peakSize: pure.curve.find(c => c.k === pure.maxK)?.setSize || pure.maxSetSize,
+        trials: pure.totalTrials, acc: (pure.overallAcc * 100).toFixed(0), streak: pure.maxStreak,
+    })}${kPurePct != null && kPureStats ? t('rpt_interp1_pct', { name: candFirst, topPct: 100 - kPurePct, pct: kPurePct, value: pure.maxK.toFixed(1), mean: kPureStats.mean.toFixed(1), sd: kPureStats.stdDev.toFixed(1) }) : ''}
     `)}
 
     <div class="mc-grid">
@@ -610,11 +616,11 @@ ${sparklineHTML(pure.trialsChrono, `TRIAL BY TRIAL (${pure.trialsChrono.length})
 
     ${interpretBoxHTML('#50A87F', '#F2FAF6', `
       ${t('rpt_interp2', {
-                acc: (dist.overallAcc * 100).toFixed(0), trials: dist.totalTrials,
-                change: distDrop >= 0 ? t('rpt_interp2_change_lower', { n: distDrop.toFixed(0) }) : t('rpt_interp2_change_higher', { n: Math.abs(distDrop).toFixed(0) }),
-                k1: pure.maxK.toFixed(1), k2: dist.maxK.toFixed(1), execEff: execEfficiency.toFixed(1),
-                resilience: Math.abs(distDrop) < 5 ? t('rpt_interp2_resilience_high') : Math.abs(distDrop) < 20 ? t('rpt_interp2_resilience_mod') : t('rpt_interp2_resilience_low'),
-            })}${kDistPct != null && kDistStats ? t('rpt_interp2_pct', { name: candFirst, topPct: 100 - kDistPct, pct: kDistPct, value: dist.maxK.toFixed(1), mean: kDistStats.mean.toFixed(1), sd: kDistStats.stdDev.toFixed(1) }) : ''}
+        acc: (dist.overallAcc * 100).toFixed(0), trials: dist.totalTrials,
+        change: distDrop >= 0 ? t('rpt_interp2_change_lower', { n: distDrop.toFixed(0) }) : t('rpt_interp2_change_higher', { n: Math.abs(distDrop).toFixed(0) }),
+        k1: pure.maxK.toFixed(1), k2: dist.maxK.toFixed(1), execEff: execEfficiency.toFixed(1),
+        resilience: Math.abs(distDrop) < 5 ? t('rpt_interp2_resilience_high') : Math.abs(distDrop) < 20 ? t('rpt_interp2_resilience_mod') : t('rpt_interp2_resilience_low'),
+    })}${kDistPct != null && kDistStats ? t('rpt_interp2_pct', { name: candFirst, topPct: 100 - kDistPct, pct: kDistPct, value: dist.maxK.toFixed(1), mean: kDistStats.mean.toFixed(1), sd: kDistStats.stdDev.toFixed(1) }) : ''}
     `)}
 
     <div class="mc-grid">
@@ -700,9 +706,9 @@ ${sparklineHTML(pure.trialsChrono, `TRIAL BY TRIAL (${pure.trialsChrono.length})
     </div>
   `;
 
-    const alertPct = computeRealPercentile(allCandidates, 'alerting', s.alerting, true) ?? pseudoPercentile(s.componentScores?.alerting || 0);
-    const orientPct = computeRealPercentile(allCandidates, 'orienting', s.orienting, true) ?? pseudoPercentile(s.componentScores?.orienting || 0);
-    const execPct = computeRealPercentile(allCandidates, 'executive', s.executive, true) ?? pseudoPercentile(s.componentScores?.executive || 0);
+    const alertPct = computeRealPercentile(allCandidates, 'alerting', s.alerting, true);
+    const orientPct = computeRealPercentile(allCandidates, 'orienting', s.orienting, true);
+    const execPct = computeRealPercentile(allCandidates, 'executive', s.executive, true);
 
     const sec3 = `
   <div class="section">
@@ -710,9 +716,9 @@ ${sparklineHTML(pure.trialsChrono, `TRIAL BY TRIAL (${pure.trialsChrono.length})
 
     ${interpretBoxHTML('#1BA8D8', '#F1F8FB', `
       ${t('rpt_interp3', {
-                alerting: ant.alerting.toFixed(0), orienting: ant.orienting.toFixed(0), executive: ant.executive.toFixed(0),
-                rtC: ant.rtCongruent.toFixed(0), rtI: ant.rtIncongruent.toFixed(0), trials: ant.totalTrials, acc: (ant.overallAcc * 100).toFixed(0),
-            })}${execPct != null && executiveStats ? t('rpt_interp3_pct', { name: candFirst, topPct: 100 - execPct, pct: execPct, value: ant.executive.toFixed(0), mean: executiveStats.mean.toFixed(0), sd: executiveStats.stdDev.toFixed(0) }) : ''}
+        alerting: ant.alerting.toFixed(0), orienting: ant.orienting.toFixed(0), executive: ant.executive.toFixed(0),
+        rtC: ant.rtCongruent.toFixed(0), rtI: ant.rtIncongruent.toFixed(0), trials: ant.totalTrials, acc: (ant.overallAcc * 100).toFixed(0),
+    })}${execPct != null && executiveStats ? t('rpt_interp3_pct', { name: candFirst, topPct: 100 - execPct, pct: execPct, value: ant.executive.toFixed(0), mean: executiveStats.mean.toFixed(0), sd: executiveStats.stdDev.toFixed(0) }) : ''}
     `)}
 
     <div class="net-grid">

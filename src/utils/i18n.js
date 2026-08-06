@@ -222,7 +222,7 @@ const DICTIONARY = {
     "rpt_m_maxsetsize": "Max Set Size",
     "rpt_m_maxsetsize_sub": "Largest array tested",
     "rpt_m_avgrt": "Avg. Reaction Time",
-    "rpt_m_avgrt_sub": "Mean across correct trials",
+    "rpt_m_avgrt_sub": "Median across correct trials",
     "rpt_m_overallacc": "Overall Accuracy",
     "rpt_m_overallacc_sub": "{count} trials total",
     "rpt_m_fastest": "Fastest Correct",
