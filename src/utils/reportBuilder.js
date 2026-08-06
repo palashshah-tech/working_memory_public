@@ -134,6 +134,17 @@ function computeRealPercentile(allCandidates, fieldOrExtractor, value, higherIsB
   return Math.round((below / pool.length) * 100);
 }
 
+function computePoolStats(allCandidates, fieldOrExtractor) {
+  const extractor = typeof fieldOrExtractor === 'function'
+    ? fieldOrExtractor
+    : (x) => (x.scores ? x.scores[fieldOrExtractor] : undefined);
+  const pool = allCandidates.map(extractor).filter(v => typeof v === 'number' && !isNaN(v));
+  if (pool.length < 10) return null;
+  const mean = pool.reduce((a, b) => a + b, 0) / pool.length;
+  const variance = pool.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / pool.length;
+  return { mean, stdDev: Math.sqrt(variance), n: pool.length };
+}
+
 function percentileBarHTML(accent, pct) {
     if (pct == null) return '';
     const topPct = 100 - pct;
@@ -428,11 +439,15 @@ function buildReportHTML(c, allCandidates = []) {
     const execSpeed = pure.avgRT - dist.avgRT;
     const distDrop = (pure.overallAcc - dist.overallAcc) * 100;
 
+    // STANDING AMONG CANDIDATE PERCENTILES
     const kPurePct = computeRealPercentile(allCandidates, 'kPure', s.kPure, true);
     const kDistPct = computeRealPercentile(allCandidates, 'kDistractor', s.kDistractor, true);
     const compositePct = computeRealPercentile(allCandidates, 'compositeScore', composite, true);
 
-    // STANDING AMONG CANDIDATE PERCENTILES
+    const kPureStats = computePoolStats(allCandidates, 'kPure');
+    const kDistStats = computePoolStats(allCandidates, 'kDistractor');
+    const executiveStats = computePoolStats(allCandidates, 'executive');
+
     // Section 1
     const maxSetSizePct = computeRealPercentile(allCandidates, x => x.scores?.maxSetSize, pure.maxSetSize, true);
     const pureAvgRTPct = computeRealPercentile(allCandidates, (x, i) => poolStats[allCandidates.indexOf(x)]?.pure.avgRT, pure.avgRT, false);
@@ -467,7 +482,7 @@ function buildReportHTML(c, allCandidates = []) {
                 name: candFirst, k: pure.maxK.toFixed(1),
                 peakSize: pure.curve.find(c => c.k === pure.maxK)?.setSize || pure.maxSetSize,
                 trials: pure.totalTrials, acc: (pure.overallAcc * 100).toFixed(0), streak: pure.maxStreak,
-            })}${kPurePct != null ? t('rpt_interp1_pct', { name: candFirst, topPct: 100 - kPurePct }) : ''}
+            })}${kPurePct != null && kPureStats ? t('rpt_interp1_pct', { name: candFirst, topPct: 100 - kPurePct, pct: kPurePct, value: pure.maxK.toFixed(1), mean: kPureStats.mean.toFixed(1), sd: kPureStats.stdDev.toFixed(1) }) : ''}
     `)}
 
     <div class="mc-grid">
@@ -549,7 +564,7 @@ ${sparklineHTML(pure.trialsChrono, `TRIAL BY TRIAL (${pure.trialsChrono.length})
                 change: distDrop >= 0 ? t('rpt_interp2_change_lower', { n: distDrop.toFixed(0) }) : t('rpt_interp2_change_higher', { n: Math.abs(distDrop).toFixed(0) }),
                 k1: pure.maxK.toFixed(1), k2: dist.maxK.toFixed(1), execEff: execEfficiency.toFixed(1),
                 resilience: Math.abs(distDrop) < 5 ? t('rpt_interp2_resilience_high') : Math.abs(distDrop) < 20 ? t('rpt_interp2_resilience_mod') : t('rpt_interp2_resilience_low'),
-            })}${kDistPct != null ? t('rpt_interp2_pct', { name: candFirst, topPct: 100 - kDistPct }) : ''}
+            })}${kDistPct != null && kDistStats ? t('rpt_interp2_pct', { name: candFirst, topPct: 100 - kDistPct, pct: kDistPct, value: dist.maxK.toFixed(1), mean: kDistStats.mean.toFixed(1), sd: kDistStats.stdDev.toFixed(1) }) : ''}
     `)}
 
     <div class="mc-grid">
@@ -647,7 +662,7 @@ ${sparklineHTML(pure.trialsChrono, `TRIAL BY TRIAL (${pure.trialsChrono.length})
       ${t('rpt_interp3', {
                 alerting: ant.alerting.toFixed(0), orienting: ant.orienting.toFixed(0), executive: ant.executive.toFixed(0),
                 rtC: ant.rtCongruent.toFixed(0), rtI: ant.rtIncongruent.toFixed(0), trials: ant.totalTrials, acc: (ant.overallAcc * 100).toFixed(0),
-            })}${execPct != null ? t('rpt_interp3_pct', { name: candFirst, topPct: 100 - execPct }) : ''}
+            })}${execPct != null && executiveStats ? t('rpt_interp3_pct', { name: candFirst, topPct: 100 - execPct, pct: execPct, value: ant.executive.toFixed(0), mean: executiveStats.mean.toFixed(0), sd: executiveStats.stdDev.toFixed(0) }) : ''}
     `)}
 
     <div class="net-grid">

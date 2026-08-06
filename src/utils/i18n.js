@@ -314,9 +314,9 @@ const DICTIONARY = {
     "rpt_m_execeff2_sub": "Higher = better conflict handling",
 
     "rpt_interp1": "{name}'s visual memory capacity — measured as <strong>Cowan's K = {k}</strong> — reached its peak around set size {peakSize}. Accuracy stayed strongest at lower set sizes and declined as more items were added, which is the expected pattern for visual working memory: a hard capacity limit rather than a gradual one. Overall accuracy across all {trials} trials in this stage was <strong>{acc}%</strong>, with a best streak of {streak} consecutive correct trials.",
-    "rpt_interp1_pct": " {name} ranks in the top {topPct}% of all candidates on memory capacity.",
-    "rpt_interp2_pct": " {name} ranks in the top {topPct}% of all candidates on distraction-resilient memory capacity.",
-    "rpt_interp3_pct": " {name} ranks in the top {topPct}% of all candidates on executive attention control.",
+    "rpt_interp1_pct": " Across all candidates, memory capacity (Cowan's K) averages {mean} (SD {sd}); {name}'s score of {value} places them at the {pct}th percentile — the top {topPct}%.",
+    "rpt_interp2_pct": " Across all candidates, memory capacity under distraction averages {mean} (SD {sd}); {name}'s score of {value} places them at the {pct}th percentile — the top {topPct}%.",
+    "rpt_interp3_pct": " Across all candidates, executive control cost averages {mean}ms (SD {sd}ms); {name}'s score of {value}ms places them at the {pct}th percentile — the top {topPct}%.",
     "rpt_interp1_placeholder": "[Placeholder: deeper narrative synthesis of this candidate's memory profile would be generated here.]",
     "rpt_interp2": "With distraction present, accuracy was <strong>{acc}%</strong> across {trials} trials — a change of <strong>{change}</strong> than the distraction-free baseline. Memory capacity moved from K={k1} to K={k2}, and executive filtering efficiency measured at {execEff}%. This reflects {resilience}.",
     "rpt_interp2_placeholder": "[Placeholder: deeper narrative synthesis of this candidate's filtering profile would be generated here.]",
